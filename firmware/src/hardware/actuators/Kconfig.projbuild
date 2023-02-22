@@ -1,0 +1,13 @@
+menu "Actuators"
+
+    menu "Debugging"
+
+        config DISABLE_DC_COASTING
+            bool "Disable coasting of DC motors"
+            default n
+            help
+                Coasting refers to disconnecting the DC motor when zero torque is applied, letting it coast instead of braking. Can be disabled to debug motor driver issues.
+
+    endmenu
+
+endmenu

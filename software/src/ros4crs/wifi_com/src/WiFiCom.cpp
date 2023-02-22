@@ -1,0 +1,229 @@
+/**
+ * @file WiFiCom.cpp
+ * @author Lukas Vogel (vogellu@ethz.ch)
+ * @brief Class that communicates with cars over Wi-Fi and UDP.
+ */
+
+#include <arpa/inet.h>
+#include <boost/interprocess/streams/bufferstream.hpp>
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <string>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "Packet.pb.h"
+#include "crs_msgs/car_input.h"
+#include "crs_msgs/car_ll_control_input.h"
+#include "crs_msgs/car_steer_state.h"
+#include "ros/ros.h"
+#include "sensor_msgs/Imu.h"
+#include "wifi_com/WiFiCom.h"
+
+/** Default port number to open the UDP server on in case nothing was specified
+    in the config file. */
+#define DEFAULT_PORT_NUM 20211
+
+/** Maximum recommended size of a UDP packet that is sent without complaining. */
+#define UDP_MAX_RECOMMENDED_SIZE 256
+/** Gravitational acceleration, used to convert IMU data from g's to m/s^2 */
+#define GRAVITATIONAL_ACCELERATION 9.81
+
+/* Public method implementation --------------------------------------------- */
+
+WiFiCom::WiFiCom(ros::NodeHandle& n) : node_handle_(n), udp_port_(DEFAULT_PORT_NUM)
+{
+  loadParameters();
+  setupSubscribers();
+  setupPublishers();
+  startUDPServer();
+  return;
+}
+
+WiFiCom::~WiFiCom()
+{
+  return;
+}
+
+void WiFiCom::poll()
+{
+  uint8_t rx_buffer[512];
+  ssize_t recv_len = udp_server_.pollReceive(&client_, rx_buffer, sizeof(rx_buffer));
+
+  if (recv_len < 0)
+  {
+    ROS_ERROR_STREAM("Polling of UDP server threw an error!" << recv_len);
+    return;
+  }
+  if (recv_len == 0)
+  {
+    // no new data arrived
+    return;
+  }
+
+  // Byte array is null terminated, so can cast to string
+  boost::interprocess::bufferstream rx_istream((char*)rx_buffer, recv_len);
+
+  Packet p;
+  if (!p.ParseFromIstream(&rx_istream))
+  {
+    ROS_ERROR("Could not parse packet from input stream.");
+  }
+
+  if (p.has_car_state())
+  {
+    const CarState& state = p.car_state();
+    if (state.has_drive_motor_input() && state.has_steer_motor_input() && state.has_current_reference())
+    {
+      publishLowLevelControlInput(state.current_reference(), state.drive_motor_input(), state.steer_motor_input());
+    }
+
+    if (state.has_imu_data())
+    {
+      publishImuData(state.imu_data());
+    }
+
+    if (state.has_steer_data())
+    {
+      publishSteerState(state.steer_data());
+    }
+  }
+  else
+  {
+    ROS_WARN("Received unknown packet type, dropping...");
+  }
+}
+
+void WiFiCom::controllerCallback(const crs_msgs::car_input::ConstPtr& msg)
+{
+  sendControlInput(msg);
+}
+
+/* Private method implementation -------------------------------------------- */
+
+void WiFiCom::loadParameters()
+{
+  ROS_INFO("WiFiCom: loading parameters");
+  if (!node_handle_.getParam("udp_port", udp_port_))
+  {
+    ROS_WARN_STREAM("No port number from config, using standard port: " << udp_port_);
+  }
+}
+
+void WiFiCom::setupSubscribers()
+{
+  sub_control_input_ = node_handle_.subscribe("control_input", 1, &WiFiCom::controllerCallback, this);
+}
+
+void WiFiCom::setupPublishers()
+{
+  // While all these messages might arrive in the same packet from the car, each
+  // belongs to a separate CRS topic and they are thus published on those:
+  pub_car_ll_control_input_ = node_handle_.advertise<crs_msgs::car_ll_control_input>("car_ll_control_input", 1);
+  pub_imu_ = node_handle_.advertise<sensor_msgs::Imu>("imu", 1);
+  pub_car_steer_state_ = node_handle_.advertise<crs_msgs::car_steer_state>("car_steer_state", 1);
+}
+
+bool WiFiCom::startUDPServer()
+{
+  udp_server_.setPortNum(udp_port_);
+  if (!udp_server_.startListening())
+  {
+    ROS_ERROR("Could not start listening on UDP server!");
+    return false;
+  }
+  ROS_INFO_STREAM("WiFiCom: Started listening on UDPServer, port = " << udp_port_);
+  return true;
+}
+
+void WiFiCom::sendControlInput(const crs_msgs::car_input::ConstPtr& msg)
+{
+  Packet p;
+  SingleControlInput* inp = p.mutable_control_input();
+  inp->set_torque_ref(msg->torque);
+  inp->set_steer_ref(msg->steer);
+
+  // Handle case where the car's internal steering map should be overriden and
+  // a raw potentiometer reference sent. This is indicated by the steer_override
+  // flag in the car_input message.
+  if (msg->steer_override)  // NOLINT
+  {
+    inp->mutable_steer_input()->set_steer_voltage(msg->steer);
+  }
+  else
+  {
+    inp->mutable_steer_input()->set_steer_angle(msg->steer);
+  }
+
+  std::string serialized_bytes;
+  p.SerializeToString(&serialized_bytes);
+
+  // Packets that are too long may be transferred in more than one transaction,
+  // which is untested both in the server as in the client code.
+  if (serialized_bytes.length() > UDP_MAX_RECOMMENDED_SIZE)
+  {
+    ROS_WARN_STREAM("Packet length is " << serialized_bytes.length() << "B, while recommended limit is "
+                                        << UDP_MAX_RECOMMENDED_SIZE << "B!");
+  }
+
+  if (client_.ss_family == AF_INET || client_.ss_family == AF_INET6)
+  {
+    if (!udp_server_.send(&client_, (uint8_t*)serialized_bytes.c_str(), serialized_bytes.length()))
+    {
+      ROS_ERROR("Failed to send packet!");
+    }
+  }
+}
+
+void WiFiCom::publishImuData(const IMUMeasurement& data)
+{
+  sensor_msgs::Imu msg;
+
+  // Convention: Set covariance of sensor measurement "orientation" to -1 if
+  // this message field is invalid (which it is here, we don't have an absolute
+  // orientation measurement yet). See ROS documentation for sensor_msgs/imu.
+  msg.orientation_covariance[0] = -1;
+
+  // Remap axes and adjust units:
+  // - x and y axes need to be reversed
+  // - acceleration must be converted from g to m/s^2
+  // angular velocity should be converted from deg/s to rad/s
+  msg.linear_acceleration.x = -data.linear_acceleration().x() * GRAVITATIONAL_ACCELERATION;
+  msg.linear_acceleration.y = -data.linear_acceleration().y() * GRAVITATIONAL_ACCELERATION;
+  msg.linear_acceleration.z = +data.linear_acceleration().z() * GRAVITATIONAL_ACCELERATION;
+  msg.angular_velocity.x = -data.angular_velocity().x() / 180 * M_PI;
+  msg.angular_velocity.y = -data.angular_velocity().y() / 180 * M_PI;
+  msg.angular_velocity.z = +data.angular_velocity().z() / 180 * M_PI;
+
+  pub_imu_.publish(msg);
+}
+
+void WiFiCom::publishLowLevelControlInput(const SingleControlInput& reference, const MotorInput& drive_input,
+                                          const MotorInput& steer_input)
+{
+  crs_msgs::car_ll_control_input msg;
+
+  msg.drive_power = drive_input.power();
+  msg.steer_power = steer_input.power();
+
+  msg.steer_ref = reference.steer_ref();
+  msg.torque_ref = reference.torque_ref();
+
+  pub_car_ll_control_input_.publish(msg);
+}
+
+void WiFiCom::publishSteerState(const SteeringPositionMeasurement& steer_state)
+{
+  crs_msgs::car_steer_state msg;
+  msg.steer_angle = steer_state.steer_rad();
+  msg.steer_discrete_pos = steer_state.adc_meas();
+
+  // This is not optimal yet, so it is not yet published.
+  // Lower two bytes are the minimum position, upper two bytes are the maximum
+  // position
+  // msg.steer_min_pos = steer_state.adc_limits;
+  // msg.steer_max_pos = steer_state.adc_limits;
+  pub_car_steer_state_.publish(msg);
+}

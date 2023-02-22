@@ -1,0 +1,97 @@
+<launch>
+    <!-- =================================================================
+                         User Input Arguments
+    ================================================================= -->
+
+    <arg name = "namespace"           default = "BEN_CAR_WIFI"  doc = "Namespace of all the nodes. Use this to launch different cars. "/>
+    <arg name = "experiment_name"     default = "pacejka_mpc" doc = "Name of the experiment folder that contains all .yaml configurations of the components "/>
+
+    <arg name = "view_rviz"           default = "true"        doc = "If true, starts an rviz node for visualization "/>
+    <arg name = "use_backtracker"     default = "true"        doc = "If true, uses a backtracker as defined in the backtracker.yaml config to recover from crashes "/>
+    <arg name = "track_name"          default = "DEMO_TRACK"  doc = "Name of the track that should be loaded. "/>
+
+    <!-- Recording arguments  -->
+    <arg name = "record_bag"          default = "true"        doc = "if true, recoard a .bag file with all topics"/>
+    <arg name = "copy_config"         default = "true"        doc = "if true, backs up all .yaml configurations on execution" />
+
+    <!-- Vicon Arguments -->
+    <arg name="world_frame"           default = "world" />
+    <arg name="track_frame"           default = "/vicon/DEMO_TRACK/DEMO_TRACK" />
+
+    <!--   ___
+         /     \  
+        | STOP  |   Only change other arguments if you do know what you are doing. You have been warned!
+         \ ___ /
+           ||        
+           ||  
+           ||
+        ~~~~~~~
+    -->
+
+    <!-- =================================================================
+                        Remap Controller State Argument
+        ================================================================= -->
+
+    <arg name = "control_input_topic" default = "control_input"/>
+    <arg name = "vicon_topic"         default = "/vicon/$(arg namespace)/$(arg namespace)" />
+    <arg name = "imu_topic"           default = "imu"/> <!-- Currently not supportet -->
+    <arg name = "control_state_topic" default = "estimation_node/best_state"/>
+
+    <!-- =================================================================
+                    Load the configuration files
+        ================================================================= -->
+
+    <arg name = "experiment_path"       default = "$(eval find('crs_launch') + '/../../../experiments/' + arg('experiment_name'))" />
+    <arg name = "model_config"          default = "$(arg experiment_path)/model.yaml" />
+    <arg name = "simulator_config"      default = "$(arg experiment_path)/simulator.yaml" />
+    <arg name = "controller_config"     default = "$(arg experiment_path)/controller.yaml" />
+    <arg name = "visualizer_config"     default = "$(arg experiment_path)/visualizer.yaml" />
+    <arg name = "backtracker_config"    default = "$(arg experiment_path)/backtracker.yaml" />
+    <arg name = "estimator_config"      default = "$(arg experiment_path)/estimator.yaml" />
+
+
+    
+    <group ns = "$(arg namespace)">
+        
+        <!-- =================================================================
+                        Start the wifi com node
+            ================================================================= -->
+        <include file="$(find wifi_com)/launch/wifi_com_default.launch" />
+    
+    </group>
+
+    <!-- =================================================================
+                    Start the vicon bridge node
+    ================================================================= -->
+    <include file="$(find crs_launch)/launch/vicon_bridge_default.launch" />
+
+
+    <!-- =================================================================
+                    Start the controlling framework
+        ================================================================= -->
+    <include file="$(find crs_launch)/launch/crs.launch">
+        <arg name = "namespace"            value = "$(arg namespace)"/>
+        <arg name = "view_rviz"            value = "$(arg view_rviz)"/>
+        <arg name = "use_backtracker"      value = "$(arg use_backtracker)"/>
+        <arg name = "track_name"           value = "$(arg track_name)"/>
+        <arg name = "copy_config"          value = "$(arg copy_config)"/>
+        <arg name = "record_bag"           value = "$(arg record_bag)"/>
+        <arg name = "run_type"             value = "real"/>
+
+        <arg name="world_frame"            value="$(arg world_frame)" />
+        <arg name="track_frame"            value="$(arg track_frame)" />
+        
+        <arg name = "control_state_topic"  value = "$(arg control_state_topic)"/>
+        <arg name = "control_input_topic"  value = "$(arg control_input_topic)"/>
+        <arg name = "vicon_topic"          value = "$(arg vicon_topic)"/>
+        <arg name = "imu_topic"            value = "$(arg imu_topic)"/>
+
+        <arg name = "model_config"         value = "$(arg model_config)"/>
+        <arg name = "simulator_config"     value = "$(arg simulator_config)"/>
+        <arg name = "controller_config"    value = "$(arg controller_config)"/>
+        <arg name = "visualizer_config"    value = "$(arg visualizer_config)"/>
+        <arg name = "backtracker_config"   value = "$(arg backtracker_config)"/>
+        <arg name = "estimator_config"     value = "$(arg estimator_config)"/>
+    </include>
+</launch>
+    

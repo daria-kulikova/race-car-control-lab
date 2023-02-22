@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>CRS Car Configuration</title>
+    <style>
+        * {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        li {
+            list-style: none;
+        }
+
+        label {
+            font-weight: bold;
+            width: 300px;
+            display: inline-block;
+        }
+
+        fieldset {
+            border: 2px solid rgb(62, 71, 67);
+            margin: 20px;
+        }
+
+        input[type=text],
+        input[type=number] {
+            background: #f2f2f2;
+            padding: 5px;
+            border-radius: 3px;
+            width: 250px;
+            font-size: 12px;
+        }
+
+        input[type=submit],
+        input[type=button] {
+            margin: 10px;
+            padding: 10px;
+            border: 0;
+            border-radius: 3px;
+            background-color: #aaa;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        // Fetch current config values from car so that they are pre-filled.
+        var xmlhttp = new XMLHttpRequest();
+
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+                if (xmlhttp.status == 200) {
+                    lines = xmlhttp.responseText.split('\n');
+                    for (let i in lines) {
+
+                        if (lines[i].startsWith("choice_")) {
+                            // handle radio buttons separately: here, the value refers to the index of the checked button
+                            line = lines[i].slice("choice_".length);
+                            arg = line.split('=')[0]
+                            val = lines[i].split('=').slice(1).join("=")
+                            document.getElementsByName(arg)[val].checked = true;
+
+                            continue;
+                        }
+
+                        arg = lines[i].split('=')[0]
+                        val = lines[i].split('=').slice(1).join("=")
+                        document.getElementsByName(arg)[0].value = val;
+                    }
+                }
+                else {
+                    alert('Could not fetch current config values. Response code is ' + xmlhttp.status);
+                }
+            }
+        };
+
+        xmlhttp.open("GET", "/config/current_config.txt", true);
+        xmlhttp.send();
+
+        function trimSteering() {
+            var trimRequest = new XMLHttpRequest();
+
+            trimRequest.onreadystatechange = function () {
+                if (trimRequest.readyState == XMLHttpRequest.DONE) {
+                    if (trimRequest.status == 200) {
+                        // will start the identification, come back in 7secs
+                        setTimeout(function () { location.reload(true); }, 7000);
+                    } else {
+                        alert('Failed to communicate with car. Response code is ' + trimRequest.status);
+                    }
+                }
+            }
+
+            trimRequest.open("PUT", "/config/trim", true);
+            trimRequest.send();
+        }
+
+        function manualSteer(action) {
+            var manualRequest = new XMLHttpRequest();
+
+            manualRequest.onreadystatechange = function () {
+                if (manualRequest.readyState == XMLHttpRequest.DONE) {
+                    if (manualRequest.status != 200) {
+                        alert('Something went wrong communicating with the car. Response code is '
+                            + manualRequest.status);
+                    }
+                }
+            }
+
+            manualRequest.open("POST", "/manual", true);
+            manualRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            manualRequest.send('action=' + action);
+            manualRequest.send();
+        }
+
+        function fetchADCValue() {
+            var adcRequest = new XMLHttpRequest();
+
+            adcRequest.onreadystatechange = function () {
+                if (adcRequest.readyState == XMLHttpRequest.DONE) {
+                    if (adcRequest.status == 200) {
+                        document.getElementsByName("adc_voltage")[0].value = adcRequest.responseText;
+                    } else {
+                        document.getElementsByName("adc_voltage")[0].value = "-1";
+                    }
+                }
+            }
+
+            adcRequest.open("GET", "/steer_position", true);
+            adcRequest.send();
+        }
+
+        window.setInterval(fetchADCValue, 250);
+    </script>
+</head>
+
+<body>
+    <h1>CRS Car Configuration</h1>
+    <p>Use the following form to change the configuration values of the car. Note that elements you don't fill out will
+        be left unchanged. After submitting the changes, make sure to <i>reset the car</i>.</p>
+    <form method="post">
+        <fieldset>
+            <legend>Wi-Fi Connectivity</legend>
+            <ol>
+                <li>
+                    <label for="ssid">Wi-Fi SSID</label>
+                    <input type="text" id="ssid" name="ssid" />
+                </li>
+                <li>
+                    <label for="password">Password</label>
+                    <input type="text" id="password" name="pwd" />
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset>
+            <legend>UDP Communication</legend>
+            <ol>
+                <li>
+                    <label for="ip">IP of host</label>
+                    <input type="text" id="ip" name="ip" />
+                </li>
+                <li>
+                    <label for="port">UDP port number</label>
+                    <input type="number" id="port" name="port" />
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset>
+            <legend>Control</legend>
+            <p><b>Steering controller choice:</b> Choose which controller should run.
+                Note that the <i>steer override</i> controller is always available and
+                temporarily enabled through the <code>steer_override</code> flag on CRS.</code></p>
+
+            <ol>
+                <li>
+                    <input type="radio" name="control_type" value="pid" id="pid">
+                    <label for="pid">PID</label>
+                </li>
+                <li>
+                    <input type="radio" name="control_type" value="bang-bang" id="bang-bang">
+                    <label for="bang-bang">Bang-bang</label>
+                </li>
+            </ol>
+
+
+
+            <p><b>Controller gains:</b> These gains only apply if the controller chosen above is running.</p>
+            <p>PID-F (standard form with filtered derivative, see <a
+                    href="https://www.mathworks.com/help/control/ref/pidstd.html">MATLAB</a>'s
+                convention for discrete PIDs including N. The sampling time is Ts = 0.004s).</p>
+            <p><b>To disable the Ti or Td terms, set them to zero.</b></p>
+            <ol>
+                <li>
+                    <label for="pid_p">PID: kp term</label>
+                    <input type="number" id="pid_p" name="pid_p" step="0.001" lang="en"/>
+                </li>
+                <li>
+                    <label for="pid_i">PID: Ti term</label>
+                    <input type="number" id="pid_i" name="pid_i" step="0.001" lang="en"/>
+                </li>
+                <li>
+                    <label for="pid_d">PID: Td term</label>
+                    <input type="number" id="pid_d" name="pid_d" step="0.001" lang="en" />
+                </li>
+                <li>
+                    <label for="pid_n">PID-F: N term (≠ 0)</label>
+                    <input type="number" id="pid_n" name="pid_n" />
+                </li>
+            </ol>
+            <p>Bang-bang controller</p>
+            <ol>
+                <li>
+                    <label for="bb_deadband">Deadband [deg]</label>
+                    <input type="number" id="bb_deadband" name="bb_deadband" step="0.01" />
+                </li>
+                <li>
+                    <label for="bb_power">Bang-bang steer torque [%]</label>
+                    <input type="number" id="bb_torque" name="bb_torque" />
+                </li>
+            </ol>
+
+        </fieldset>
+        <fieldset>
+            <legend>Hardware Configuration</legend>
+
+            <p><b>General steering configuration:</b>
+                The following values affect the internal steer mapping that the car uses to determine the position of
+                the wheels.
+                This affects <i>all steering controllers</i>.</i></b></< /p>
+            <ol>
+                <li>
+                    <label for="adc_lower">ADC lower limit</label>
+                    <input type="number" id="adc_lower" name="adc_lower" />
+                </li>
+                <li>
+                    <label for="adc_upper">ADC upper limit</label>
+                    <input type="number" id="adc_upper" name="adc_upper" />
+                </li>
+                <li>
+                    <label for="steer_range">Steer range [deg]</label>
+                    <input type="number" id="steer_range" name="steer_range" />
+                </li>
+                <li>
+                    <label for="adc_voltage">Current ADC voltage</label>
+                    <input type="text" id="adc_voltage" name="adc_voltage" value="-1" disabled>
+                </li>
+            </ol>
+
+            <p>The following controls can be used to verify that the car is operating correctly:</p>
+            <input type="button" value="Steer left" onclick="manualSteer('left')" />
+            <input type="button" value="Steer right" onclick="manualSteer('right')" />
+            <input type="button" value="Drive forward" onclick="manualSteer('forward')" />
+            <input type="button" value="Drive backward" onclick="manualSteer('backward')" />
+            <input type="button" value="Stop" onclick="manualSteer('stop')" />
+        </fieldset>
+
+        <fieldset>
+            <legend>Software Configuration</legend>
+
+            <ol>
+                <li>
+                    <label for="software_version">Software version</label>
+                    <input type="text" id="software_version" name="software_version" value="none" disabled>
+                </li>
+            </ol>
+
+        </fieldset>
+
+        <input type="submit" value="Update configuration">
+        <input type="button" value="Trim Steering" onclick="trimSteering()" />
+    </form>
+</body>
+
+</html>

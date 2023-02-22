@@ -1,0 +1,12 @@
+# CMakeLists.txt for CRS Car Firmware
+# For a reference to the ESP-IDF build system, visit:
+# https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html
+cmake_minimum_required(VERSION 3.5)
+set(EXTRA_COMPONENT_DIRS
+    "./src/main"
+    "./src/util"
+    "./src/**"
+)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(car-firmware)

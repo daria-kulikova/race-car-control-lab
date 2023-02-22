@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "control.c"
+        "drive-controllers.c"
+        "bang-bang.c"
+        "pid-steer.c"
+        "raw-steer-controller.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        actuators
+        communication-layer
+        control-types
+        estimation
+        sensors
+        state-machine
+        nvs-manager
+        util
+)
