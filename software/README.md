@@ -1,4 +1,4 @@
-# CRS Project
+# CRS Sofware
 [![pipeline status](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/badges/dev/pipeline.svg)](https://gitlab.ethz.ch/carrona/crs/commits/dev)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 ### Developers
