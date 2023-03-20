@@ -1,0 +1,19 @@
+# General Dependencies
+- git:
+    local-name: catkin_simple
+    uri: https://github.com/catkin/catkin_simple.git
+- git:
+    local-name: eigen_catkin
+    uri: https://github.com/ethz-asl/eigen_catkin.git
+- git:
+    local-name: yaml_cpp_catkin
+    uri: https://github.com/ethz-asl/yaml_cpp_catkin.git
+    version: feature/upgrade-to-0.7.0
+
+- git:
+    local-name: vicon_bridge
+    uri: https://github.com/ethz-asl/vicon_bridge
+
+- git:
+    local-name: motion_capture_system
+    uri: https://github.com/KTH-SML/motion_capture_system.git
