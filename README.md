@@ -20,7 +20,7 @@ The repository is organized into three main folders:
 - **Software**: Hosts the control software framework CRS, including algorithms for system identification, state estimation, and control.
 
 
-Visit the [Wiki](asasda) to learn more on how to start with Chronos and CRS.
+Visit the [Wiki](https://gitlab.ethz.ch/ics/crs/-/wikis/home) to learn more on how to start with Chronos and CRS.
 
 
 ## Citing 
