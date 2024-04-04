@@ -1,9 +1,0 @@
-idf_component_register(
-    SRCS
-        "actuators.c"
-        "dc-motor.c"
-    INCLUDE_DIRS
-        "include"
-    REQUIRES
-        util
-)
