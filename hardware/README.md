@@ -1,7 +1,7 @@
 # Chronos Car Hardware Guide
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-This README serves as a quick reference to the assembly guide for the Chronos car. For detailed instructions, diagrams, and resources, please refer to the [assembly guide](LINK_HERE).
+This README serves as a quick reference to the assembly guide for the Chronos car. For detailed instructions, diagrams, and resources, please refer to the [assembly guide](https://gitlab.ethz.ch/ics/crs/-/wikis/crs-for-cars/how-to-build-a-chronos-car).
 
 #### What You'll Find in the Assembly Guide:
 
