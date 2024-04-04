@@ -1,13 +1,20 @@
-# Collaborative Robotic Systems - CRS
+# Chronos Car Hardware Guide
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-Robotics platform to test control, estimation, and learning algorithms. 
+This README serves as a quick reference to the assembly guide for the Chronos car. For detailed instructions, diagrams, and resources, please refer to the [assembly guide](LINK_HERE).
 
-## General 
-Collaborative Robotic Systems (CRS) is a flexible and open source hardware and software framework for simulating and testing autonomous racing, autonomous driving, and multi-agent control. This branch contains the hardware design (PCBs, gerber files, BoM, etc).
+#### What You'll Find in the Assembly Guide:
 
-More information can be found [here](https://idsc.ethz.ch/research-zeilinger/research-projects/demonstrators.html). 
+- **PCBs (Printed Circuit Boards):** Detailed schematics and layouts for all electronic components.
+  
+- **Gerber Files:** Manufacturing files used for producing PCBs.
 
-## Contacts
-For more information contact [Andrea Carron](https://idsc.ethz.ch/research-zeilinger/research-projects/demonstrators.html)
+- **3D Printed Parts Models:** Models and specifications for all 3D printed components required for assembly.
 
+- **Bill of Materials:** A list of the material needed to assemble Chronos.
+
+#### Need Help?
+
+If you have any questions or encounter difficulties during assembly, don't hesitate to reach us out. The main point of contact is [Andrea Carron](https://idsc.ethz.ch/research-zeilinger/research-projects/demonstrators.html).
+
+Let's get started on building your Chronos car!
