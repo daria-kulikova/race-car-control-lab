@@ -102,19 +102,18 @@ public:
 
     geometry_msgs::Point p;
 
-    for (int i=0; i<vor_edges_x.size(); i++)
+    for (int i = 0; i < vor_edges_x.size(); i++)
     {
       p.x = vor_edges_x[i];
       p.y = vor_edges_y[i];
       line.points.push_back(p);
-      if(i == (vor_edges_x.size()-1))
+      if (i == (vor_edges_x.size() - 1))
       {
         p.x = vor_edges_x[0];
         p.y = vor_edges_y[0];
         line.points.push_back(p);
       }
     }
-
 
     if (use_arrows_)
     {

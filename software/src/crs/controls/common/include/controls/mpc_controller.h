@@ -5,8 +5,8 @@
 
 namespace crs_controls
 {
-template <typename ModelType, typename StateType, typename InputType>
-class MpcController : public ModelBasedController<ModelType, StateType, InputType>
+template <typename ModelType, typename StateType, typename InputType, typename TrajectoryType = Trajectory>
+class MpcController : public ModelBasedController<ModelType, StateType, InputType, TrajectoryType>
 {
 public:
   /**
@@ -15,8 +15,8 @@ public:
    * @param model shared pointer to the underlying model (or config)
    * @param track shared pointer to the track manager
    */
-  MpcController(std::shared_ptr<ModelType> model, std::shared_ptr<Trajectory> track)
-    : ModelBasedController<ModelType, StateType, InputType>(model, track){};
+  MpcController(std::shared_ptr<ModelType> model, std::shared_ptr<TrajectoryType> track)
+    : ModelBasedController<ModelType, StateType, InputType, TrajectoryType>(model, track){};
 
   /**
    * @brief Returns the control input for a given measured state.
@@ -27,7 +27,7 @@ public:
    */
   virtual InputType getControlInput(StateType state, double timestamp = 0) = 0;
 
-  virtual std::vector<std::vector<double>> getPlannedTrajectory() = 0;
+  virtual std::optional<std::vector<std::vector<double>>> getPlannedTrajectory() const override = 0;
 };
 
 }  // namespace crs_controls

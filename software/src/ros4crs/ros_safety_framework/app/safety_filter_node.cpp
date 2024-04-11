@@ -24,7 +24,7 @@ int main(int argc, char** argv)
   nh_private.getParam("input_type", input_type);
   nh_private.getParam("safety_filter_type", safety_filter_type);
   std::cout << "params: " << state_type << ", " << input_type << " " << safety_filter_type << std::endl;
-  //#ifdef pacejka_model_FOUND
+  // #ifdef pacejka_model_FOUND
   if (state_type == "pacejka_car" && input_type == "pacejka_car")
   {
     safety_filter =
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
                                                 crs_models::pacejka_model::pacejka_car_input, crs_msgs::car_state_cart,
                                                 crs_msgs::car_input>(nh, nh_private, safety_filter_type, vis_ptr);
   }
-  //#endif
+  // #endif
 
   ros::MultiThreadedSpinner spinner(1);  // Use 1 threads
   spinner.spin();                        // spin() will not return until the node has been shutdown

@@ -22,7 +22,7 @@ private:
   crs_models::pacejka_model::pacejka_car_state last_state_world_frame;
   crs_models::pacejka_model::pacejka_car_state state_filt_world_frame_;
 
-public: 
+public:
   // Constructor
   PacejkaLowpassEstimator(const car_lowpass_parameters& params,
                           const crs_models::pacejka_model::pacejka_car_state initial_state)
@@ -46,7 +46,6 @@ public:
    * @param data measurement information, e.g. type of sensor, measurement data
    */
   void measurementCallback(const crs_sensor_models::measurement measurement) override;
-  
 };
 }  // namespace lowpass_estimator
 }  // namespace crs_estimators

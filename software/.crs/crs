@@ -7,12 +7,30 @@ function init() {
     catkin config --extend /opt/ros/noetic
     catkin config --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
     catkin config --merge-devel
+    catkin config --skiplist forces_pacejka_mpcc_solver
     bash .setup/ubuntu/setup_ws.sh
 }
 
 function build()
 {
     catkin build
+}
+
+function debug()
+{
+    catkin config --cmake-args -DCMAKE_BUILD_TYPE=Debug
+    build
+}
+
+function release()
+{
+    catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
+    build
+}
+
+function enable_forces()
+{
+    catkin config --no-skiplist
 }
 
 function run_test()
@@ -23,13 +41,22 @@ function run_test()
 function clean()
 {
     catkin clean
+
+    # Clear auto-generated solver code
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/src/c_generated_code
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/include/acados_pacejka_mpcc_solver/acados_solver_pacejka_model.h
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/src/c_generated_code
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/include/acados_pacejka_safety_model_solver/acados_solver_safety_dynamic_model.h
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/src/c_generated_code
+    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/include/acados_pacejka_tracking_mpc_solver/acados_solver_pacejka_model_tracking_mpc.h
+
 }
 
 function generate()
 {
-    crs clean
-    src/crs/controls/mpc_solvers/acados/acados_pacejka_mpcc_solver/script/create_solver.sh
-    crs build
+    src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/script/create_solver.sh
+    src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/script/create_solver.sh
+    src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/script/create_solver.sh
 }
 
 function pwd_is_root() {
@@ -43,10 +70,10 @@ function pwd_is_root() {
 function usage()
 {
     printf "usage: crs <command> [-h]\n"
+    printf "\ncan only be run from the root of the crs workspace.\n\n"
     printf "\nthere are the following commands:\n\n"
-    printf "    build:        Checks if the current directory is the crs root directory. If true,\n"
-    printf "                  catkin build is invoked to build the catkin workspace. See\n"
-    printf "                  catkin build for further details.\n"
+    printf "    build:        Invokes catkin build to build the workspace. See catkin build\n"
+    printf "                  for further details.\n"
     printf "    clean:        Checks if the current directory is the crs root directory. If true,\n"
     printf "                  the workspace is cleaned similar to catkin clean. See the catkin\n"
     printf "                  documentation for further details.\n"
@@ -55,6 +82,12 @@ function usage()
     printf "                  catkin run_tests -j=1 is invoked to build the tests.\n"
     printf "    init:         Checks if the current directory is the crs root directory. If true,\n"
     printf "                  initializes the catkin workspaces using catkin init commands\n"
+    printf "    enable_forces: Also builds the FORCES dependent packages in all subsequent builds;\n"
+    printf "                  to ignore them and go to default config, run 'crs init' again.\n"
+    printf "    debug:        Configures the build to include debugging symbols necessary gdb.\n"
+    printf "                  Also builds the code.\n"
+    printf "    release:      Configures the build to optimize the code for release.\n"
+    printf "                  Also builds the code.\n"
 }
 
 if [[ -z "${1-}" ]]; then
@@ -71,14 +104,17 @@ while [[ -n "${1-}" ]]; do
     case $1 in
         build ) build ;;
         clean ) clean ;;
+        debug ) debug ;;
+        release ) release ;;
         generate )  generate ;;
         init ) init;;
+        enable_forces ) enable_forces;;
         test ) run_test;;
-        -h | --help )   
+        -h | --help )
             usage
             exit 0
             ;;
-        * )                     
+        * )
             usage
             exit 1
             ;;

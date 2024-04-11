@@ -10,7 +10,7 @@ Q:
       [0, 0, 0, 0.0001, 0, 0],
       [0, 0, 0, 0, 0.0001, 0],
       [0, 0, 0, 0, 0, 0.0001],
-    ] 
+    ]
   is_diag: false
 
 model_params:
@@ -35,6 +35,6 @@ model_params:
   Croll: 0.08518052
 
   # to make this compatible with kinematic model (can be implicitly downcasted)
-  tau: 0.6 
+  tau: 0.6
   a: 6.44026018
   b: 0.13732343

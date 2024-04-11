@@ -2,16 +2,17 @@ state_type: pacejka_car
 input_type: pacejka_car
 
 controller_type: PID
-max_rate: 50
+max_rate: 100
+init_delay: 0.1 # time to wait for estimator to converge to init. position
 visualization_rate: 10
 
 controller_params:
-  target_velocity: 3
-  lag_compensation_time: 0.1
+  target_velocity: 2
+  lag_compensation_time: 0.25
   use_filter: false
   b_filter: [0.0985,0.2956,0.2956,0.0985]
   a_filter: [1.0000,-0.5772,0.4218,-0.0563]
-  Kd: 0.0
+  Kd: 4
   Kp: 3
   Ki: 0
   # crs uses a torque between 0 and 1. The kinematic model uses a different torque range internally.

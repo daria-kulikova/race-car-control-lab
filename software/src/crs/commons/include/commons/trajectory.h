@@ -4,49 +4,43 @@
 #include <Eigen/Core>
 #include <vector>
 
+#include "commons/base_trajectory.h"
+
 namespace crs_controls
 {
 
-class Trajectory
+class Trajectory : public BaseTrajectory<Eigen::Vector2d>
 {
 protected:
-  /**
-   * @brief X coordinate of the trajectory
-   *
-   */
-  std::vector<double> x_coords_;
-  /**
-   * @brief Y coordinates of the trajectory
-   *
-   */
-  std::vector<double> y_coords_;
-
-  int lastTrackIdx_ = 0;
-
   // edges of Voronoi Distribution
   std::vector<double> voronoi_edges_x_;
   std::vector<double> voronoi_edges_y_;
 
 public:
+  Trajectory() : BaseTrajectory(){};
+
+  /**
+   * @brief Construct a new Trajectory
+   *
+   * @param trajectory_coordinates is a std::vector of Eigen::Vector2d containing the x and
+   * y coordinates of the trajectory
+   */
+  Trajectory(const std::vector<Eigen::Vector2d>& trajectory_coordinates)
+    : BaseTrajectory<Eigen::Vector2d>(trajectory_coordinates){};
+
   /**
    * @brief Construct a new Trajectory
    *
    * @param x_coord x_coordinates of the trajectory
    * @param y_coord y_coordinates of the trajectory
    */
-  Trajectory(std::vector<double> x_coord, std::vector<double> y_coord) : x_coords_(x_coord), y_coords_(y_coord){};
-
-  Trajectory(){};
-
-  /**
-   * @brief Returns the trajectory point at the given index.
-   * @note this function performs index wrapping, allowing to pass indices that are negative or bigger than the
-   * trajectory length
-   *
-   * @param i index to request
-   * @return Eigen::Vector2d the trajectory point at position i
-   */
-  Eigen::Vector2d operator[](int i) const;
+  Trajectory(std::vector<double> x_coord, std::vector<double> y_coord)
+  {
+    for (size_t i = 0; i < x_coord.size(); ++i)
+    {
+      trajectory_coordinates_.push_back(Eigen::Vector2d(x_coord[i], y_coord[i]));
+    }
+  };
 
   /**
    * @brief Get the Closest Track Point Idx object

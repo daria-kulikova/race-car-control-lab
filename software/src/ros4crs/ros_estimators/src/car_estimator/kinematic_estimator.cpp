@@ -13,13 +13,19 @@ template <>
 void RosCarEstimator<crs_models::kinematic_model::kinematic_car_state, crs_models::kinematic_model::kinematic_car_input,
                      crs_models::kinematic_model::kinematic_params>::publishState()
 {
+  if (has_valid_input_ && model_based_estimator && (base_estimator->getLastValidTs() > 0))
+  {
+    // Predict up until publishing time if estimator supports it.
+    model_based_estimator->controlInputCallback(model_based_estimator->getLastInput(), ros::Time::now().toSec());
+  }
+
   auto msg = message_conversion::convertStateToRosMsg<crs_msgs::car_state_cart,
                                                       crs_models::kinematic_model::kinematic_car_state,
                                                       message_conversion::kinematic_information>(
       base_estimator->getStateEstimate(),
       { message_conversion::convertToCrsInput<crs_msgs::car_input, crs_models::kinematic_model::kinematic_car_input>(
             last_input_),
-        *model });
+        model_params });
 
   if (base_estimator->getLastValidTs() > 0)
     msg.header.stamp = ros::Time(base_estimator->getLastValidTs());

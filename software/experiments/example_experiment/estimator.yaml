@@ -2,7 +2,7 @@
 
 type: "discrete_ekf"
 pub_rate: 50.0 # Hz
-
+measurement_timeout_threshold: 2.0 # seconds
 # initial state
 initial_state:
   type: "pacejka_car"
@@ -36,10 +36,10 @@ sensors:
       value: [[0.001], [0.001], [0.001]]
       is_diag: true
     key: imu # optional, if not set us e name of sensor
-    
 
 
-# ============ THIS IS ENTIRELY OPTIONAL ============ 
+
+# ============ THIS IS ENTIRELY OPTIONAL ============
 # If this is not defiend, then the default model which is loaded, is from the ros paramaters located at /model
 # This means that e.g. the EKF uses the same Q as the simulation -> EKF has perfect model and Q
 

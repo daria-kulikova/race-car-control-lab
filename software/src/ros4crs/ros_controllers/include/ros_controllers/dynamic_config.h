@@ -16,6 +16,12 @@
 #include <mpc_controller/pacejka_controller/mpcc_pacejka_controller.h>
 #endif
 
+#ifdef rocket_position_pid_FOUND
+#include "ros_controllers/rocket_high_level_pidConfig.h"
+#include "ros_controllers/rocket_low_level_pidConfig.h"
+#include <rocket_position_pid/rocket_controller_specializations.h>
+#endif
+
 #include <dynamic_reconfigure/server.h>
 
 namespace ros_controllers
@@ -32,10 +38,9 @@ protected:
   std::shared_ptr<crs_controls::PacejkaPIDController> controller_;
   dynamic_reconfigure::Server<PIDConfig> server;
   dynamic_reconfigure::Server<PIDConfig>::CallbackType f;
-  bool ignored_first_call = false;
 
 public:
-  DynamicPIDConfigServer(std::shared_ptr<crs_controls::PacejkaPIDController> controller);
+  DynamicPIDConfigServer(const ros::NodeHandle& nh, std::shared_ptr<crs_controls::PacejkaPIDController> controller);
   /**
    * @brief Callback that gets called from the dynamic reconfigure service
    *
@@ -58,10 +63,9 @@ protected:
   std::shared_ptr<crs_controls::FfFbController> controller_;
   dynamic_reconfigure::Server<ff_fbConfig> server;
   dynamic_reconfigure::Server<ff_fbConfig>::CallbackType f;
-  bool ignored_first_call = false;
 
 public:
-  DynamicFfFbConfigServer(std::shared_ptr<crs_controls::FfFbController> controller);
+  DynamicFfFbConfigServer(const ros::NodeHandle& nh, std::shared_ptr<crs_controls::FfFbController> controller);
   /**
    * @brief Callback that gets called from the dynamic reconfigure service
    *
@@ -84,10 +88,10 @@ protected:
   std::shared_ptr<crs_controls::PacejkaMpccController> controller_;
   dynamic_reconfigure::Server<pacejka_mpccConfig> server;
   dynamic_reconfigure::Server<pacejka_mpccConfig>::CallbackType f;
-  bool ignored_first_call = false;
 
 public:
-  DynamicPacejkaMPCCConfigServer(std::shared_ptr<crs_controls::PacejkaMpccController> controller);
+  DynamicPacejkaMPCCConfigServer(const ros::NodeHandle& nh,
+                                 std::shared_ptr<crs_controls::PacejkaMpccController> controller);
   /**
    * @brief Callback that gets called from the dynamic reconfigure service
    *
@@ -96,6 +100,43 @@ public:
    */
   void callback(pacejka_mpccConfig& config, uint32_t level);
 };
+#endif
+
+#ifdef rocket_position_pid_FOUND
+/**
+ * @brief Class that creates a dynamic_callback parameter server and connects it with the underlying controller
+ * Allows to tune a controller using a GUI interface
+ *
+ */
+class DynamicRocketPidConfigServer
+{
+protected:
+  std::shared_ptr<crs_controls::Rocket6DofPidController> controller_;
+  dynamic_reconfigure::Server<rocket_high_level_pidConfig> hl_server;
+  dynamic_reconfigure::Server<rocket_low_level_pidConfig> ll_server;
+  dynamic_reconfigure::Server<rocket_high_level_pidConfig>::CallbackType hl_f;
+  dynamic_reconfigure::Server<rocket_low_level_pidConfig>::CallbackType ll_f;
+
+public:
+  DynamicRocketPidConfigServer(const ros::NodeHandle& nh,
+                               std::shared_ptr<crs_controls::Rocket6DofPidController> controller);
+  /**
+   * @brief Callback that gets called from the dynamic reconfigure service
+   *
+   * @param config
+   * @param level
+   */
+  void hl_callback(rocket_high_level_pidConfig& config, uint32_t level);
+
+  /**
+   * @brief Callback that gets called from the dynamic reconfigure service
+   *
+   * @param config
+   * @param level
+   */
+  void ll_callback(rocket_low_level_pidConfig& config, uint32_t level);
+};
+
 #endif
 
 }  // namespace ros_controllers

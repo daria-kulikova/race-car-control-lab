@@ -10,25 +10,24 @@ namespace lowpass_estimator
 {
 template <typename StateType>
 class LowpassEstimator : public BaseEstimator<StateType>
-{ 
+{
 public:
   // Constructor
   LowpassEstimator(const StateType initial_state) : state_est_filt_(initial_state){};
 
-
-  StateType getStateEstimate() const override
+  StateType getStateEstimate() override
   {
     // return the current state estimate
     return state_est_filt_;
   }
 
-
-  void setState(StateType state)
+  void resetStateEstimate(const StateType state) override
   {
     state_est_filt_ = state;
   }
 
-  double getLastValidTs() const override {
+  double getLastValidTs() const override
+  {
     return last_valid_ts_;
   };
 

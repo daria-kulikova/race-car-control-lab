@@ -14,7 +14,8 @@ namespace crs_models
 namespace custom_model
 {
 
-DiscreteCustomModel::DiscreteCustomModel(custom_params params, Eigen::Matrix<double, 6, 6> Q)
+DiscreteCustomModel::DiscreteCustomModel(custom_params params,
+                                         Eigen::Matrix<double, DiscreteCustomModel::NX, DiscreteCustomModel::NX> Q)
   : DiscreteDynamicModelWrapper(Q)
 {
   cont_model = std::make_unique<crs_models::custom_model::ContinuousCustomModel>(params);

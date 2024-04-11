@@ -1,6 +1,9 @@
 type: "discrete_ekf"
-pub_rate: 100.0 # Hz
+pub_rate: 200.0 # Hz
 max_callback_rate: 100.0
+measurement_timeout_threshold: 2.0 # seconds
+log_diagnostic_data: true
+
 # initial state
 initial_state:
   type: "pacejka_car"
@@ -13,19 +16,101 @@ initial_input:
 # initial P (state covariance matrix)
 P_init:
   [
-    [1, 0, 0, 0, 0, 0],
-    [0, 1, 0, 0, 0, 0],
-    [0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 1, 0],
-    [0, 0, 0, 0, 0, 1],
+    [0.1, 0, 0, 0, 0, 0],
+    [0, 0.1, 0, 0, 0, 0],
+    [0, 0, 0.1, 0, 0, 0],
+    [0, 0, 0, 0.1, 0, 0],
+    [0, 0, 0, 0, 0.1, 0],
+    [0, 0, 0, 0, 0, 0.1],
   ]
 
+# ============ SENSORS ============
 sensors:
-  sensor_names: ["vicon"]
+  sensor_names: ["vicon", "imu_yaw_rate", "wheel_encoders"] # options: ["vicon", "imu_yaw_rate", "imu", "wheel_encoders", "lighthouse"]
+
   vicon:
     R:
-      value: [[0.001], [0.001], [0.001]]
+      value: [[0.0001], [0.0001], [0.0001]] # std of 1cm -> cov of 0.01 * 0.01 = 0.0001
       is_diag: true
-    key: vicon # optional, if not set us e name of sensor
-    
+    key: vicon # optional, if not set use name of sensor
+    outlier_rejection:
+        use_outlier_rejection: true
+        outlier_rejection_type: "cov_threshold"
+        outlier_threshold: 3
+
+  imu_yaw_rate:
+    R:
+      value: [[0.01]] # std of 0.1 rad/s² -> cov of 0.1 * 0.1 = 0.01
+      is_diag: true
+    key: imu_yaw_rate # optional, if not set use name of sensor
+    outlier_rejection:
+        use_outlier_rejection: true
+        outlier_rejection_type: "cov_threshold"
+        outlier_threshold: 3
+
+  wheel_encoders:
+    R:
+      value: [[2], [2], [2], [2]] # std of 0.1 rad/s -> cov of 0.1 * 0.1 = 0.01
+      is_diag: true
+    key: wheel_encoders # optional, if not set us e name of sensor
+    outlier_rejection:
+        use_outlier_rejection: true
+        outlier_rejection_type: "cov_threshold"
+        outlier_threshold: 3
+
+  lighthouse:
+    sensor_pos:
+      value: [[-0.045, -0.06, -0.045, -0.06], [0.015, 0.015, -0.015, -0.015]]
+    key: lighthouse
+    base_stations: ["bs0"]
+    bs0:
+      bs_ID: 0
+      R:
+        value: [[0.000101, 0.0001, 0.0001, 0.0001],
+                [0.0001, 0.000101, 0.0001, 0.0001],
+                [0.0001, 0.0001, 0.000101, 0.0001],
+                [0.0001, 0.0001, 0.0001, 0.000101]]
+      P_bs:
+        value: [[0.0761983], [0.188159], [1.9964]]
+      R_bs:
+        value: [[0.00075044, 0.999971, 0.00763827], [-0.216839, 0.00761926, -0.976178], [-0.976207, -0.000923712, 0.216838]]
+      dt1: -0.0508728
+      dt2: 0.0464478
+    outlier_rejection:
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 3 # threshold is set to 3*covariance
+      max_consecutive_outliers: 8
+
+# ============ VISUALIZER ============
+visualizer:
+  # car_ekf_visualizer will plot the covariance of the position estimate as a ellipsoid
+  type: car_ekf_visualizer
+
+  # === Parameters for Base Visualizer ===
+  rate: 10
+  # Visualizer specific  parameters
+  frame_id: crs_frame # default
+  namespace: ekf # default
+
+  use_arrows: true # If true, use arrows to visualize planned and reference yaw angle. This option is a lot slower and may introduce visual lags
+
+  # Color of the estimated position
+  est_r: 0
+  est_g: 0
+  est_b: 0
+  est_a: 1
+
+  size_x: 0.05 # 0.07 for arrows
+  size_y: 0.05 # 0.02 for arrows
+  size_z: 0.05 # 0.02 for arrows
+
+  # ==== Special Parameters for ekf visualizer ====
+
+  # Color of the covariance ellipsoid
+  cov_r: 0
+  cov_g: 0
+  cov_b: 1
+  cov_a: 0.3
+
+  cov_scale: 100 # scales covariance ellipsoid by 100

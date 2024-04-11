@@ -3,6 +3,7 @@ input_type: pacejka_car
 
 controller_type: FF_FB
 max_rate: 50
+init_delay: 0 # time to wait for estimator to converge to init. position
 visualization_rate: 10
 
 controller_params:
@@ -42,5 +43,5 @@ visualizer:
   color_a: 1
 
   size_x: 0.05
-  size_y: 0.05 
-  size_z: 0.05 
+  size_y: 0.05
+  size_z: 0.05

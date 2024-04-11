@@ -3,9 +3,11 @@
 
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/Imu.h>
+#include <crs_msgs/lighthouse_sweep.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <sensor_models/sensor_measurement.h>
+#include <crs_msgs/car_wheel_speed.h>
 
 namespace ros_estimators
 {
@@ -23,6 +25,13 @@ crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformSt
                                                 const tf::StampedTransform& T_sensor);
 
 /**
+ * @brief Converts a WheelSpeed message to an unique measurement vector.
+ *
+ * @param msg the message from the wheel speed sensors.
+ */
+crs_sensor_models::measurement parseWheelEncoder(const crs_msgs::car_wheel_speedConstPtr msg);
+
+/**
  * @brief Converts a Imu measurement into a measurement vector (x_acc, y_acc, yaw_rate)
  *
  * @param msg the message from the imu
@@ -31,6 +40,26 @@ crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformSt
  *
  */
 crs_sensor_models::measurement parseImuData2D(const sensor_msgs::Imu::ConstPtr msg);
+
+/**
+ * @brief Converts a Imu Yaw Rate measurement into a measurement vector (yaw_rate)
+ *
+ * @param msg the message from the imu
+ * @return crs_sensor_models::measurement Measurement struct containing (yaw_rate) as well as a valid
+ * timestamp and sensor key (imu_yaw_rate)
+ *
+ */
+crs_sensor_models::measurement parseImuYawData2D(const sensor_msgs::Imu::ConstPtr msg);
+
+/**
+ * @brief Converts a Lighthouse sweep into a measurement vector (angle_0, angle_1, angle_2, angle_3)
+ *
+ * @param msg the message from the lighthouse sweep
+ * @return crs_sensor_models::measurement Measurement struct containing (angle_0, angle_1, angle_2, angle_3) as well as
+ * a valid timestamp and sensor key (lighthouse_1/lighthouse_2)
+ *
+ */
+crs_sensor_models::measurement parseLighthouseSweep(const crs_msgs::lighthouse_sweep::ConstPtr msg);
 
 /**
  * @brief Class that converts vicon measurements into a simple 3D measurement vector (x,y,yaw) with unwrapped yaw angle

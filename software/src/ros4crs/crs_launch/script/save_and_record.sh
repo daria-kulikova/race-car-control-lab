@@ -14,12 +14,13 @@ prefix=type=
 record=0
 for argument in "$@"
 do
-    if [[ $argument == type=* ]] 
+    if [[ $argument == type=* ]]
     then
     TARGET_PATH=$FILE_PATH/../../../../experiments/${now}/${argument/#$prefix}/${time}
+    # TARGET_PATH=$FILE_PATH/../../../../src/scripts/estimator_comparison/Bags/open_loop_track_1/${time}
     fi
 
-    if [[ $argument == record=* ]] 
+    if [[ $argument == record=* ]]
     then
         record=$argument
     fi
@@ -30,14 +31,14 @@ mkdir -p $TARGET_PATH/config
 # Copy all <configuration.yaml> files to backup folder
 for cfg_path in "$@"
 do
-    if [[ $cfg_path == *.yaml ]] 
+    if [[ $cfg_path == *.yaml ]]
     then
     cp $cfg_path $TARGET_PATH/config # Backup all configuration files
     fi
 done
 
 # Regard all topics as a ros bag
-if [[ $record == record=true ]] 
+if [[ $record == record=true ]]
 then
-rosrun rosbag record -a -o $TARGET_PATH/
+rosrun rosbag record -a -o $TARGET_PATH
 fi

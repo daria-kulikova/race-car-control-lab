@@ -12,6 +12,15 @@
 #include <crs_msgs/car_input.h>
 #include <crs_msgs/car_state_cart.h>
 
+#ifdef rocket_6_dof_model_FOUND
+#include <rocket_6_dof_model/rocket_6_dof_state.h>
+#include <rocket_6_dof_model/rocket_6_dof_input.h>
+#include <commons/base_trajectory.h>
+#endif
+
+#include <crs_msgs/rocket_input.h>
+#include <crs_msgs/rocket_state.h>
+
 // Required reference so object does not go out of scope and gets dereferenced
 void* controller_ptr;
 // Same as before
@@ -69,6 +78,19 @@ int main(int argc, char** argv)
     }
   }
 #endif
+
+#ifdef rocket_6_dof_model_FOUND
+  if (state_type == "rocket" && input_type == "rocket")
+  {
+    auto* controller = ros_controllers::resolveController<
+        crs_msgs::rocket_state, crs_msgs::rocket_input, crs_models::rocket_6_dof_model::rocket_6_dof_state,
+        crs_models::rocket_6_dof_model::rocket_6_dof_input, crs_controls::ThreeDofPositionTrajectory>(
+        nh, nh_private, controller_type, dynamic_callback);
+
+    controller_ptr = ((void*)controller);
+  }
+#endif
+
   if (!controller_ptr)
   {
     ROS_ERROR_STREAM("Unknown state and input type: " << state_type << " " << input_type << ". Aborting!");

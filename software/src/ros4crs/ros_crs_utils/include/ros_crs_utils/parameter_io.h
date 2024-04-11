@@ -9,6 +9,10 @@
 
 namespace parameter_io
 {
+/** Dummy struct for empty parameters */
+struct empty_params
+{
+};
 
 /**
  * @brief Loads a track manager based on the track description of the ros parameter server
@@ -59,6 +63,15 @@ template <typename ConfigType>
 ConfigType getConfig(const ros::NodeHandle& nh);
 
 /**
+ * @brief Loads the given ConfigType struct from ros params
+ *
+ * @tparam ConfigType the object that should be loaded
+ * @param nh NodeHandle to load the parameters
+ */
+template <typename ConfigType>
+ConfigType getOutlierParams(const ros::NodeHandle& nh);
+
+/**
  * @brief Loads a matrix from rosparams
  *
  * @tparam Rows Number of rows of the matrix
@@ -78,9 +91,14 @@ bool getMatrixFromParams(const ros::NodeHandle& nh, Eigen::Matrix<double, Rows, 
   nh.getParam("is_diag", is_diagonal);
 
   int n_rows = matrix_as_vector.size();
-
-  if (n_rows != Rows)
+  if (n_rows != Rows && Rows != -1)
     return false;
+  if (Rows == -1 && Cols == -1)
+  {
+    std::cout << "Error loading Matrix from " << nh.getNamespace() << "!\n Cols and Rows can not both be infered!"
+              << std::endl;
+    return false;
+  }
 
   assert(n_rows > 0);
 

@@ -2,6 +2,23 @@
 #include "ros_estimators/data_converter.h"
 namespace ros_estimators
 {
+crs_sensor_models::measurement parseWheelEncoder(const crs_msgs::car_wheel_speedConstPtr msg)
+{
+  crs_sensor_models::measurement measurement;
+
+  measurement.sensor_key = "wheel_encoders";
+  measurement.measurement_data = Eigen::Vector4d::Zero();
+  measurement.measurement_data(0) = msg->front_left;
+  measurement.measurement_data(1) = msg->front_right;
+  measurement.measurement_data(2) = msg->rear_left;
+  measurement.measurement_data(3) = msg->rear_right;
+
+  measurement.timestamp = msg->header.stamp.toSec();
+  if (measurement.timestamp == 0)  // No stamp provided in input msg
+    measurement.timestamp = ros::Time::now().toSec();
+  return measurement;
+}
+
 crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformStamped::ConstPtr msg,
                                                 const tf::StampedTransform& T_sensor)
 {
@@ -45,6 +62,46 @@ crs_sensor_models::measurement parseImuData2D(const sensor_msgs::Imu::ConstPtr m
   return measurement;
 }
 
+crs_sensor_models::measurement parseImuYawData2D(const sensor_msgs::Imu::ConstPtr msg)
+{
+  crs_sensor_models::measurement measurement;
+  measurement.sensor_key = "imu_yaw_rate";
+
+  measurement.measurement_data = Eigen::Vector3d::Zero();
+  measurement.measurement_data(0) = msg->angular_velocity.z;
+
+  measurement.timestamp = msg->header.stamp.toSec();
+  if (measurement.timestamp == 0)  // No stamp provided in input msg
+    measurement.timestamp = ros::Time::now().toSec();
+  return measurement;
+}
+
+crs_sensor_models::measurement parseLighthouseSweep(const crs_msgs::lighthouse_sweep::ConstPtr msg)
+{
+  crs_sensor_models::measurement measurement;
+  int base_station_id = msg->polynomial >> 1;
+  if (msg->first_sweep)
+  {
+    measurement.sensor_key = "lighthouse_" + std::to_string(base_station_id) + "_1";
+  }
+  else
+  {
+    measurement.sensor_key = "lighthouse_" + std::to_string(base_station_id) + "_2";
+  }
+
+  measurement.measurement_data = Eigen::Vector4d::Zero();
+
+  measurement.measurement_data(0) = msg->angle_0;
+  measurement.measurement_data(1) = msg->angle_1;
+  measurement.measurement_data(2) = msg->angle_2;
+  measurement.measurement_data(3) = msg->angle_3;
+
+  measurement.timestamp = msg->header.stamp.toSec();
+  if (measurement.timestamp == 0)  // No stamp provided in input msg
+    measurement.timestamp = ros::Time::now().toSec();
+  return measurement;
+}
+
 template <class T>
 inline int sign(T val)
 {
@@ -61,18 +118,9 @@ crs_sensor_models::measurement ViconConverter::parseData2D(const geometry_msgs::
   if (!T_track_world_ || update_track_transform)
   {
     tf::StampedTransform transform;
-    try
-    {
-      listener_.lookupTransform(track_frame, world_frame, ros::Time(0), transform);
-      T_track_world_.reset(new tf::StampedTransform);
-      *T_track_world_ = std::move(transform);
-    }
-    catch (tf::TransformException ex)
-    {
-      ROS_ERROR("%s", ex.what());
-      ros::Duration(1.0).sleep();
-      return measurement;
-    }
+    listener_.lookupTransform(track_frame, world_frame, ros::Time(0), transform);
+    T_track_world_.reset(new tf::StampedTransform);
+    *T_track_world_ = std::move(transform);
   }
   measurement = parseViconData2D(msg, *T_track_world_);
 

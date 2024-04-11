@@ -108,13 +108,14 @@ public:
         BaseControllerVisualizer<StateType, InputType>::controller_);
 
     int id_cnter = 0;  // Creates unique IDs for the markers. Only used in arrow mode
-    std::vector<std::vector<double>> trajectory = mpc_controller_ptr->getPlannedTrajectory();
+    std::vector<std::vector<double>> trajectory = mpc_controller_ptr->getPlannedTrajectory().value();
     for (int i = 0; i < trajectory.size(); i++)
     {
       // Create color gradient from blue (lowest) to red (highest) depending on velocity
       std_msgs::ColorRGBA color;
-      double normalized_velocity =
-          std::max(0.0, std::min(1.0, (trajectory[i][2] - min_velocity) / (max_velocity - min_velocity)));
+      double velocity = std::sqrt(std::pow(trajectory[i][2], 2) + std::pow(trajectory[i][3], 2));
+      double normalized_velocity = std::clamp((velocity - min_velocity) / (max_velocity - min_velocity), 0.0, 1.0);
+
       color.r = normalized_velocity < 0.5 ? normalized_velocity : 1 - normalized_velocity;
       color.g = normalized_velocity < 0.5 ? 0 : normalized_velocity;
       color.b = normalized_velocity < 0.5 ? 1 - normalized_velocity : 0;
@@ -130,8 +131,8 @@ public:
         planned.points.push_back(temp_point);
         planned.colors.push_back(color);
         // Refrence
-        temp_point.x = trajectory[i][4];  // x_position on track
-        temp_point.y = trajectory[i][5];  // y_position on track
+        temp_point.x = trajectory[i][5];  // x_position on track
+        temp_point.y = trajectory[i][6];  // y_position on track
         temp_point.z = 0.01;
         reference.points.push_back(temp_point);
       }
@@ -142,10 +143,10 @@ public:
         planned.pose.position.y = trajectory[i][1];
         planned.pose.position.z = 0;
         // Planned orientation (quaternion from only yaw)
-        planned.pose.orientation.w = std::cos(trajectory[i][3] * 0.5);
+        planned.pose.orientation.w = std::cos(trajectory[i][4] * 0.5);
         planned.pose.orientation.x = 0;
         planned.pose.orientation.y = 0;
-        planned.pose.orientation.z = std::sin(trajectory[i][3] * 0.5);
+        planned.pose.orientation.z = std::sin(trajectory[i][4] * 0.5);
 
         planned.color.r = color.r;
         planned.color.g = color.g;
@@ -156,15 +157,15 @@ public:
 
         // Reference on track
         // Reference position
-        reference.pose.position.x = trajectory[i][4];
-        reference.pose.position.y = trajectory[i][5];
+        reference.pose.position.x = trajectory[i][5];
+        reference.pose.position.y = trajectory[i][6];
         reference.pose.position.z = 0;
 
         // Reference orientation (quaternion from only yaw)
-        reference.pose.orientation.w = std::cos(trajectory[i][6] * 0.5);
+        reference.pose.orientation.w = std::cos(trajectory[i][7] * 0.5);
         reference.pose.orientation.x = 0;
         reference.pose.orientation.y = 0;
-        reference.pose.orientation.z = std::sin(trajectory[i][6] * 0.5);
+        reference.pose.orientation.z = std::sin(trajectory[i][7] * 0.5);
 
         reference.id = id_cnter++;
 

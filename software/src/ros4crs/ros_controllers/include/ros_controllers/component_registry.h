@@ -19,11 +19,11 @@ namespace ros_controllers
  * stored, if dynamic configure is defined
  * @return RosController<StateMsg, InputMsg, StateType, InputType>*
  */
-template <typename StateMsg, typename InputMsg, typename StateType, typename InputType>
-RosController<StateMsg, InputMsg, StateType, InputType>* resolveController(ros::NodeHandle& nh,
-                                                                           ros::NodeHandle& nh_private,
-                                                                           const std::string& controller_type,
-                                                                           void*& dynamic_callback_allocator);
+template <typename StateMsg, typename InputMsg, typename StateType, typename InputType,
+          typename TrajectoryType = crs_controls::Trajectory>
+RosController<StateMsg, InputMsg, StateType, InputType, TrajectoryType>*
+resolveController(ros::NodeHandle& nh, ros::NodeHandle& nh_private, const std::string& controller_type,
+                  void*& dynamic_callback_allocator);
 
 }  // namespace ros_controllers
 #endif /* ROS_CONTROLLERS_COMPONENT_REGISTRY_H */

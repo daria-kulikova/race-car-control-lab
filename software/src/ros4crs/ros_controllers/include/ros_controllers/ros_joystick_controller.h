@@ -1,8 +1,11 @@
 #pragma once
+
 #include "ros/ros.h"
 #include <sensor_msgs/Joy.h>
+
 namespace ros_controllers
 {
+
 class JoystickController
 {
 private:
@@ -11,19 +14,23 @@ private:
   ros::NodeHandle nh_private_;
   ros::Publisher input_publisher_;
   ros::Subscriber joy_sub_;
-  double min_torque_ = 0.0;
-  double max_torque_ = 0.5;
-  double max_steer_ = 0.4;
+
+  /** Maximum magnitude of torque applied to drive motor. */
+  double max_throttle_;
+  /** Maximum steering angle commanded to car. */
+  double max_steer_;
 
 public:
   JoystickController(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  // !
-  /*
-    ROS callback to grab the joystick input from joy message
-    Converts joy message into crs commands based on configuration
-    max_steer, min_torque, max_torque parameters, then immediately
-    publishes.
-  */
+
+  /**
+   * @brief Processes a joystick message and publishes a car_input message
+   *
+   * A joystick driver receives the physical button presses and publishes
+   * them on the /joy topic. This function is a callback for the /joy topic
+   * and converts a joystick configuration to publish a car_input message.
+   */
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
 };
+
 }  // namespace ros_controllers

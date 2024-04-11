@@ -47,4 +47,10 @@ std::shared_ptr<crs_controls::StaticTrackTrajectory> loadTrackDescriptionFromPar
                                                                tangent_angle, arc_length, density);
 }
 
+template <>
+void getModelParams<>(const ros::NodeHandle& nh, parameter_io::empty_params& params, bool verbose /* = true*/)
+{
+  // Do nothing. No parameters needed.
+}
+
 }  // namespace parameter_io

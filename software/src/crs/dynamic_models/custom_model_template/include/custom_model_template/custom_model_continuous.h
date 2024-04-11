@@ -11,15 +11,11 @@
 #include "custom_model_template/custom_state.h"
 #include <dynamic_models/continuous_dynamic_model.h>
 
-// State dimension is 6, Input dimenstion is 2
-typedef Eigen::Matrix<double, 6, 6> StateMatrix;
-typedef Eigen::Matrix<double, 6, 2> InputMatrix;
-
 namespace crs_models
 {
 namespace custom_model
 {
-class ContinuousCustomModel : public ContinuousDynamicModel<custom_state, custom_input, 6, 2>
+class ContinuousCustomModel : public ContinuousDynamicModel<custom_state, custom_input>
 {
 public:
   ContinuousCustomModel(custom_params params);  // Constructor

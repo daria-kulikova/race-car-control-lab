@@ -1,5 +1,5 @@
 
-# ============ THIS IS THE GROUND TRUTH MODEL FOR SIMULATION ============ 
+# ============ THIS IS THE GROUND TRUTH MODEL FOR SIMULATION ============
 # If using ros, paramaters located at /model
 
 # type describes what type of model we want to use / should be loaded
@@ -15,7 +15,7 @@ Q:
       [0, 0, 0, 0.0001, 0, 0],
       [0, 0, 0, 0, 0.0001, 0],
       [0, 0, 0, 0, 0, 0.0001],
-    ] 
+    ]
   is_diag: false
 
 model_params:
@@ -39,4 +39,9 @@ model_params:
   Cd: 0.02750696
   Croll: 0.08518052
 
+  wheel_radius: 0.0175
+  car_width: 0.12
+
   tau: 0.1 # to make this compatible with kinematic model
+  eps: 0.2
+  gamma: 0.5

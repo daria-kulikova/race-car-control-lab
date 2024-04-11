@@ -7,6 +7,18 @@
 
 namespace commons
 {
+template <>
+const std::vector<casadi::MX> asCasadiSym<crs_models::custom_model::custom_state>()
+{
+  return { casadi::MX::sym("x"),   casadi::MX::sym("y"),   casadi::MX::sym("yaw"),
+           casadi::MX::sym("v_x"), casadi::MX::sym("v_y"), casadi::MX::sym("yaw_rate") };
+}
+
+template <>
+const std::vector<casadi::MX> asCasadiSym<crs_models::custom_model::custom_input>()
+{
+  return { casadi::MX::sym("torque"), casadi::MX::sym("steer") };
+}
 
 template <>
 std::vector<double*>

@@ -18,7 +18,6 @@
 
 namespace ros_simulator
 {
-
 class KinematicSimulator : public Simulator
 {
 private:
@@ -39,7 +38,7 @@ private:
 
   // Measurements
   std::vector<std::shared_ptr<crs_sensor_models::SensorModel<crs_models::kinematic_model::kinematic_car_state,
-                                                             crs_models::kinematic_model::kinematic_car_input, 4>>>
+                                                             crs_models::kinematic_model::kinematic_car_input>>>
       sensor_models_;  // list of sensor models e.g. vicon, imu, ...
   std::vector<DelayedPublisher> sensor_models_pub_;
 
@@ -61,11 +60,11 @@ public:
   void printConfig() override;
 
   void inputCallback(crs_msgs::car_inputConstPtr input);
-  void registerSensorModel(
-      std::shared_ptr<crs_sensor_models::SensorModel<crs_models::kinematic_model::kinematic_car_state,
-                                                     crs_models::kinematic_model::kinematic_car_input, 4>>
-          sensor_model,
-      double delay);
+  void
+  registerSensorModel(std::shared_ptr<crs_sensor_models::SensorModel<crs_models::kinematic_model::kinematic_car_state,
+                                                                     crs_models::kinematic_model::kinematic_car_input>>
+                          sensor_model,
+                      double delay, std::string name = "");
 };
 }  // namespace ros_simulator
 

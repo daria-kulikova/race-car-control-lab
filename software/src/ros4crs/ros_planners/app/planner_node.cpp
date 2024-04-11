@@ -43,10 +43,9 @@ int main(int argc, char** argv)
     else if (planner_type == "multi_agent_lloyd_planner")
     {
       ROS_INFO("try to load multi agent lloyd planner");
-      planner_ptr = ((void*)ros_planner::resolveMultiAgentLloydPlanner<crs_msgs::car_state_cart,
-                                                                       crs_models::pacejka_model::pacejka_car_state,
-                                                                       crs_planning::multi_car_cartesian_reference_point>(
-              nh, nh_private, planner_type));
+      planner_ptr = ((void*)ros_planner::resolveMultiAgentLloydPlanner<
+                     crs_msgs::car_state_cart, crs_models::pacejka_model::pacejka_car_state,
+                     crs_planning::multi_car_cartesian_reference_point>(nh, nh_private, planner_type));
       ROS_INFO("loaded multi agent lloyd planner");
     }
 

@@ -115,13 +115,21 @@ std::shared_ptr<ros_simulator::NoiseModel> getNoiseModelFromParameters(ros::Node
 
       Eigen::VectorXd mean;
       // Load mean for Gaussian noise from params (pacejka_car_simulator.yaml)
+      double outlier_proba = 0.0;
+      double outlier_scale = 0.0;
+
+      nh.getParam("outlier_probability", outlier_proba);
+      nh.getParam("outlier_scale", outlier_scale);
+
       if (parameter_io::getMatrixFromParams<-1, 1>(ros::NodeHandle(nh, "mean"), mean))  // NOLINT
       {
-        noise_model.reset((ros_simulator::NoiseModel*)new ros_simulator::GaussianNoiseModel(seed, mean));
+        noise_model.reset((ros_simulator::NoiseModel*)new ros_simulator::GaussianNoiseModel(seed, mean, outlier_proba,
+                                                                                            outlier_scale));
       }
       else
       {
-        noise_model.reset((ros_simulator::NoiseModel*)new ros_simulator::GaussianNoiseModel(seed));
+        noise_model.reset(
+            (ros_simulator::NoiseModel*)new ros_simulator::GaussianNoiseModel(seed, outlier_proba, outlier_scale));
       }
     }
     else
@@ -152,7 +160,7 @@ void loadProcessNoise(ros::NodeHandle nh)
  * @param nh nodehandle pointing to /<NAMESPACE>/simulator_ros/*  e.g LEMANS_CAR/simulator_ros/
  * @param sensor_names name of the sensor to add noise
  */
-void loadMeasuremntNoise(ros::NodeHandle nh, const std::vector<std::string>& sensor_names)
+void loadMeasurementNoise(ros::NodeHandle nh, const std::vector<std::string>& sensor_names)
 {
   for (auto sensor_name : sensor_names)  // Parse sensor models
   {
@@ -179,6 +187,8 @@ int main(int argc, char** argv)
     return 1;
 
   loadProcessNoise(nh_private);
+  // Load Measurement noise
+  loadMeasurementNoise(nh_private, sensors_to_load);
 
   std::vector<ros::Timer> timers;
   for (auto sensor_name : sensors_to_load)

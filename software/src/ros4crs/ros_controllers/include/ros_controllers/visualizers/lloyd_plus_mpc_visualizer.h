@@ -44,10 +44,10 @@ private:
 
 public:
   LloydPlusMPCVisualizer(ros::NodeHandle nh_private,
-                          std::shared_ptr<crs_controls::MpcController<ModelType, StateType, InputType>> controller)
+                         std::shared_ptr<crs_controls::MpcController<ModelType, StateType, InputType>> controller)
     : BaseControllerVisualizer<StateType, InputType>(
           nh_private, std::dynamic_pointer_cast<crs_controls::BaseController<StateType, InputType>>(controller))
-    {
+  {
     // Load Params
     nh_private.getParam("frame_id", frame_id);
     nh_private.getParam("namespace", ns);
@@ -130,21 +130,18 @@ public:
     planned.colors.clear();
     geometry_msgs::Point temp_point;
 
+    std::vector<double> vor_edges_x = mpc_controller_ptr->getTrajectory()->getVorEdgesX();
 
-    std::vector<double> vor_edges_x =
-        mpc_controller_ptr->getTrajectory()->getVorEdgesX();
-
-    std::vector<double> vor_edges_y =
-        mpc_controller_ptr->getTrajectory()->getVorEdgesY();
+    std::vector<double> vor_edges_y = mpc_controller_ptr->getTrajectory()->getVorEdgesY();
 
     geometry_msgs::Point p;
 
-    for (int i=0; i<vor_edges_x.size(); i++)
+    for (int i = 0; i < vor_edges_x.size(); i++)
     {
       p.x = vor_edges_x[i];
       p.y = vor_edges_y[i];
       line.points.push_back(p);
-      if(i == (vor_edges_x.size()-1))
+      if (i == (vor_edges_x.size() - 1))
       {
         p.x = vor_edges_x[0];
         p.y = vor_edges_y[0];
@@ -153,13 +150,13 @@ public:
     }
 
     int id_cnter = 0;  // Creates unique IDs for the markers. Only used in arrow mode
-    std::vector<std::vector<double>> trajectory = mpc_controller_ptr->getPlannedTrajectory();
+    std::vector<std::vector<double>> trajectory = mpc_controller_ptr->getPlannedTrajectory().value();
     for (int i = 0; i < trajectory.size(); i++)
     {
       // Create color gradient from blue (lowest) to red (highest) depending on velocity
       std_msgs::ColorRGBA color;
-      double normalized_velocity =
-          std::max(0.0, std::min(1.0, (trajectory[i][2] - min_velocity) / (max_velocity - min_velocity)));
+      double velocity = std::sqrt(std::pow(trajectory[i][2], 2) + std::pow(trajectory[i][3], 2));
+      double normalized_velocity = std::clamp((velocity - min_velocity) / (max_velocity - min_velocity), 0.0, 1.0);
       color.r = normalized_velocity < 0.5 ? normalized_velocity : 1 - normalized_velocity;
       color.g = normalized_velocity < 0.5 ? 0 : normalized_velocity;
       color.b = normalized_velocity < 0.5 ? 1 - normalized_velocity : 0;
@@ -182,10 +179,10 @@ public:
         planned.pose.position.y = trajectory[i][1];
         planned.pose.position.z = 0;
         // Planned orientation (quaternion from only yaw)
-        planned.pose.orientation.w = std::cos(trajectory[i][3] * 0.5);
+        planned.pose.orientation.w = std::cos(trajectory[i][4] * 0.5);
         planned.pose.orientation.x = 0;
         planned.pose.orientation.y = 0;
-        planned.pose.orientation.z = std::sin(trajectory[i][3] * 0.5);
+        planned.pose.orientation.z = std::sin(trajectory[i][4] * 0.5);
 
         planned.color.r = color.r;
         planned.color.g = color.g;

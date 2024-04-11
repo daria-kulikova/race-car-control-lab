@@ -1,6 +1,6 @@
 # Description of configuration files can be found at "https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/ros-configuration"
 
-# ============ THIS IS THE GROUND TRUTH MODEL FOR SIMULATION ============ 
+# ============ THIS IS THE GROUND TRUTH MODEL FOR SIMULATION ============
 # If using ros, paramaters located at /model
 
 # type describes what type of model we want to use / should be loaded
@@ -16,7 +16,7 @@ Q:
       [0, 0, 0, 0.0001, 0, 0],
       [0, 0, 0, 0, 0.0001, 0],
       [0, 0, 0, 0, 0, 0.0001],
-    ] 
+    ]
   is_diag: false
 
 model_params:
@@ -25,6 +25,7 @@ model_params:
   lf: 0.052
   m: 0.181
   I: 0.000505
+  wheel_radius: 0.0175 # 17.5mm = 0.0175m
 
   # lateral force params
   Df: 0.65

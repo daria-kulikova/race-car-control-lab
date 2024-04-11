@@ -4,6 +4,7 @@
 #include "noise_model.h"
 #include <memory>
 #include <map>
+#include <tf/transform_broadcaster.h>
 
 namespace ros_simulator
 {
@@ -21,6 +22,7 @@ public:
     sensor_name_to_noise_model_.insert(
         std::pair<std::string, std::shared_ptr<NoiseModel>>(measurement_name, noise_model));
   }
+  tf::TransformBroadcaster transform_broadcaster_;
 
 protected:
   std::map<std::string, std::shared_ptr<NoiseModel>> sensor_name_to_noise_model_;

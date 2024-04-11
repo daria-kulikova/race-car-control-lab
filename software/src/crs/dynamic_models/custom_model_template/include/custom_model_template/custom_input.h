@@ -12,6 +12,9 @@ struct custom_input
 {
   double torque;
   double steer;
+
+  static constexpr int NU = 2;
+
   custom_input() : torque(0), steer(0){};                                      // default constructor
   custom_input(double torque, double steer) : torque(torque), steer(steer){};  // Constructor
 };

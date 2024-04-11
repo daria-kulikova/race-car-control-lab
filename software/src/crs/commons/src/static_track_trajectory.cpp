@@ -45,19 +45,9 @@ inline double euclidean2Dist(double x1, double y1, double x2, double y2)
 
 const double StaticTrackTrajectory::getLastRequestedTrackAngle() const
 {
-  return getTrackAngle(lastTrackIdx_);
+  return getTrackAngle(last_query_index_);
 }
 
-StaticTrackTrajectory::StaticTrackTrajectory(const std::vector<Eigen::Vector2d>& points) : Trajectory()
-{
-  x_coords_.reserve(points.size());
-  y_coords_.reserve(points.size());
-  for (const auto& pt : points)
-  {
-    x_coords_.push_back(pt.x());
-    y_coords_.push_back(pt.y());
-  }
-}
 const double StaticTrackTrajectory::getMeanCurvatureAlongPath(int start_idx, int distance) const
 {
   std::vector<double> abs_curv(distance, 0.0);
@@ -69,13 +59,7 @@ const double StaticTrackTrajectory::getMeanCurvatureAlongPath(int start_idx, int
 
 std::vector<Eigen::Vector2d> StaticTrackTrajectory::getCenterLine() const
 {
-  std::vector<Eigen::Vector2d> center_line;
-  center_line.reserve(x_coords_.size());
-  for (int i = 0; i < x_coords_.size(); i++)
-  {
-    center_line.push_back(Eigen::Vector2d(x_coords_[i], y_coords_[i]));
-  }
-  return center_line;
+  return trajectory_coordinates_;
 }
 
 const double StaticTrackTrajectory::getCurvature(int i) const

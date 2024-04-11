@@ -21,4 +21,3 @@ controller_params:
   b_torque:   0.13732343
 
   steer_limit: 0.4
-

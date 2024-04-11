@@ -16,6 +16,9 @@ struct custom_state
   double vel_x;
   double vel_y;
   double yaw_rate;
+
+  static constexpr int NX = 6;
+
   custom_state() : pos_x(0), pos_y(0), yaw(0), vel_x(0), vel_y(0), yaw_rate(0){};  // default constructor
   custom_state(double pos_x, double pos_y, double yaw, double vel_x, double vel_y, double yaw_rate)
     : pos_x(pos_x), pos_y(pos_y), yaw(yaw), vel_x(vel_x), vel_y(vel_y), yaw_rate(yaw_rate){};  // Constructor

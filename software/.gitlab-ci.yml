@@ -1,0 +1,113 @@
+image: registry.ethz.ch/ics-group/projects/andrea/crs-2.0:latest
+
+stages:
+  - format
+  - build
+  - test
+
+### =============================================================
+### ================     SET UP CACHING    ======================
+### =============================================================
+before_script:
+  - mkdir -p .ccache
+  - export CCACHE_BASEDIR=${PWD}
+  - export CCACHE_DIR=${PWD}/.ccache
+
+cache:
+  key: cache-ccache-$CI_COMMIT_REF_SLUG
+  fallback_keys:
+    - cache-ccache-$CI_DEFAULT_BRANCH
+    - cache-ccache-default
+  paths:
+    - .ccache
+
+### =============================================================
+### ==============     FORMATTING STAGE    ======================
+### =============================================================
+
+run formatters: # Check whether code adheres to the required formats
+  stage: format
+  script:
+    - pip3 install pre-commit && pre-commit install
+    - pre-commit run -a
+  retry: 0
+  tags:
+    - deep-thought
+
+### =============================================================
+### ================     BUILD STAGE    =========================
+### =============================================================
+
+build all: # build CRS inside docker image
+  stage: build
+  script:
+    - crs init
+    - catkin config --skiplist forces_pacejka_mpcc_solver
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+
+  retry: 0
+  tags:
+    - deep-thought
+
+build without kinematic: # build CRS inside docker image
+  stage: build
+  script:
+    - crs init
+    - catkin clean
+    - catkin config --skiplist kinematic_model kinematic_sensor_model forces_pacejka_mpcc_solver
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+  retry: 0
+  tags:
+    - deep-thought
+
+build without lowpass: # build CRS inside docker image
+  stage: build
+  script:
+    - crs init
+    - catkin clean
+    - catkin config --skiplist lowpass_estimator forces_pacejka_mpcc_solver
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+  retry: 0
+  tags:
+    - deep-thought
+
+build only mpc controller: # build CRS inside docker image
+  stage: build
+  script:
+    - crs init
+    - catkin clean
+    - catkin config --skiplist ff_fb_controller pid_controller forces_pacejka_mpcc_solver
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+  retry: 0
+  tags:
+    - deep-thought
+
+build only pid controller: # build CRS inside docker image
+  stage: build
+  script:
+    - crs init
+    - catkin clean
+    - catkin config --skiplist ff_fb_controller mpc_controller forces_pacejka_mpcc_solver
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+  retry: 0
+  tags:
+    - deep-thought
+
+### =============================================================
+### ================     TEST STAGE    =========================
+### =============================================================
+test without ros: # build CRS inside docker image
+  stage: test
+  script:
+    - crs init
+    - touch src/ros4crs/CATKIN_IGNORE # Do not build or test the ros packages
+    - touch src/ros_io/CATKIN_IGNORE # Can't test these because they depend on ros4crs :(
+    - catkin config --skiplist forces_pacejka_mpcc_solver
+    - catkin clean --yes
+    - python3 src/crs/sensor_models/car/pacejka_sensor_model/test/generate_jacobian.py
+    - python3 src/crs/sensor_models/car/pacejka_with_imu_bias_sensor_model/test/generate_jacobian.py
+    - catkin build --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+    - catkin run_tests
+  retry: 1
+  tags:
+    - deep-thought

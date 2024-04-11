@@ -148,7 +148,7 @@ public:
    *
    * @param points
    */
-  StaticTrackTrajectory(const std::vector<Eigen::Vector2d>& points);
+  StaticTrackTrajectory(const std::vector<Eigen::Vector2d>& points) : Trajectory(points){};
 
   /**
    * @brief Get the Width of the track

@@ -20,6 +20,8 @@ ContinuousCustomModel::ContinuousCustomModel(custom_params params) : params(para
     state_mx.push_back(input);
 
   dynamics_f_ = casadi::Function("f_dot", state_mx, state_dot_mx);
+
+  jacobian_fn_ = getSymbolicJacobian();
 }  // Constructor
 
 /**
@@ -49,7 +51,6 @@ void ContinuousCustomModel::getNumericalJacobian(const custom_state& state, cons
                                                  StateMatrix& A, InputMatrix& B)
 {
   auto state_and_input = commons::convertToConstVector(state, control_input);
-  casadi::Function jacobian_fn = getSymbolicJacobian();
 
   // Prepare inputs for jacobian function
   auto& state_and_input_and_implicit = state_and_input;

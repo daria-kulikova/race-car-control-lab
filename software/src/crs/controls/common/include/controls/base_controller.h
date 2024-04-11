@@ -3,10 +3,11 @@
 
 #include <commons/trajectory.h>
 #include <memory>
+#include <optional>
 
 namespace crs_controls
 {
-template <typename StateType, typename InputType>
+template <typename StateType, typename InputType, typename TrajectoryType = Trajectory>
 class BaseController
 {
 public:
@@ -15,7 +16,7 @@ public:
    *
    * @param trajectory the trajectory manager that should be used by this controller
    */
-  BaseController(std::shared_ptr<Trajectory> trajectory) : trajectory_(trajectory){};
+  BaseController(std::shared_ptr<TrajectoryType> trajectory) : trajectory_(trajectory){};
 
   /**
    * @brief Returns the control input for a given measured state.
@@ -31,10 +32,10 @@ public:
    *
    * @return const std::shared_ptr<const Trajectory>
    */
-  template <typename TrajectoryType = Trajectory>
-  const std::shared_ptr<TrajectoryType> getTrajectory() const
+  template <typename TrajectoryReturnType = Trajectory>
+  const std::shared_ptr<TrajectoryReturnType> getTrajectory() const
   {
-    return std::static_pointer_cast<TrajectoryType>(trajectory_);
+    return std::static_pointer_cast<TrajectoryReturnType>(trajectory_);
   }
 
   /**
@@ -45,8 +46,38 @@ public:
    */
   virtual const bool isInitializing() = 0;
 
+  /**
+   * @brief Debug function which can be used to return some useful debug info from the controller
+   *
+   * @return const std::vector<double> containing relevant debug info about the controller
+   */
+  virtual const std::vector<double> getDebugControllerState() const
+  {
+    return {};
+  }
+
+  /**
+   * @brief Return a planned trajectory which can be used to visualize, e.g., the planned path.
+   *
+   * If the controller does not provide a planned trajectory, an empty optional is returned.
+   */
+  virtual std::optional<std::vector<std::vector<double>>> getPlannedTrajectory() const
+  {
+    return {};
+  };
+
+  /*
+   * @brief Set internal state variables of the controller
+   *
+   * @param internal_state internal state parameters to be set in the controller.
+   * Could be e.g. is_running.
+   */
+  virtual void setInternalControllerState(const std::vector<bool>& internal_state)
+  {
+  }
+
 protected:
-  std::shared_ptr<Trajectory> trajectory_;
+  std::shared_ptr<TrajectoryType> trajectory_;
 };
 
 }  // namespace crs_controls

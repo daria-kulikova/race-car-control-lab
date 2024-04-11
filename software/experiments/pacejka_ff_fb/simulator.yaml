@@ -8,34 +8,56 @@ input_type: pacejka_car
 #     value: [[0], [0], [0], [0], [0], [0]]
 
 sensors:
-  sensor_names: ["vicon"]
+  sensor_names: ["vicon", "imu_yaw_rate", "wheel_encoders"] # options: ["vicon", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
   vicon:
     R:
-      value: [[0.001], [0.001], [0.001]]
+      value: [[0.0001], [0.0001], [0.0001]] #std of 1cm -> cov of 0.01*0.01=0.0001
       is_diag: true
     frequency: 200 # Hz
     key: vicon # optional, if not set us e name of sensor
     measurement_noise:
       type: multivariate_gaussian
+      seed: 1
+      outlier_probability: 0.0
+      outlier_scale: 1
+      mean:
+        value: [[0], [0], [0]]
     delay: 0.0
 
-  # imu:
-  #   R:
-  #     value: [[0.001], [0.001], [0.001]]
-  #     is_diag: true
-  #   frequency: 50 #Hz
-  #   key: imu # optional, if not set us e name of sensor
-  #   measurement_noise:
-  #     type: multivariate_gaussian
-  #     seed: 1
-  #     mean:
-  #       value: [[0], [0], [0]]
-  #   delay: 0.0
+  imu_yaw_rate:
+    R:
+      value: [[0.01]]
+      is_diag: true
+    frequency: 200 #Hz
+    key: imu_yaw_rate # optional, if not set use name of sensor
+    measurement_noise:
+      type: multivariate_gaussian
+      seed: 1
+      outlier_probability: 0.0
+      outlier_scale: 1
+      mean:
+        value: [[0]]
+    delay: 0.0
+
+  wheel_encoders:
+    R:
+      value: [[1], [1], [1], [1]]
+      is_diag: true
+    frequency: 200 #Hz
+    key: wheel_encoders # optional, if not set use name of sensor
+    measurement_noise:
+      type: multivariate_gaussian
+      seed: 1
+      outlier_probability: 0.0
+      outlier_scale: 1
+      mean:
+        value: [[0], [0], [0], [0]]
+    delay: 0.0
 
 initial_state: [0.15, -1.05, 0, 0.5, 0, 0]
 initial_input: [0.0, 0.2]
 
-frequency: 50 #Hz, speed of simulator
+frequency: 300 #Hz, speed of simulator
 
 # Not yet implemented
 input_delay: 0.01 # input delay in seconds

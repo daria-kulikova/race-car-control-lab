@@ -5,8 +5,8 @@
 
 namespace crs_controls
 {
-template <typename ModelType, typename StateType, typename InputType>
-class ModelBasedController : public BaseController<StateType, InputType>
+template <typename ModelType, typename StateType, typename InputType, typename TrajectoryType = Trajectory>
+class ModelBasedController : public BaseController<StateType, InputType, TrajectoryType>
 {
 public:
   /**
@@ -15,8 +15,8 @@ public:
    * @param model shared pointer to the underlying model (or config)
    * @param track shared pointer to the track manager
    */
-  ModelBasedController(std::shared_ptr<ModelType> model, std::shared_ptr<Trajectory> track)
-    : BaseController<StateType, InputType>(track), model_(model){};
+  ModelBasedController(std::shared_ptr<ModelType> model, std::shared_ptr<TrajectoryType> track)
+    : BaseController<StateType, InputType, TrajectoryType>(track), model_(model){};
 
   /**
    * @brief Returns the control input for a given measured state.

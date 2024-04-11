@@ -18,16 +18,19 @@
   <depend>ros_crs_utils</depend>
   <depend>tf</depend>
 
-  
+
   <!-- Optional Dependencies -->
   <depend>pacejka_model</depend>
+  <depend>stacked_model</depend>
   <depend>kinematic_sensor_model</depend>
 
   <depend>kinematic_model</depend>
   <depend>pacejka_sensor_model</depend>
-
+  <depend>pacejka_with_imu_bias_sensor_model</depend>
+  <depend>imu_bias</depend>
   <depend>lowpass_estimator</depend>
   <depend>kalman_estimator</depend>
+  <depend>mh_estimator</depend>
 
   <export></export>
 </package>

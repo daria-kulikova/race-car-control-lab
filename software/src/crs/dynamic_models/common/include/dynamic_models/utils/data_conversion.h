@@ -2,6 +2,7 @@
 #define SRC_CRS_DYNAMIC_MODELS_COMMON_INCLUDE_DYNAMIC_MODELS_UTILS_DATA_CONVERSION
 #include <Eigen/Core>
 #include <vector>
+#include <casadi/casadi.hpp>
 
 namespace commons
 {
@@ -113,6 +114,31 @@ std::vector<const double*> convertToConstVector(const StateType& state, const In
   state_and_input_as_vector.insert(state_as_vector.end(), input_as_vector.begin(),
                                    input_as_vector.end());  // Append input at the end of state vector
   return state_and_input_as_vector;
+}
+
+/**
+ * @brief Converts a State or Input struct into a vector of symbolic casadi states / inputs.
+ *
+ * @tparam DataType either StateType or InputType
+ * @return std::vector<casadi::MX> vector containing the symbolic representation of the state or input
+ */
+template <typename DataType>
+const std::vector<casadi::MX> asCasadiSym();
+
+/**
+ * @brief Converts a State or Input struct into a vector of symbolic casadi states and inputs stacked together.
+ *
+ * @tparam StateType
+ * @tparam InputType
+ * @return std::vector<casadi::MX> vector containing the symbolic representation of the state and input stacked together
+ */
+template <typename StateType, typename InputType>
+const std::vector<casadi::MX> asCasadiSym()
+{
+  std::vector<casadi::MX> output = asCasadiSym<StateType>();
+  std::vector<casadi::MX> input = asCasadiSym<InputType>();
+  output.insert(output.end(), input.begin(), input.end());
+  return output;
 }
 
 }  // namespace commons

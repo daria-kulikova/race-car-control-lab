@@ -2,7 +2,7 @@
 
 #include <string>
 #include "ros_estimators/state_estimator_ros.h"
-#include "ros_estimators/component_registry.h"
+#include "ros_estimators/component_registry/component_registry.h"
 
 ros_estimators::RosStateEstimator* estimator = nullptr;
 
@@ -40,7 +40,8 @@ int main(int argc, char** argv)
   std::string input_type;
   nh_private.getParam("initial_input/type", input_type);
 
-  estimator = ros_estimators::resolveEstimator(nh, nh_private, state_type, input_type, filter_type);
+  // estimator = ros_estimators::resolveEstimator(nh, nh_private, state_type, input_type, filter_type);
+  estimator = registry::estimators::parseEstimator(nh, nh_private);
 
   if (!estimator)
   {
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
 
   ros::Timer timer = nh.createTimer(ros::Duration(1 / pub_rate), publishEstimates);
 
-  ros::MultiThreadedSpinner spinner(1);  // Use 1 Thread
+  ros::MultiThreadedSpinner spinner(4);  // Use 4 Threads
   spinner.spin();                        // spin() will not return until the node has been shutdown
 
   return 0;

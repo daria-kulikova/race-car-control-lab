@@ -7,5 +7,5 @@ cd casadi
 printf "building casadi\n"
 sudo mkdir -p build
 cd build
-sudo cmake ..
+sudo cmake -D WITH_IPOPT=ON ..
 sudo make install -j4

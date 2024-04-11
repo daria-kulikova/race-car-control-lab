@@ -2,46 +2,8 @@
 #define ROS_SIMULATOR_GAUSSIAN_NOISE_MODEL_H
 
 #include "ros_simulator/common/noise_model.h"
-
-// Taken from https://stackoverflow.com/questions/6142576/sample-from-multivariate-normal-gaussian-distribution-in-c,
+#include <random>
 #include <Eigen/Dense>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/normal_distribution.hpp>
-
-namespace Eigen
-{
-namespace internal
-{
-template <typename Scalar>
-struct scalar_normal_dist_op
-{
-  static boost::mt19937 rng;                        // The uniform pseudo-random algorithm
-  mutable boost::normal_distribution<Scalar> norm;  // The gaussian combinator
-
-  EIGEN_EMPTY_STRUCT_CTOR(scalar_normal_dist_op)
-
-  template <typename Index>
-  inline const Scalar operator()(Index, Index = 0) const
-  {
-    return norm(rng);
-  }
-};
-
-template <typename Scalar>
-boost::mt19937 scalar_normal_dist_op<Scalar>::rng;
-
-template <typename Scalar>
-struct functor_traits<scalar_normal_dist_op<Scalar>>
-{
-  enum
-  {
-    Cost = 50 * NumTraits<Scalar>::MulCost,
-    PacketAccess = false,
-    IsRepeatable = false
-  };
-};
-}  // end namespace internal
-}  // end namespace Eigen
 
 namespace ros_simulator
 {
@@ -50,11 +12,27 @@ class GaussianNoiseModel : NoiseModel
 private:
   Eigen::VectorXd mean_;
   bool has_mean = false;
+  double outlier_proba_ = 0.0;
+  double outlier_scale_ = 0.0;
+
+  // Used to cache the cholesky decomposition of the covariance matrix
+  // and the mean
+  Eigen::MatrixXd last_Q_;
+  Eigen::MatrixXd last_chol_decomp_;
+  Eigen::VectorXd last_mean_;
+  bool is_initialized_ = false;
+
+  // Random number generator
+  // Seed the random number generator
+  std::normal_distribution<double> distribution;
+
+  std::unique_ptr<std::mt19937> generator;
+  std::function<double()> normal_distribution_fnc_;
 
 public:
   GaussianNoiseModel(int seed)  // Option 1: Set a seed, mean will default to zero
   {
-    Eigen::internal::scalar_normal_dist_op<double>::rng.seed(seed);  // Seed the rng
+    generator = std::make_unique<std::mt19937>(seed);
   };
 
   GaussianNoiseModel(int seed, Eigen::VectorXd mean) : GaussianNoiseModel(seed)  // Option 2: Set a seed and a mean
@@ -63,42 +41,84 @@ public:
     has_mean = true;
   };
 
+  GaussianNoiseModel(int seed, double outlier_proba, double outlier_scale) : GaussianNoiseModel(seed)
+  {
+    outlier_proba_ = outlier_proba;
+    outlier_scale_ = outlier_scale;
+  };
+
+  GaussianNoiseModel(int seed, Eigen::VectorXd mean, double outlier_proba, double outlier_scale)
+    : GaussianNoiseModel(seed)
+  {
+    mean_ = mean;
+    has_mean = true;
+    outlier_proba_ = outlier_proba;
+    outlier_scale_ = outlier_scale;
+  };
+
   Eigen::MatrixXd sampleNoiseFromCovMatrix(const Eigen::MatrixXd& Q) override
   {
-    int size = Q.rows();                                   // Dimensionality (rows)
-    int nn = 1;                                            // How many samples (columns) to draw
-    Eigen::internal::scalar_normal_dist_op<double> randN;  // Gaussian functor
+    int size = Q.rows();  // Dimensionality (rows)
 
-    if (!has_mean)
+    if (!is_initialized_ || Q.rows() != last_Q_.rows() || Q != last_Q_)
     {
-      mean_.setZero(size);
-      has_mean = true;
+      // Cache miss, we need to recompute the cholesky decomposition
+
+      is_initialized_ = true;
+
+      // Q changed, we need to recompute the cholesky decomposition
+      if (!has_mean)
+      {
+        mean_.setZero(size);
+        has_mean = true;
+      }
+
+      Eigen::MatrixXd normTransform(size, size);
+      Eigen::LLT<Eigen::MatrixXd> cholSolver(Q);
+
+      // We can only use the cholesky decomposition if
+      // the covariance matrix is symmetric, pos-definite.
+      // But a covariance matrix might be pos-semi-definite.
+      // In that case, we'll go to an EigenSolver
+      if (cholSolver.info() == Eigen::Success)
+      {
+        // Use cholesky solver
+        normTransform = cholSolver.matrixL();
+      }
+      else
+      {
+        // Use eigen solver
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigenSolver(Q);
+        normTransform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+      }
+
+      // Update the cached values
+      last_Q_ = Q;
+      last_chol_decomp_ = normTransform;
+      last_mean_ = mean_;
     }
 
-    // Define mean and covariance of the distribution
-    Eigen::MatrixXd covar = Q;
+    auto rnd_norm = [&]() { return distribution(*generator); };
+    Eigen::VectorXd noise_norm = Eigen::VectorXd::NullaryExpr(size, rnd_norm);
 
-    Eigen::MatrixXd normTransform(size, size);
-
-    Eigen::LLT<Eigen::MatrixXd> cholSolver(covar);
-
-    // We can only use the cholesky decomposition if
-    // the covariance matrix is symmetric, pos-definite.
-    // But a covariance matrix might be pos-semi-definite.
-    // In that case, we'll go to an EigenSolver
-    if (cholSolver.info() == Eigen::Success)
+    // Add outliers by adding outlier scale to the diagonal of the cholesky decomposition
+    if (outlier_proba_ > 0)
     {
-      // Use cholesky solver
-      normTransform = cholSolver.matrixL();
+      Eigen::MatrixXd outlier_decomp_ = Eigen::MatrixXd::Zero(size, size);
+      for (int i = 0; i < size; i++)
+      {
+        if ((double(std::rand()) / double(RAND_MAX)) < outlier_proba_)
+        {
+          outlier_decomp_(i, i) = outlier_scale_;
+        }
+      }
+      return (last_chol_decomp_ + outlier_decomp_) * noise_norm + last_mean_;
     }
     else
     {
-      // Use eigen solver
-      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigenSolver(covar);
-      normTransform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+      return last_chol_decomp_ * noise_norm + last_mean_;
     }
-    return (normTransform * Eigen::MatrixXd::NullaryExpr(size, nn, randN)).colwise() + mean_;
-  };
+  }
 };
 };  // namespace ros_simulator
 #endif

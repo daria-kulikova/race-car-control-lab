@@ -7,12 +7,19 @@
 
 namespace crs_models
 {
-template <typename StateType, typename InputType, int StateDimension, int InputDimension>
+template <typename StateType, typename InputType>
 class ContinuousDynamicModel
 {
 public:
+  typedef Eigen::Matrix<double, StateType::NX, StateType::NX> StateMatrix;
+  typedef Eigen::Matrix<double, StateType::NX, InputType::NU> InputMatrix;
+
   /** Definition of often used constants */
   static constexpr double GRAVITY = 9.81;
+
+  /** State and input dimensions of the Model*/
+  static const int NX = StateType::NX;
+  static const int NU = InputType::NU;
 
   /**
    * @brief Evaluates the model dynamic function at the given state and input
@@ -32,8 +39,8 @@ public:
    * @param B the input jacobian df/du
    */
   virtual void getNumericalJacobian(const StateType& state, const InputType& control_input,
-                                    Eigen::Matrix<double, StateDimension, StateDimension>& A,
-                                    Eigen::Matrix<double, StateDimension, InputDimension>& B) = 0;
+                                    Eigen::Matrix<double, StateType::NX, StateType::NX>& A,
+                                    Eigen::Matrix<double, StateType::NX, InputType::NU>& B) = 0;
 
   /**
    * @brief Get the Symbolic Jacobian as casadi function.
@@ -62,19 +69,21 @@ public:
   virtual std::vector<casadi::MX> getContinuousDynamics(const std::vector<casadi::MX> state,
                                                         const std::vector<casadi::MX> control_input) = 0;
 
-  void setQ(const Eigen::Matrix<double, StateDimension, StateDimension>& Q)
+  void setQ(const Eigen::Matrix<double, StateType::NX, StateType::NX>& Q)
   {
     Q_ = Q;
   }
 
-  const Eigen::Matrix<double, StateDimension, StateDimension> getQ()
+  const Eigen::Matrix<double, StateType::NX, StateType::NX> getQ()
   {
     return Q_;
   }
 
 protected:
-  Eigen::Matrix<double, StateDimension, StateDimension> Q_;
+  Eigen::Matrix<double, StateType::NX, StateType::NX> Q_;
   casadi::Function dynamics_f_;  // x_dot = f(x,u)
+  casadi::Function jacobian_fn_;
+
   /**
    * @brief Returns nummerical Jacobian
    *
@@ -84,21 +93,19 @@ protected:
    */
 
   void getNumericalJacobianInternal(std::vector<const double*> jacobian_inputs,
-                                    Eigen::Matrix<double, StateDimension, StateDimension>& A,
-                                    Eigen::Matrix<double, StateDimension, InputDimension>& B)
+                                    Eigen::Matrix<double, StateType::NX, StateType::NX>& A,
+                                    Eigen::Matrix<double, StateType::NX, InputType::NU>& B)
   {
-    casadi::Function jacobian_fn = getSymbolicJacobian();
-
-    Eigen::Matrix<double, StateDimension, StateDimension + InputDimension> full_jacobian =
-        Eigen::Matrix<double, StateDimension, StateDimension + InputDimension>::Zero();  // Matrix that the results
-                                                                                         // will be written into
+    Eigen::Matrix<double, StateType::NX, StateType::NX + InputType::NU> full_jacobian =
+        Eigen::Matrix<double, StateType::NX, StateType::NX + InputType::NU>::Zero();  // Matrix that the results
+                                                                                      // will be written into
 
     // Call jacobian
-    jacobian_fn(jacobian_inputs,
-                commons::convertToVector<StateDimension, StateDimension + InputDimension>(full_jacobian));
+    jacobian_fn_(jacobian_inputs,
+                 commons::convertToVector<StateType::NX, StateType::NX + InputType::NU>(full_jacobian));
 
-    A = full_jacobian.block(0, 0, StateDimension, StateDimension);               // df/dx
-    B = full_jacobian.block(0, StateDimension, StateDimension, InputDimension);  // df/du
+    A = full_jacobian.block(0, 0, StateType::NX, StateType::NX);              // df/dx
+    B = full_jacobian.block(0, StateType::NX, StateType::NX, InputType::NU);  // df/du
   }
 };
 }  // namespace crs_models

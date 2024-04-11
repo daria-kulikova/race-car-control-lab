@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(ros_backtracker)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -58,4 +58,4 @@ target_link_libraries(linear_backtracker_node ${PROJECT_NAME})
 ##########
 
 cs_install()
-cs_export(INCLUDE_DIRS ${CATKIN_DEVEL_PREFIX}/include)
+cs_export()

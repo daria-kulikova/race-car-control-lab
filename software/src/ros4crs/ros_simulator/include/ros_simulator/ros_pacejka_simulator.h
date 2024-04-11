@@ -21,7 +21,6 @@
 
 namespace ros_simulator
 {
-
 class PacejkaSimulator : public Simulator
 {
 private:
@@ -42,9 +41,10 @@ private:
 
   // Measurements
   std::vector<std::shared_ptr<crs_sensor_models::SensorModel<crs_models::pacejka_model::pacejka_car_state,
-                                                             crs_models::pacejka_model::pacejka_car_input, 6>>>
+                                                             crs_models::pacejka_model::pacejka_car_input>>>
       sensor_models_;  // list of sensor models e.g. vicon, imu, ...
   std::vector<DelayedPublisher> sensor_models_pub_;
+  std::vector<std::string> sensor_names_;
 
   bool got_init_input = false;
 
@@ -63,11 +63,10 @@ public:
   void printConfig() override;
 
   void inputCallback(crs_msgs::car_inputConstPtr input);
-  void
-  registerSensorModel(std::shared_ptr<crs_sensor_models::SensorModel<crs_models::pacejka_model::pacejka_car_state,
-                                                                     crs_models::pacejka_model::pacejka_car_input, 6>>
-                          sensor_model,
-                      double delay);
+  void registerSensorModel(std::shared_ptr<crs_sensor_models::SensorModel<crs_models::pacejka_model::pacejka_car_state,
+                                                                          crs_models::pacejka_model::pacejka_car_input>>
+                               sensor_model,
+                           double delay, std::string name = "");
 };
 }  // namespace ros_simulator
 #endif

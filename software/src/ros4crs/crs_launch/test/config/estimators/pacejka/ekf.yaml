@@ -25,4 +25,3 @@ sensors:
       value: [[0.001], [0.001], [0.001]]
       is_diag: true
     key: vicon # optional, if not set us e name of sensor
-  

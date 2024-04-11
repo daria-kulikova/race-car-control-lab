@@ -5,7 +5,7 @@ More information about the exeperiment setup can be found in the `Getting Starte
 
 In short, this folder contains all configuration files needed to run an experiment.
 
-When executing an experiment using the crs_launch file, all used configuration files (*.yaml) all backed up into a new experiment folder (experiment_YYYY_MM_DD/HH_MM_SS/...). 
+When executing an experiment using the crs_launch file, all used configuration files (*.yaml) all backed up into a new experiment folder (experiment_YYYY_MM_DD/HH_MM_SS/...).
 
 **DO NOT** synchronize all these experiment files over git.
 
@@ -20,7 +20,7 @@ A few additional examples:
 ```bash
  roslaunch crs_launch sim_single_car.launch experiment_name:=example_experiment bypass_estimator:=true
 ```
-### Without RVIZ 
+### Without RVIZ
 ```bash
  roslaunch crs_launch sim_single_car.launch experiment_name:=example_experiment view_rviz:=false
 ```

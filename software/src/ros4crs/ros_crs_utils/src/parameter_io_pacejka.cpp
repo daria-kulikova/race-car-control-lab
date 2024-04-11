@@ -6,7 +6,6 @@
 
 namespace parameter_io
 {
-
 template <>
 crs_models::pacejka_model::pacejka_car_state getState(const ros::NodeHandle& nh)
 {
@@ -74,9 +73,20 @@ void getModelParams<>(const ros::NodeHandle& nh, crs_models::pacejka_model::pace
     ROS_WARN_STREAM(" PacejkaParams: did not load Cm1. Namespace " << nh.getNamespace());
   if (!nh.getParam("Cm2", params.Cm2) && verbose)
     ROS_WARN_STREAM(" PacejkaParams: did not load Cm2. Namespace " << nh.getNamespace());
-  if (!nh.getParam("Cd", params.Cd) && verbose)
-    ROS_WARN_STREAM(" PacejkaParams: did not load Cd. Namespace " << nh.getNamespace());
-  if (!nh.getParam("Croll", params.Croll) && verbose)
-    ROS_WARN_STREAM(" PacejkaParams: did not load Croll. Namespace " << nh.getNamespace());
+  if (!nh.getParam("Cd0", params.Cd0) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load Cd0. Namespace " << nh.getNamespace());
+  if (!nh.getParam("Cd1", params.Cd1) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load Cd1. Namespace " << nh.getNamespace());
+  if (!nh.getParam("Cd2", params.Cd2) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load Cd2. Namespace " << nh.getNamespace());
+
+  if (!nh.getParam("wheel_radius", params.wheel_radius) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load wheel_radius. Namespace " << nh.getNamespace());
+  if (!nh.getParam("car_width", params.car_width) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load car_width. Namespace " << nh.getNamespace());
+  if (!nh.getParam("gamma", params.gamma) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load gamma. Namespace " << nh.getNamespace());
+  if (!nh.getParam("eps", params.eps) && verbose)
+    ROS_WARN_STREAM(" PacejkaParams: did not load eps. Namespace " << nh.getNamespace());
 }
 }  // namespace parameter_io

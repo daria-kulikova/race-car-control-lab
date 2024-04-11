@@ -36,8 +36,8 @@ TEST(EKFTest, testControlCallback)
     crs_models::pacejka_model::pacejka_car_input current_input;
 
     crs_estimators::kalman::DiscreteEKF<crs_models::pacejka_model::pacejka_car_state,
-                                        crs_models::pacejka_model::pacejka_car_input, 6, 2>
-        ekf(model, gt_dynamic_state, Eigen::Matrix<double, 6, 6>::Identity());
+                                        crs_models::pacejka_model::pacejka_car_input>
+        ekf(model, gt_dynamic_state, Eigen::Matrix<double, 6, 6>::Identity(), {}, false);
 
     crs_models::pacejka_model::pacejka_car_state output_state = gt_dynamic_state;
 
@@ -99,8 +99,8 @@ TEST(EKFTest, testMeasurementCallback)
     loadRandomState(gt_state);
 
     crs_estimators::kalman::DiscreteEKF<crs_models::pacejka_model::pacejka_car_state,
-                                        crs_models::pacejka_model::pacejka_car_input, 6, 2>
-        ekf(model, gt_state, Eigen::Matrix<double, 6, 6>::Identity());
+                                        crs_models::pacejka_model::pacejka_car_input>
+        ekf(model, gt_state, Eigen::Matrix<double, 6, 6>::Identity(), {}, false);
 
     ekf.addSensorModel(ViconSensorModel::SENSOR_KEY, vicon_sensor_model);
 

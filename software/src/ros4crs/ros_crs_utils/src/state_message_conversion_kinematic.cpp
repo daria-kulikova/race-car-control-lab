@@ -16,6 +16,7 @@ crs_msgs::car_input convertToRosInput(const crs_models::kinematic_model::kinemat
   crs_msgs::car_input ros_input;
   ros_input.steer = input.steer;
   ros_input.torque = input.torque;
+  ros_input.velocity = NAN;  // The kinematic model sends torque references, not velocity
   ros_input.header.stamp = ros::Time::now();
   return ros_input;
 }

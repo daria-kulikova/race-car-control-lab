@@ -6,6 +6,7 @@
 #include <visualization_msgs/Marker.h>
 
 #include <ros_crs_utils/parameter_io.h>
+#include <ros_crs_utils/validation.h>
 
 CarTrackVisualizer::CarTrackVisualizer(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
   : nh_(nh), nh_private_(nh_private)
@@ -291,6 +292,12 @@ void CarTrackVisualizer::setupMarker()
   gt_trajectory_.scale.x = TRACK_SCALE_ * 0.5;
   gt_trajectory_.scale.y = TRACK_SCALE_ * 0.5;
   gt_trajectory_.scale.z = TRACK_SCALE_ * 0.5;
+
+  // Set the color -- be sure to set alpha to something non-zero!
+  gt_trajectory_.color.r = 0;
+  gt_trajectory_.color.g = 1;
+  gt_trajectory_.color.b = 0;
+  gt_trajectory_.color.a = 1;
 }
 
 void CarTrackVisualizer::updateMarker()
@@ -322,20 +329,20 @@ float CarTrackVisualizer::getNodeRate()
 
 void CarTrackVisualizer::publishMarker()
 {
-  if (got_car_state_)
+  if (got_car_state_ && is_valid_marker(gt_car_marker_))
   {
     pub_.publish(gt_car_marker_);
   }
-  if (got_est_car_state_)
+  if (got_est_car_state_ && is_valid_marker(est_car_marker_))
   {
     pub_.publish(est_car_marker_);
   }
 
-  if (show_past_gt_trajectory_)
+  if (show_past_gt_trajectory_ && is_valid_marker(gt_trajectory_))
   {
     pub_.publish(gt_trajectory_);
   }
-  if (show_past_est_trajectory_)
+  if (show_past_est_trajectory_ && is_valid_marker(est_trajectory_))
   {
     pub_.publish(est_trajectory_);
   }
@@ -345,7 +352,7 @@ void CarTrackVisualizer::publishMarker()
   {
     track_pub_counter_ = publish_track_every_ith_iteration_;
 
-    if(!lloyd_flag_)
+    if (!lloyd_flag_)
     {
       if (show_track_angle_)
       {
@@ -363,23 +370,23 @@ void CarTrackVisualizer::publishMarker()
         {
           if (idx++ % (point_downsampling_factor_ * 3) != 0)
             continue;
-            track_.id = track_.id + 1;
-            double angle = static_track_trajectory_->getTrackAngle(idx);
-            track_.pose.position.x = pt.x();
-            track_.pose.position.y = pt.y();
-            track_.pose.orientation.w = std::cos(angle * 0.5);
-            track_.pose.orientation.x = 0;
-            track_.pose.orientation.y = 0;
-            track_.pose.orientation.z = std::sin(angle * 0.5);
-            pub_.publish(track_);
-          }
-        }
-        else
-        {
+          track_.id = track_.id + 1;
+          double angle = static_track_trajectory_->getTrackAngle(idx);
+          track_.pose.position.x = pt.x();
+          track_.pose.position.y = pt.y();
+          track_.pose.orientation.w = std::cos(angle * 0.5);
+          track_.pose.orientation.x = 0;
+          track_.pose.orientation.y = 0;
+          track_.pose.orientation.z = std::sin(angle * 0.5);
           pub_.publish(track_);
         }
-        pub_.publish(boundary_);
       }
+      else
+      {
+        pub_.publish(track_);
+      }
+      pub_.publish(boundary_);
+    }
 
     track_subscribers_ = pub_.getNumSubscribers();
   }

@@ -5,7 +5,10 @@
     <arg name="control_input" default="control_input"/>
     <arg name="vicon_topic" default="vicon"/>
     <arg name="imu_topic" default="imu"/>
+    <arg name="imu_yaw_rate_topic" default="imu_yaw_rate"/>
     <arg name="gt_state_topic" default="gt_state"/>
+    <arg name="wheel_encoder_topic" default="wheel_encoders"/>
+    <arg name="lighthouse_topic" default="lighthouse"/>
 
 
     <node pkg="ros_simulator" name="ros_simulator" type="simulation_node" output="screen">
@@ -13,7 +16,10 @@
         <remap from = "~/control_input" to = "$(arg control_input)" />
         <remap from = "~/vicon" to = "$(arg vicon_topic)" />
         <remap from = "~/imu" to = "$(arg imu_topic)" />
+        <remap from = "~/imu_yaw_rate" to = "$(arg imu_yaw_rate_topic)" />
+        <remap from = "~/wheel_encoders" to = "$(arg wheel_encoder_topic)" />
         <remap from = "~/gt_state" to = "$(arg gt_state_topic)" />
+        <remap from="~/lighthouse"    to="$(arg lighthouse_topic)" />
     </node>
 
 

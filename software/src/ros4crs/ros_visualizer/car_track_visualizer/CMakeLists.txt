@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(car_track_visualizer)
 
 
@@ -30,7 +30,7 @@ target_link_libraries(${PROJECT_NAME})
 # Executables #
 ###############
 
-add_executable(car_track_visualizer_node 
+add_executable(car_track_visualizer_node
   src/car_track_visualizer_node.cpp
 )
 
@@ -42,5 +42,4 @@ add_dependencies(car_track_visualizer_node crs_msgs_generate_messages_cpp)
 ##########
 
 cs_install()
-cs_export(INCLUDE_DIRS ${CATKIN_DEVEL_PREFIX}/include)
-
+cs_export()

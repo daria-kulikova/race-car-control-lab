@@ -15,16 +15,17 @@ namespace crs_models
 namespace custom_model
 {
 // ==================== TODO change state dimensions ====================
-class DiscreteCustomModel : public DiscreteDynamicModelWrapper<custom_state, custom_input, 6, 2>
+class DiscreteCustomModel : public DiscreteDynamicModelWrapper<custom_state, custom_input>
 {
 public:
   // Option 1: Create an object and specify the process noise covariance matrix Q yourself.
   // ==================== TODO change state dimensions ====================
-  DiscreteCustomModel(custom_params params, Eigen::Matrix<double, 6, 6> Q);
+  DiscreteCustomModel(custom_params params, Eigen::Matrix<double, DiscreteCustomModel::NX, DiscreteCustomModel::NX> Q);
 
   // Option 2: Create an object with no process noise covariance matrix Q defined. Will use identity.
   // ==================== TODO change state dimensions ====================
-  DiscreteCustomModel(custom_params params) : DiscreteCustomModel(params, Eigen::Matrix<double, 6, 6>::Identity())
+  DiscreteCustomModel(custom_params params)
+    : DiscreteCustomModel(params, Eigen::Matrix<double, DiscreteCustomModel::NX, DiscreteCustomModel::NX>::Identity())
   {
     std::cout << "[WARNING] No Q Matrix specified for DiscreteCustomModel. Using identity Matrix! " << std::endl;
   }

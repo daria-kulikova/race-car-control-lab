@@ -1,7 +1,8 @@
 version: '3'
+name: "crs"
 services:
   crs:
-    image: registry.ethz.ch/ics/crs:latest
+    image: registry.ethz.ch/ics-group/projects/andrea/crs-2.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -18,10 +19,23 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-    security_opt:
-      - seccomp:unconfined
-    privileged: true
     expose:
       - "20210-20230/udp"
+      - "33300-33400/udp"
     ports:
       - "20210-20230:20210-20230/udp"
+      - "33300-33400:33300-33400/udp"
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+
+  # Starts a local NTP server so other machines can sync time.
+  ntp:
+    image: cturra/ntp
+    container_name: ntp
+    restart: always
+    ports:
+      - 123:123/udp
+    environment:
+      # Serve local time source
+      - NTP_SERVERS=127.127.1.1
+      - LOG_LEVEL=0

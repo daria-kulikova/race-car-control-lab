@@ -6,7 +6,7 @@
         <arg name = "copy_config"          value = "false"/>
         <arg name = "namespace"            value = "test_car" />
         <arg name = "model_config"         value = "$(find crs_launch)/test/config/models/model.yaml"/>
-        <arg name = "simulator_config"     value = "$(find crs_launch)/test/config/simulators/pacejka/no_Q_no_R.yaml"/> 
+        <arg name = "simulator_config"     value = "$(find crs_launch)/test/config/simulators/pacejka/no_Q_no_R.yaml"/>
 
         <arg name = "controller_config"    value = "$(find crs_launch)/test/config/controllers/pid_controller.yaml"/>
 

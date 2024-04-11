@@ -31,3 +31,5 @@ float64 dpitch
 float64 dyaw
 
 float64 steer
+
+float64[] additional_data

@@ -75,12 +75,12 @@ controller_params:
 #                Overwrite model parameters
 #       [UNCOMMENT TO MISSMATCH CERTAIN MODEL PARAMS]
 # ===============================================================
-# model: 
+# model:
 #  # This only overwrites the mass and inertia that the controller
 #  # perceives. You can add any other parameter (e.g. lr, lf. ...)
-#  # If a parameter is not present, the ground truth value from the 
+#  # If a parameter is not present, the ground truth value from the
 #  # model.yaml is loaded
-#  model_params: 
+#  model_params:
 #    m: 0.2
 #    I: 0.000605
 

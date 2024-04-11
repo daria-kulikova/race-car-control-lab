@@ -3,10 +3,11 @@ input_type: pacejka_car
 
 controller_type: PID
 max_rate: 50
+init_delay: 0 # time to wait for estimator to converge to init. position
 visualization_rate: 10
 
 controller_params:
-  target_velocity: 2.0
+  target_velocity: 2.5
   lag_compensation_time: 0.2
   use_filter: false
   b_filter: [0.0985,0.2956,0.2956,0.0985]
@@ -20,8 +21,6 @@ controller_params:
   b_torque:   0.13732343
 
   steer_limit: 0.4
-
-
 
 visualizer:
   rate: 10

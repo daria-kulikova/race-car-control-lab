@@ -9,7 +9,6 @@
 
 namespace ros_simulator
 {
-
 KinematicSimulator::KinematicSimulator(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh), nh_private_(nh_private)
 {
@@ -126,8 +125,8 @@ void KinematicSimulator::advanceState(double timestep)
 
   if (!got_init_input)
     return;
-
   current_state_ = model_->applyModel(current_state_, last_input_, timestep);
+
   if (noise_model_)
   {
     // Sample noise. Note Q is defined in noise per time
@@ -170,9 +169,9 @@ void KinematicSimulator::publishStates()
  */
 void KinematicSimulator::registerSensorModel(
     std::shared_ptr<crs_sensor_models::SensorModel<crs_models::kinematic_model::kinematic_car_state,
-                                                   crs_models::kinematic_model::kinematic_car_input, 4>>
+                                                   crs_models::kinematic_model::kinematic_car_input>>
         sensor_model,
-    double delay)
+    double delay, std::string name)
 {
   sensor_models_.push_back(sensor_model);  // append sensor_model to list of all sensor models
   std::string key = sensor_model->getKey();

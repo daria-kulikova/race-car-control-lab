@@ -46,20 +46,20 @@ template <>
 void getModelParams<crs_models::kinematic_model::kinematic_params>(
     const ros::NodeHandle& nh, crs_models::kinematic_model::kinematic_params& params, bool verbose)
 {
-  if (!nh.getParam("lf", params.lf))
+  if (!nh.getParam("lf", params.lf) && verbose)
     ROS_WARN_STREAM(" getModelParams<crs_models::kinematic_model::kinematic_params>: did not load lf. Namespace: "
                     << nh.getNamespace());
-  if (!nh.getParam("lr", params.lr))
+  if (!nh.getParam("lr", params.lr) && verbose)
     ROS_WARN_STREAM(
         " getModelParams<crs_models::kinematic_model::kinematic_params>: did not load lr. Ns:" << nh.getNamespace());
-  if (!nh.getParam("tau", params.tau))
+  if (!nh.getParam("tau", params.tau) && verbose)
     ROS_WARN_STREAM(
         " getModelParams<crs_models::kinematic_model::kinematic_params>: did not load tau. Ns:" << nh.getNamespace());
 
-  if (!nh.getParam("a", params.a))
+  if (!nh.getParam("a", params.a) && verbose)
     ROS_WARN_STREAM(
         " getModelParams<crs_models::kinematic_model::kinematic_params>: did not load a. Ns:" << nh.getNamespace());
-  if (!nh.getParam("b", params.b))
+  if (!nh.getParam("b", params.b) && verbose)
     ROS_WARN_STREAM(
         " getModelParams<crs_models::kinematic_model::kinematic_params>: did not load b. Ns:" << nh.getNamespace());
 }

@@ -3,8 +3,9 @@
 namespace ros_controllers
 {
 #ifdef pid_controller_FOUND
-DynamicPIDConfigServer::DynamicPIDConfigServer(std::shared_ptr<crs_controls::PacejkaPIDController> controller)
-  : controller_(controller)
+DynamicPIDConfigServer::DynamicPIDConfigServer(const ros::NodeHandle& nh,
+                                               std::shared_ptr<crs_controls::PacejkaPIDController> controller)
+  : server(nh), controller_(controller)
 {
   f = boost::bind(&DynamicPIDConfigServer::callback, this, _1, _2);
   server.setCallback(f);
@@ -14,11 +15,6 @@ void DynamicPIDConfigServer::callback(ros_controllers::PIDConfig& config, uint32
 {
   if (!controller_)
     return;
-  if (!ignored_first_call)
-  {  // Ignore first call. This lets us set default values using the parameter server and not the .cfg file
-    ignored_first_call = true;
-    return;
-  }
 
   crs_controls::pid_config pid_cfg = controller_->getConfig();
   pid_cfg.Kd = config.Kd;
@@ -32,8 +28,9 @@ void DynamicPIDConfigServer::callback(ros_controllers::PIDConfig& config, uint32
 #endif
 
 #ifdef ff_fb_controller_FOUND
-DynamicFfFbConfigServer::DynamicFfFbConfigServer(std::shared_ptr<crs_controls::FfFbController> controller)
-  : controller_(controller)
+DynamicFfFbConfigServer::DynamicFfFbConfigServer(const ros::NodeHandle& nh,
+                                                 std::shared_ptr<crs_controls::FfFbController> controller)
+  : server(nh), controller_(controller)
 {
   f = boost::bind(&DynamicFfFbConfigServer::callback, this, _1, _2);
   server.setCallback(f);
@@ -43,11 +40,6 @@ void DynamicFfFbConfigServer::callback(ros_controllers::ff_fbConfig& config, uin
 {
   if (!controller_)
     return;
-  if (!ignored_first_call)
-  {  // Ignore first call. This lets us set default values using the parameter server and not the .cfg file
-    ignored_first_call = true;
-    return;
-  }
 
   crs_controls::FfFbConfig pid_cfg = controller_->getConfig();
   pid_cfg.Kd = config.Kd;
@@ -64,8 +56,8 @@ void DynamicFfFbConfigServer::callback(ros_controllers::ff_fbConfig& config, uin
 
 #ifdef mpc_controller_FOUND
 DynamicPacejkaMPCCConfigServer::DynamicPacejkaMPCCConfigServer(
-    std::shared_ptr<crs_controls::PacejkaMpccController> controller)
-  : controller_(controller)
+    const ros::NodeHandle& nh, std::shared_ptr<crs_controls::PacejkaMpccController> controller)
+  : server(nh), controller_(controller)
 {
   f = boost::bind(&DynamicPacejkaMPCCConfigServer::callback, this, _1, _2);
   server.setCallback(f);
@@ -75,11 +67,6 @@ void DynamicPacejkaMPCCConfigServer::callback(ros_controllers::pacejka_mpccConfi
 {
   if (!controller_)
     return;
-  if (!ignored_first_call)
-  {  // Ignore first call. This lets us set default values using the parameter server and not the .cfg file
-    ignored_first_call = true;
-    return;
-  }
 
   crs_controls::mpcc_pacejka_config pid_cfg = controller_->getConfig();
   pid_cfg.Q1 = config.Q1;
@@ -90,6 +77,86 @@ void DynamicPacejkaMPCCConfigServer::callback(ros_controllers::pacejka_mpccConfi
   pid_cfg.q = config.q;
   pid_cfg.lag_compensation_time = config.lag_compensation_time;
   controller_->setConfig(pid_cfg);
+};
+#endif
+
+#ifdef rocket_position_pid_FOUND
+DynamicRocketPidConfigServer::DynamicRocketPidConfigServer(
+    const ros::NodeHandle& nh, std::shared_ptr<crs_controls::Rocket6DofPidController> controller)
+  : hl_server(ros::NodeHandle(nh, "high_level_controller"))
+  , ll_server(ros::NodeHandle(nh, "low_level_controller"))
+  , controller_(controller)
+{
+  hl_f = boost::bind(&DynamicRocketPidConfigServer::hl_callback, this, _1, _2);
+  ll_f = boost::bind(&DynamicRocketPidConfigServer::ll_callback, this, _1, _2);
+  hl_server.setCallback(hl_f);
+  ll_server.setCallback(ll_f);
+};
+
+void DynamicRocketPidConfigServer::hl_callback(ros_controllers::rocket_high_level_pidConfig& config, uint32_t level)
+{
+  if (!controller_)
+    return;
+
+  crs_controls::rocket_controller_config<crs_controls::RocketHighLevelPidController,
+                                         crs_controls::RocketAttitudeController, crs_controls::Rocket6DofAllocation>
+      rocket_pid_cfg = controller_->getConfig();
+
+  rocket_pid_cfg.high_level_controller_config.position_p_gain.x() = config.position_p_gain_x;
+  rocket_pid_cfg.high_level_controller_config.position_p_gain.y() = config.position_p_gain_y;
+  rocket_pid_cfg.high_level_controller_config.position_p_gain.z() = config.position_p_gain_z;
+
+  rocket_pid_cfg.high_level_controller_config.velocity_p_gain.x() = config.velocity_p_gain_x;
+  rocket_pid_cfg.high_level_controller_config.velocity_p_gain.y() = config.velocity_p_gain_y;
+  rocket_pid_cfg.high_level_controller_config.velocity_p_gain.z() = config.velocity_p_gain_z;
+
+  rocket_pid_cfg.high_level_controller_config.velocity_i_gain.x() = config.velocity_i_gain_x;
+  rocket_pid_cfg.high_level_controller_config.velocity_i_gain.y() = config.velocity_i_gain_y;
+  rocket_pid_cfg.high_level_controller_config.velocity_i_gain.z() = config.velocity_i_gain_z;
+
+  rocket_pid_cfg.high_level_controller_config.velocity_d_gain.x() = config.velocity_d_gain_x;
+  rocket_pid_cfg.high_level_controller_config.velocity_d_gain.y() = config.velocity_d_gain_y;
+  rocket_pid_cfg.high_level_controller_config.velocity_d_gain.z() = config.velocity_d_gain_z;
+
+  rocket_pid_cfg.high_level_controller_config.velocity_i_limits.x() = config.velocity_i_limits_x;
+  rocket_pid_cfg.high_level_controller_config.velocity_i_limits.y() = config.velocity_i_limits_y;
+  rocket_pid_cfg.high_level_controller_config.velocity_i_limits.z() = config.velocity_i_limits_z;
+
+  rocket_pid_cfg.high_level_controller_config.max_angle = config.max_angle;
+
+  controller_->setConfig(rocket_pid_cfg);
+};
+
+void DynamicRocketPidConfigServer::ll_callback(ros_controllers::rocket_low_level_pidConfig& config, uint32_t level)
+{
+  if (!controller_)
+    return;
+
+  crs_controls::rocket_controller_config<crs_controls::RocketHighLevelPidController,
+                                         crs_controls::RocketAttitudeController, crs_controls::Rocket6DofAllocation>
+      rocket_pid_cfg = controller_->getConfig();
+
+  rocket_pid_cfg.low_level_controller_config.attitude_p_gain.x() = config.attitude_p_gain_x;
+  rocket_pid_cfg.low_level_controller_config.attitude_p_gain.y() = config.attitude_p_gain_y;
+  rocket_pid_cfg.low_level_controller_config.attitude_p_gain.z() = config.attitude_p_gain_z;
+
+  rocket_pid_cfg.low_level_controller_config.rate_p_gain.x() = config.rate_p_gain_x;
+  rocket_pid_cfg.low_level_controller_config.rate_p_gain.y() = config.rate_p_gain_y;
+  rocket_pid_cfg.low_level_controller_config.rate_p_gain.z() = config.rate_p_gain_z;
+
+  rocket_pid_cfg.low_level_controller_config.rate_i_gain.x() = config.rate_i_gain_x;
+  rocket_pid_cfg.low_level_controller_config.rate_i_gain.y() = config.rate_i_gain_y;
+  rocket_pid_cfg.low_level_controller_config.rate_i_gain.z() = config.rate_i_gain_z;
+
+  rocket_pid_cfg.low_level_controller_config.rate_d_gain.x() = config.rate_d_gain_x;
+  rocket_pid_cfg.low_level_controller_config.rate_d_gain.y() = config.rate_d_gain_y;
+  rocket_pid_cfg.low_level_controller_config.rate_d_gain.z() = config.rate_d_gain_z;
+
+  rocket_pid_cfg.low_level_controller_config.rate_i_limits.x() = config.rate_i_limits_x;
+  rocket_pid_cfg.low_level_controller_config.rate_i_limits.y() = config.rate_i_limits_y;
+  rocket_pid_cfg.low_level_controller_config.rate_i_limits.z() = config.rate_i_limits_z;
+
+  controller_->setConfig(rocket_pid_cfg);
 };
 #endif
 }  // namespace ros_controllers

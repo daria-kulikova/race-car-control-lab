@@ -84,7 +84,7 @@ public:
       trajectory_publishers_[ns] = nh_.advertise<trajectory_msgs::JointTrajectory>(ns + "/trajectory", 10);
       std::cout << "creating publisher for  " << ns + "/trajecotry" << std::endl;
 
-      voredges_publisher_[ns] = nh_.advertise<geometry_msgs::PolygonStamped>(ns + "/vor_edges",10);
+      voredges_publisher_[ns] = nh_.advertise<geometry_msgs::PolygonStamped>(ns + "/vor_edges", 10);
     }
     trajectory_finisher_sub_ =
         nh_.subscribe("trajectory_finished", 10, &RosMultiAgentPlanner::trajectoryFinshedCallback, this);

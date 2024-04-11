@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(track_generation)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -8,10 +8,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 
-catkin_package(CATKIN_DEPENDS 
-  roscpp 
-  rospy 
-  std_msgs 
+catkin_package(CATKIN_DEPENDS
+  roscpp
+  rospy
+  std_msgs
 )
 
 include_directories(

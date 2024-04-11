@@ -19,12 +19,16 @@
   <depend>crs_msgs</depend>
   <depend>message_filters</depend>
   <depend>commons</depend>
+  <depend>tf</depend>
 
   <!-- Optional Dependencies -->
   <depend>pacejka_model</depend>
   <depend>pacejka_sensor_model</depend>
   <depend>kinematic_model</depend>
   <depend>kinematic_sensor_model</depend>
+
+  <depend>rocket_6_dof_model</depend>
+  <depend>rocket_6_dof_sensor_model</depend>
 
   <export></export>
 </package>

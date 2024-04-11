@@ -22,6 +22,7 @@ public:
   RateLimitedSubscriber(const std::string& topic, double rate, const ros::NodeHandlePtr nh) : rate_(rate), nh_(nh)
   {
   }
+
   template <class T>
   ros::Subscriber subscribe(const std::string& topic, uint32_t queue_size, void (T::*fp)(MessageType), T* obj,
                             const TransportHints& transport_hints = TransportHints())

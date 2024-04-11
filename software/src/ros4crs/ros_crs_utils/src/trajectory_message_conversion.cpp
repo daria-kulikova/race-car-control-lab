@@ -54,9 +54,35 @@ convertToRosTrajectory(const std::vector<crs_planning::multi_car_cartesian_refer
   return ros_trajectory;
 }
 
+template <>
+trajectory_msgs::JointTrajectory convertToRosTrajectory(const std::vector<std::vector<double>>& trajectory,
+                                                        std::string car_name /* = "" */)
+{
+  // We continue with the abuse of the joint trajectory message here:
+  // For each index in the horizon, the position is a vector [x, y, z]
+  // and the velocities are [vx, vy, vz] in body frame.
+  trajectory_msgs::JointTrajectory ros_trajectory;
+  ros_trajectory.joint_names.push_back(car_name);
 
-geometry_msgs::PolygonStamped
-convertToRosVoronoi(const std::vector<double> vor_edges_x, const std::vector<double> vor_edges_y)
+  for (const auto& pt : trajectory)
+  {
+    trajectory_msgs::JointTrajectoryPoint ros_pt;
+    ros_pt.positions.push_back(pt[0]);
+    ros_pt.positions.push_back(pt[1]);
+    ros_pt.positions.push_back(0);  // z = 0
+
+    ros_pt.velocities.push_back(pt[2]);
+    ros_pt.velocities.push_back(pt[3]);
+    ros_pt.velocities.push_back(0);  // vz = 0
+
+    ros_trajectory.points.push_back(ros_pt);
+  }
+
+  return ros_trajectory;
+}
+
+geometry_msgs::PolygonStamped convertToRosVoronoi(const std::vector<double> vor_edges_x,
+                                                  const std::vector<double> vor_edges_y)
 {
   geometry_msgs::PolygonStamped poly_msg;
   poly_msg.header.frame_id = "crs_frame";

@@ -44,7 +44,6 @@ public:
    */
   void resetVorEdges(std::vector<double> x_edge, std::vector<double> y_edge);
 
-
   /**
    * @brief Get the Last Requested Track Angle (only for visualization)
    *

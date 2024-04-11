@@ -6,21 +6,21 @@ namespace crs_controls
 {
 void DynamicPointTrajectory::resetTrajectory(std::vector<double> x_coord, std::vector<double> y_coord)
 {
-  x_coords_ = x_coord;
-  y_coords_ = y_coord;
-  lastTrackIdx_ = -1;
+  assert((x_coord.size() == y_coord.size()) && "x_coord and y_coord differ in size");
+  trajectory_coordinates_.clear();
+  trajectory_coordinates_.reserve(x_coord.size());
+
+  for (unsigned int i = 0; i < x_coord.size(); i++)
+  {
+    trajectory_coordinates_.push_back(Eigen::Vector2d(x_coord[i], y_coord[i]));
+  }
+
+  last_query_index_ = -1;
 }
 
 void DynamicPointTrajectory::resetTrajectory(std::vector<Eigen::Vector2d> pts)
 {
-  x_coords_.clear();
-  y_coords_.clear();
-  for (auto& pt : pts)
-  {
-    x_coords_.push_back(pt.x());
-    y_coords_.push_back(pt.y());
-  }
-  lastTrackIdx_ = -1;
+  BaseTrajectory::resetTrajectory(pts);
 }
 
 void DynamicPointTrajectory::resetVorEdges(std::vector<double> x_edge, std::vector<double> y_edge)

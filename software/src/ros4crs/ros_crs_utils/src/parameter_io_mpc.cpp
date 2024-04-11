@@ -30,11 +30,14 @@ crs_controls::mpcc_pacejka_config getConfig<crs_controls::mpcc_pacejka_config>(c
   if (!nh.getParam("solver_type", params.solver_type))
     ROS_WARN_STREAM(" getConfig<crs_controls::mpcc_pacejka_config>: did not load solver_type");
 
+  nh.getParam("warmstart_iterations", params.warmstart_iterations);  // Optional Param. No warning raised if not set.
+
   return params;
 }
 
 template <>
-crs_controls::tracking_mpc_pacejka_config getConfig<crs_controls::tracking_mpc_pacejka_config>(const ros::NodeHandle& nh)
+crs_controls::tracking_mpc_pacejka_config
+getConfig<crs_controls::tracking_mpc_pacejka_config>(const ros::NodeHandle& nh)
 {
   crs_controls::tracking_mpc_pacejka_config params;
 

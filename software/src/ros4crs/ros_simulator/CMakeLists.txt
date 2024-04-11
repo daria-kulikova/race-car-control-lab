@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(ros_simulator)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -27,6 +27,13 @@ if (${kinematic_model_FOUND})
   list(APPEND CPP_SRC_FILES src/ros_kinematic_simulator.cpp)
 else()
   message("Kinematic Model not found. Building without kinematic model support")
+endif()
+
+if (${rocket_6_dof_model_FOUND})
+  add_definitions(-Drocket_6_dof_model_FOUND)
+  list(APPEND CPP_SRC_FILES src/ros_rocket_simulator.cpp)
+else()
+  message("Rocket Model not found. Building without rocket model support")
 endif()
 
 
@@ -61,4 +68,4 @@ target_link_libraries(simulation_node ${PROJECT_NAME} casadi stdc++fs)
 ##########
 
 cs_install()
-cs_export(INCLUDE_DIRS ${CATKIN_DEVEL_PREFIX}/include)
+cs_export()

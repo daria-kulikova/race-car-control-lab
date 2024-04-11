@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <ros_crs_utils/parameter_io.h>
 
+#include <commons/base_trajectory.h>
 #include <commons/dynamic_point_trajectory.h>
 
 #ifdef pacejka_model_FOUND
@@ -31,6 +32,15 @@
 #include <pacejka_model/pacejka_params.h>
 #endif
 
+#ifdef rocket_6_dof_model_FOUND
+#include <rocket_6_dof_model/rocket_6_dof_state.h>
+#include <rocket_6_dof_model/rocket_6_dof_input.h>
+#endif
+
+#ifdef rocket_position_pid_FOUND
+#include <rocket_position_pid/rocket_controller_specializations.h>
+#endif
+
 #include "ros_controllers/dynamic_config.h"
 #include "ros_controllers/visualizers/last_reference_point_visualizer.h"
 #include "ros_controllers/visualizers/mpc_controller_visualizer.h"
@@ -39,6 +49,9 @@
 
 #include <crs_msgs/car_state_cart.h>
 #include <crs_msgs/car_input.h>
+
+#include <crs_msgs/rocket_state.h>
+#include <crs_msgs/rocket_input.h>
 
 /**
  * @brief This file loads the specific controller implementation and wraps it inside a ros controller object
@@ -114,7 +127,8 @@ inline pacejka_ros_controller* getPacejkaPidController(ros::NodeHandle& nh, ros:
   auto visualizer_ptr = loadControllerVisualizer<void, pacejka_state, pacejka_input>(
       ros::NodeHandle(nh_private, "visualizer"), derived_ptr);
 
-  dynamic_callback_allocator = (void*)new ros_controllers::DynamicPIDConfigServer(ptr);
+  dynamic_callback_allocator =
+      (void*)new ros_controllers::DynamicPIDConfigServer(ros::NodeHandle(nh_private, "controller_params"), ptr);
   return new pacejka_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
 }
 
@@ -173,7 +187,8 @@ inline pacejka_ros_controller* getPacejkaFfFbController(ros::NodeHandle& nh, ros
   auto visualizer_ptr = loadControllerVisualizer<pacejka_model_params, pacejka_state, pacejka_input>(
       ros::NodeHandle(nh_private, "visualizer"), derived_ptr);
 
-  dynamic_callback_allocator = (void*)new ros_controllers::DynamicFfFbConfigServer(ptr);
+  dynamic_callback_allocator =
+      (void*)new ros_controllers::DynamicFfFbConfigServer(ros::NodeHandle(nh_private, "controller_params"), ptr);
   return new pacejka_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
 }
 #endif  // ff_fb_controller_FOUND
@@ -215,7 +230,8 @@ inline pacejka_ros_controller* getPacejkaMPCCController(ros::NodeHandle& nh, ros
       loadControllerVisualizer<crs_models::pacejka_model::DiscretePacejkaModel, pacejka_state, pacejka_input>(
           ros::NodeHandle(nh_private, "visualizer"), derived_ptr);
 
-  dynamic_callback_allocator = (void*)new ros_controllers::DynamicPacejkaMPCCConfigServer(ptr);
+  dynamic_callback_allocator =
+      (void*)new ros_controllers::DynamicPacejkaMPCCConfigServer(ros::NodeHandle(nh_private, "controller_params"), ptr);
   return new pacejka_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
 }
 
@@ -257,11 +273,65 @@ inline pacejka_ros_controller* getPacejkaTrackingMPCController(ros::NodeHandle& 
       loadControllerVisualizer<crs_models::pacejka_model::DiscretePacejkaModel, pacejka_state, pacejka_input>(
           ros::NodeHandle(nh_private, "visualizer"), derived_ptr);
 
-  // dynamic_callback_allocator = (void*)new ros_controllers::DynamicPacejkaMPCCConfigServer(ptr); //not existant at the
-  // moment
+  // dynamic_callback_allocator = (void*)new ros_controllers::DynamicPacejkaMPCCConfigServer(ros::NodeHandle(nh_private,
+  // "controller_params"), ptr); //not existant at the moment
   return new pacejka_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
 }
 #endif  // mpc_controller_FOUND
+#endif  // pacejka_model_FOUND
+
+#ifdef rocket_6_dof_model_FOUND
+// =============================================================================================
+// ===============                   ROCKET STUFF                   ============================
+// =============================================================================================
+
+// Shorten type names
+typedef crs_msgs::rocket_state ros_rocket_state;
+typedef crs_msgs::rocket_input ros_rocket_input;
+typedef crs_models::rocket_6_dof_model::rocket_6_dof_state rocket_6_dof_state;
+typedef crs_models::rocket_6_dof_model::rocket_6_dof_input rocket_6_dof_input;
+typedef crs_models::rocket_6_dof_model::rocket_6_dof_params rocket_6_dof_model_params;
+typedef RosController<ros_rocket_state, ros_rocket_input, rocket_6_dof_state, rocket_6_dof_input,
+                      crs_controls::ThreeDofPositionTrajectory>
+    rocket_ros_controller;
+
+inline rocket_ros_controller* getRocketAltitudePidBaseAllocationController(ros::NodeHandle& nh,
+                                                                           ros::NodeHandle& nh_private,
+                                                                           void*& dynamic_callback_allocator)
+{
+  // Load controller config
+  crs_controls::rocket_controller_config<crs_controls::RocketHighLevelPidController,
+                                         crs_controls::RocketAttitudeController, crs_controls::Rocket6DofAllocation>
+      controller_config =
+          parameter_io::getConfig<crs_controls::rocket_controller_config<crs_controls::RocketHighLevelPidController,
+                                                                         crs_controls::RocketAttitudeController,
+                                                                         crs_controls::Rocket6DofAllocation>>(
+              ros::NodeHandle(nh_private, "controller_params"));
+
+  // Load rocket model
+  std::shared_ptr<rocket_6_dof_model_params> rocket_params = std::make_shared<rocket_6_dof_model_params>();
+  // First load generic, gt model
+  parameter_io::getModelParams<rocket_6_dof_model_params>(ros::NodeHandle(nh, "model/model_params"), *rocket_params);
+
+  std::vector<Eigen::Vector3d> initial_setpoint = { Eigen::Vector3d(1.4, 0.0, 0.0) };
+  auto rocket_controller_ptr = std::make_shared<crs_controls::Rocket6DofPidController>(
+      controller_config, rocket_params, std::make_shared<crs_controls::ThreeDofPositionTrajectory>(initial_setpoint));
+
+  // // Downcast to BaseController type
+  auto derived_ptr = std::dynamic_pointer_cast<
+      crs_controls::BaseController<rocket_6_dof_state, rocket_6_dof_input, crs_controls::ThreeDofPositionTrajectory>>(
+      rocket_controller_ptr);
+
+  // Create Visualizer
+  auto visualizer_ptr = std::unique_ptr<BaseControllerVisualizer<rocket_6_dof_state, rocket_6_dof_input>>(nullptr);
+
+  dynamic_callback_allocator = (void*)new ros_controllers::DynamicRocketPidConfigServer(
+      ros::NodeHandle(nh_private, "controller_params"), rocket_controller_ptr);
+
+  return new rocket_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
+}
+
+#endif  // rocket_6_dof_model_FOUND
 
 // =============================================================================================
 // ===============                 RESOLVE CONTROLLER               ============================
@@ -271,6 +341,7 @@ pacejka_ros_controller* resolveController<ros_car_state, ros_car_input, pacejka_
     ros::NodeHandle& nh, ros::NodeHandle& nh_private, const std::string& controller_type,
     void*& dynamic_callback_allocator)
 {
+#ifdef pacejka_model_FOUND
 #ifdef pid_controller_FOUND
   if (controller_type == "PID")
   {
@@ -281,14 +352,14 @@ pacejka_ros_controller* resolveController<ros_car_state, ros_car_input, pacejka_
   {
     return getPacejkaConstReferencePidController(nh, nh_private, dynamic_callback_allocator);
   }
-#endif
+#endif  // pid_controller_FOUND
 
 #ifdef ff_fb_controller_FOUND
   if (controller_type == "FF_FB")
   {
     return getPacejkaFfFbController(nh, nh_private, dynamic_callback_allocator);
   }
-#endif
+#endif  // ff_fb_controller_FOUND
 
 #ifdef mpc_controller_FOUND
   if (controller_type == "MPCC")
@@ -300,11 +371,30 @@ pacejka_ros_controller* resolveController<ros_car_state, ros_car_input, pacejka_
   {
     return getPacejkaTrackingMPCController(nh, nh_private, dynamic_callback_allocator);
   }
-#endif
+#endif  // mpc_controller_FOUND
+
+#endif  // pacejka_model_FOUND
 
   assert(true && "Did not find registered controller for specified controller type.");
   return nullptr;
 }
-#endif
+
+template <>
+rocket_ros_controller* resolveController<ros_rocket_state, ros_rocket_input, rocket_6_dof_state, rocket_6_dof_input>(
+    ros::NodeHandle& nh, ros::NodeHandle& nh_private, const std::string& controller_type,
+    void*& dynamic_callback_allocator)
+{
+#ifdef rocket_6_dof_model_FOUND
+  std::string allocation_type;
+  nh_private.getParam("allocation_type", allocation_type);
+  if (controller_type == "ROCKET_ALTITUDE" && allocation_type == "BASE")
+  {
+    return getRocketAltitudePidBaseAllocationController(nh, nh_private, dynamic_callback_allocator);
+  }
+#endif  // rocket_6_dof_model_FOUND
+
+  assert(true && "Did not find registered controller for specified controller type.");
+  return nullptr;
+}
 
 }  // namespace ros_controllers

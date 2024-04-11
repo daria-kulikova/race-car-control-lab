@@ -5,20 +5,18 @@ function up() {
     option=$1
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
         xhost +local:root || echo "Cannot connect to display. Run headless."
-    elif [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
-        ip=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')
-        echo "DISPLAY=$ip:0" >.display
-        xhost + $ip
+    elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+        : # no-op, on macOS we use the novnc container to render the simulation
     else
         printf "Unknown OS detected."
         exit 1
     fi
     case $option in
     -b | --build)
-        COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose up --pull never --build
+        COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose up -d --pull never --build
         ;;
     -p | --pull)
-        COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose up --pull missing --no-build
+        COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose up -d --pull missing --no-build
         ;;
     *)
         printf "usage: crs-docker up [-b/-p]\n"
@@ -35,12 +33,8 @@ function down() {
     docker compose down
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
         xhost -local:root
-    elif [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
-        ip=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')
-        xhost - $ip
-        if [ -f .display ]; then
-            rm .display
-        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+        : # no-op, on macOS we use the novnc container to render the simulation
     else
         printf "Unknown OS detected."
         exit 1
@@ -53,16 +47,18 @@ function run() {
 
 function clean() {
     docker system prune
-    docker image rm registry.ethz.ch/ics/crs
+    docker image rm "registry.ethz.ch/ics-group/projects/andrea/crs-2.0"
 }
 
 function attach() {
-    n_running=$(docker ps | grep crs | wc -l | xargs)
+    # Finding the correct container relies on the fact that above,
+    # the image is tagged with the name registry.ethz.ch/[...]/crs-2.0.
+    n_running=$(docker ps | grep 'crs-2.0' | wc -l | xargs)
     if [ "${n_running}" -eq 0 ]; then
         printf "There are no CRS container running.\n\n"
         usage
     elif [ "${n_running}" -eq 1 ]; then
-        container_id=$(docker ps | grep crs | awk '{print $1}')
+        container_id=$(docker ps | grep 'crs-2.0' | awk '{print $1}')
         printf "Attaching to container with ID: ${container_id}\n"
         docker exec -it ${container_id} bash
     else

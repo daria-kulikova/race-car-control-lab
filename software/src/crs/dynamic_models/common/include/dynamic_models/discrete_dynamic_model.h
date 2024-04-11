@@ -6,11 +6,18 @@
 
 namespace crs_models
 {
-template <typename StateType, typename InputType, int StateDimension, int InputDimension>
+template <typename StateType, typename InputType>
 class DiscreteDynamicModel
 {
 public:
-  DiscreteDynamicModel(Eigen::Matrix<double, StateDimension, StateDimension> Q) : Q_(Q){};
+  typedef Eigen::Matrix<double, StateType::NX, StateType::NX> StateMatrix;
+  typedef Eigen::Matrix<double, StateType::NX, InputType::NU> InputMatrix;
+
+  /** State and input dimensions of the Model*/
+  static const int NX = StateType::NX;
+  static const int NU = InputType::NU;
+
+  DiscreteDynamicModel(Eigen::Matrix<double, StateType::NX, StateType::NX> Q) : Q_(Q){};
 
   /**
    * @brief Calculates the state of the system after evolving for a certain integration_time
@@ -32,15 +39,14 @@ public:
    * @param B df/du of the discrete system
    */
   virtual void getJacobian(const StateType& state, const InputType& control_input, double integration_time,
-                           Eigen::Matrix<double, StateDimension, StateDimension>& A,
-                           Eigen::Matrix<double, StateDimension, InputDimension>& B) = 0;
+                           StateMatrix& A, InputMatrix& B) = 0;
   /**
    * @brief Sets the Process Noise Covariance Matrix associated with these dynamics.
    * Note that the Unit of Q is 1/s.
    *
    * @param Q Process Noise Covariance Matrix
    */
-  void setQ(const Eigen::Matrix<double, StateDimension, StateDimension>& Q)
+  void setQ(const Eigen::Matrix<double, StateType::NX, StateType::NX>& Q)
   {
     Q_ = Q;
   }
@@ -49,15 +55,15 @@ public:
    * @brief Returns the Process Noise Covariance Matrix associated with these dynamics.
    * Note that the Unit of Q is 1/s.
    *
-   * @return const Eigen::Matrix<double, StateDimension, StateDimension>
+   * @return const Eigen::Matrix<double, StateType::NX, StateType::NX>
    */
-  const Eigen::Matrix<double, StateDimension, StateDimension> getQ()
+  const Eigen::Matrix<double, StateType::NX, StateType::NX> getQ()
   {
     return Q_;
   }
 
 private:
-  Eigen::Matrix<double, StateDimension, StateDimension> Q_;
+  Eigen::Matrix<double, StateType::NX, StateType::NX> Q_;
 };
 }  // namespace crs_models
 #endif /* SRC_CRS_DYNAMIC_MODELS_COMMON_INCLUDE_DYNAMIC_MODELS_DISCRETE_DYNAMIC_MODEL */
