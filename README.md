@@ -18,6 +18,7 @@ The repository is organized into three main folders:
 - **Hardware**: Contains electronic schematics, PCB designs, and assembly instructions for the Chronos hardware platform.
 - **Firmware**: Includes firmware code for the microcontrollers used in Chronos, enabling communication and control of the hardware components.
 - **Software**: Hosts the control software framework CRS, including algorithms for system identification, state estimation, and control.
+- **Datasets**: Contains a pointer to the datasets used for nonlinear system identification and validation of the state estimators. 
 
 
 Visit the [Wiki](https://gitlab.ethz.ch/ics/crs/-/wikis/home) to learn more on how to start with Chronos and CRS.
