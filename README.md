@@ -30,7 +30,7 @@ If you use Chronos and/or CRS please cite:
 
 > [Andrea Carron, Sabrina Bodmer, Lukas Vogel,  Ren&eacute; Zurbr&uuml;ugg, David Helm, Rahel Rickenbach,  Simon Muntwiler, Jerome Sieber and  Melanie N. Zeilinger, "Chronos and CRS: Design of a miniature car-like robot and a software framework for single and multi-agent robotics and control," 2023 IEEE International Conference on Robotics and Automation (ICRA), London, United Kingdom, 2023, pp. 1371-1378](https://ieeexplore.ieee.org/abstract/document/10161434)
 
-> Sabrina Bodmer, Lukas Vogel, Simon Muntwiler, Alexander Hansson, Tobias Bodewig, Jonas Wahlen, Melanie N. Zeilinger, and Andrea Carron, "Optimization-Based System Identification and Moving Horizon Estimation Using Low-Cost Sensors for a Miniature Car-Like Robot", ArXiv 2024
+> [Sabrina Bodmer, Lukas Vogel, Simon Muntwiler, Alexander Hansson, Tobias Bodewig, Jonas Wahlen, Melanie N. Zeilinger, and Andrea Carron, "Optimization-Based System Identification and Moving Horizon Estimation Using Low-Cost Sensors for a Miniature Car-Like Robot", ArXiv 2024](https://arxiv.org/pdf/2404.08362)
 
 ---
 
