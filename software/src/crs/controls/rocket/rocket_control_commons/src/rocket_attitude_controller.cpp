@@ -36,8 +36,7 @@ Eigen::Vector3d RocketAttitudeController::computeTorqueSetpoint(const Eigen::Vec
 
   rate_integrator_ = rate_integrator_.cwiseMax(-config_.rate_i_limits).cwiseMin(config_.rate_i_limits);
 
-  Eigen::Vector3d torque_setpoint = config_.rate_p_gain.cwiseProduct(rate_error) + rate_integrator_ -
-                                    config_.rate_d_gain.cwiseProduct((current_rate - rate_prev_) * config_.loop_rate);
+  Eigen::Vector3d torque_setpoint = config_.rate_p_gain.cwiseProduct(rate_error) + rate_integrator_ - d_term;
 
   rate_prev_ = filtered_rate;
 

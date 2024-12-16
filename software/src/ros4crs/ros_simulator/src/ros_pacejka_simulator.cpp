@@ -2,7 +2,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <pacejka_sensor_model/imu_sensor_model.h>
 #include <pacejka_sensor_model/imu_yaw_rate_sensor_model.h>
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 #include <pacejka_sensor_model/wheel_encoder_sensor_model.h>
 #include <pacejka_sensor_model/lighthouse_sensor_model.h>
 #include <ros/console.h>
@@ -207,12 +207,12 @@ void PacejkaSimulator::registerSensorModel(
 
   sensor_names_.push_back(name);  // append name of sensor to list of all sensor names
 
-  if (key == crs_sensor_models::pacejka_sensor_models::ViconSensorModel::SENSOR_KEY)
+  if (key == crs_sensor_models::pacejka_sensor_models::MocapSensorModel::SENSOR_KEY)
   {
     // TODO currently, there can only be e.g. 1 IMU as they would publish on the same key. Change this
     // publish sensor measurements to topic "key"
-    auto vicon_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(name, 10);
-    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, vicon_pub, delay)));
+    auto mocap_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(name, 10);
+    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, mocap_pub, delay)));
   }
   else if (key == crs_sensor_models::pacejka_sensor_models::ImuSensorModel::SENSOR_KEY)
   {
@@ -262,7 +262,7 @@ void PacejkaSimulator::publishMeasurement(const std::string& key)
     Eigen::MatrixXd measurement = sensor_model->applyModel(current_state_, last_input_);
 
     Eigen::MatrixXd noise;
-    // sensor_name_to_noise_model_ of the form: {'vicon': GaussianNoise, 'imu': GaussianNoise}
+    // sensor_name_to_noise_model_ of the form: {'mocap': GaussianNoise, 'imu': GaussianNoise}
     auto sensor_iter = sensor_name_to_noise_model_.find(key);
     if (sensor_iter != sensor_name_to_noise_model_.end())                           // Key was found
       noise = sensor_iter->second->sampleNoiseFromCovMatrix(sensor_model->getR());  // get R from noise model
@@ -271,13 +271,13 @@ void PacejkaSimulator::publishMeasurement(const std::string& key)
       noise.setZero(sensor_model->getR().rows(), 1);  // no noise
       std::cout << "no noise model set" << std::endl;
     }
-    // ========== VICON ==========
+    // ========== MOCAP ==========
 
-    if (sensor_model->getKey() == crs_sensor_models::pacejka_sensor_models::ViconSensorModel::SENSOR_KEY)
+    if (sensor_model->getKey() == crs_sensor_models::pacejka_sensor_models::MocapSensorModel::SENSOR_KEY)
     {
       geometry_msgs::TransformStamped msg;
 
-      // Parse vicon measurements to ros messagex to publish it
+      // Parse mocap measurements to ros messagex to publish it
       msg.transform.translation.x = measurement(0) + noise(0);  // x positiion
       msg.transform.translation.y = measurement(1) + noise(1);  // y position
 

@@ -55,8 +55,8 @@ struct mhe_solution
 
 class Pacejka_MHE : public MHE<pacejka_state, pacejka_input>
 {
-  // map saves objects that have a key and a value (here key = string, e.g. vicon, value = sensor_model e.g.
-  // vicon_sensor_model)
+  // map saves objects that have a key and a value (here key = string, e.g. mocap, value = sensor_model e.g.
+  // mocap_sensor_model)
   std::map<std::string, std::shared_ptr<crs_sensor_models::SensorModel<pacejka_state, pacejka_input>>>
       key_to_sensor_model_;
 
@@ -75,7 +75,7 @@ private:
 
   DataBuffer<pacejka_input> input_buffer;
   DataBuffer<pacejka_state> states_buffer;
-  DataBuffer<Eigen::Vector3d> vicon_buffer;
+  DataBuffer<Eigen::Vector3d> mocap_buffer;
   DataBuffer<Eigen::Vector3d> imu_buffer;
   DataBuffer<Eigen::Matrix<double, 1, 1>> imu_yaw_rate_buffer;
   DataBuffer<Eigen::Vector4d> wheel_encoder_buffer;
@@ -86,7 +86,7 @@ private:
 
   std::vector<pacejka_input> subsampled_inputs;
   std::vector<pacejka_state> subsampled_states;
-  std::vector<Eigen::Vector3d> subsampled_vicon;
+  std::vector<Eigen::Vector3d> subsampled_mocap;
   std::vector<Eigen::Vector3d> subsampled_imu;
   std::vector<Eigen::Matrix<double, 1, 1>> subsampled_imu_yaw_rate;
   std::vector<Eigen::Vector4d> subsampled_wheel_encoders;
@@ -95,7 +95,7 @@ private:
 
   std::vector<double> horizon_shooting_ts_;
 
-  std::vector<bool> valid_vicon;
+  std::vector<bool> valid_mocap;
   std::vector<bool> valid_imu;
   std::vector<bool> valid_imu_yaw_rate;
   std::vector<bool> valid_wheel_encoders;
@@ -120,7 +120,7 @@ public:
   mhe_solution last_solution;
 
   // Just used for visualization. Debugging
-  std::vector<Eigen::Vector3d> vicon_reference;
+  std::vector<Eigen::Vector3d> mocap_reference;
 
   // Constructor
   Pacejka_MHE(pacejka_mhe_config config, std::shared_ptr<model_type> discrete_model, pacejka_state initial_state,
@@ -195,7 +195,7 @@ public:
    * @return true if controller is already initialized
    * @return false if controller is not initialized
    */
-  const bool isInitializing()
+  bool isInitializing()
   {
     return initializing;
   }

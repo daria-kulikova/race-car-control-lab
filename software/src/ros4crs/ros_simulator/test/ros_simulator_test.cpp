@@ -66,17 +66,17 @@ TEST(KalmanTestSuite, testSimulatorSteerInput)
  * @brief checks if the estimated state and measured state are similar
  *
  * @param state
- * @param vicon
+ * @param mocap
  * @param imu
  */
 void measurementCallback(const crs_msgs::car_state_cart::ConstPtr& state,
-                         const geometry_msgs::TransformStamped::ConstPtr& vicon, const sensor_msgs::Imu::ConstPtr& imu)
+                         const geometry_msgs::TransformStamped::ConstPtr& mocap, const sensor_msgs::Imu::ConstPtr& imu)
 {
   float epsilon = 0.05;
 
-  // Vicon checks
-  EXPECT_NEAR(state->x, vicon->transform.translation.x, epsilon);
-  EXPECT_NEAR(state->y, vicon->transform.translation.y, epsilon);
+  // Mocap checks
+  EXPECT_NEAR(state->x, mocap->transform.translation.x, epsilon);
+  EXPECT_NEAR(state->y, mocap->transform.translation.y, epsilon);
   // IMU checks
   EXPECT_NEAR(state->dyaw, imu->angular_velocity.z, epsilon);
 }
@@ -88,11 +88,11 @@ void measurementCallback(const crs_msgs::car_state_cart::ConstPtr& state,
 TEST(KalmanTestSuite, testMeasruementsNoNoise)
 {
   message_filters::Subscriber<crs_msgs::car_state_cart> state_sub(*nh, "/ros_simulator/gt_state", 1);
-  message_filters::Subscriber<geometry_msgs::TransformStamped> vicon_sub(*nh, "/ros_simulator/vicon", 1);
+  message_filters::Subscriber<geometry_msgs::TransformStamped> mocap_sub(*nh, "/ros_simulator/mocap", 1);
   message_filters::Subscriber<sensor_msgs::Imu> imu_sub(*nh, "/ros_simulator/imu", 1);
 
   message_filters::TimeSynchronizer<crs_msgs::car_state_cart, geometry_msgs::TransformStamped, sensor_msgs::Imu> sync(
-      state_sub, vicon_sub, imu_sub, 10);  // only use messages that come in at the same time
+      state_sub, mocap_sub, imu_sub, 10);  // only use messages that come in at the same time
 
   sync.registerCallback(boost::bind(&measurementCallback, _1, _2, _3));  // call measurementCallback with the 3 messages
                                                                          // above.
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
   ros::Duration(5).sleep();  // Wait for ekf to start....
   input_publisher = nh->advertise<crs_msgs::car_input>("/ros_simulator/control_input", 10);
-  measurement_publisher = nh->advertise<geometry_msgs::TransformStamped>("/ros_simulator/vicon", 10);
+  measurement_publisher = nh->advertise<geometry_msgs::TransformStamped>("/ros_simulator/mocap", 10);
 
   return RUN_ALL_TESTS();
 }

@@ -9,13 +9,12 @@
 #include <iostream>
 #include <map>
 #include <ros/ros.h>
-#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "lighthouse_calibration.h"
 
 namespace ros_lighthouse
 {
-
 /* Data loading functions -------------------------------------------------- */
 
 /**
@@ -24,7 +23,7 @@ namespace ros_lighthouse
  * @param nh Node handle where /initial_condition is loaded from.
  * @return ros_lighthouse::LighthousePose
  */
-LighthousePose loadInitialCondition(const ros::NodeHandle& nh);
+Eigen::Affine3d loadInitialCondition(const ros::NodeHandle& nh);
 
 /**
  * @brief Finds the available base stations on the parameter server and loads their calibration data.

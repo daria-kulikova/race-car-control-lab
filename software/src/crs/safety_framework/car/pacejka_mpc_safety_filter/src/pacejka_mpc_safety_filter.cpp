@@ -1,8 +1,10 @@
 
 #include "pacejka_mpc_safety_filter/pacejka_mpc_safety_filter.h"
-#include "acados_pacejka_safety_model_solver/acados_pacjeka_safety_model_solver.h"
+
 #include <chrono>
-#include <unistd.h>
+#include <vector>
+
+#include "acados_pacejka_safety_model_solver/acados_pacjeka_safety_model_solver.h"
 
 namespace crs_safety
 {
@@ -21,7 +23,7 @@ PacejkaMpcSafetyFilter::PacejkaMpcSafetyFilter(pacejka_mpc_safety_config config,
   {
     planned_trajectory.push_back({ 0, 0, 0, 0, 0, 0, 0 });
   }
-};
+}
 
 std::vector<std::pair<int, crs_models::pacejka_model::pacejka_car_state>>
 PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_model::pacejka_car_state state,
@@ -125,15 +127,16 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
   float track_yaw = trajectory_->getTrackAngle(closest_track_idx);
   future_state.yaw = track_yaw + wrapToPi(future_state.yaw - track_yaw);
 
-  double x_init[solver->getStateDimension()];
-  x_init[0] = future_state.pos_x;
-  x_init[1] = future_state.pos_y;
-  x_init[2] = future_state.yaw;
-  x_init[3] = std::max(0.01, future_state.vel_x);  // Should not be zero as otherwise the model gets NaN issues
-  x_init[4] = future_state.vel_y;
-  x_init[5] = future_state.yaw_rate;
-  x_init[6] = control_input.torque;
-  x_init[7] = control_input.steer;
+  double x_init[] = {
+    future_state.pos_x,
+    future_state.pos_y,
+    future_state.yaw,
+    std::max(0.01, future_state.vel_x),  // Should not be zero as otherwise the model gets NaN issues
+    future_state.vel_y,
+    future_state.yaw_rate,
+    control_input.torque,
+    control_input.steer,
+  };
 
   solver->setInitialState(x_init);
 
@@ -193,10 +196,10 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
     solver->setStateInitialGuess(current_stage, x_i);
   }
 
-  double x[solver->getHorizonLength() * solver->getStateDimension()];
-  double u[solver->getHorizonLength() * solver->getInputDimension()];
+  std::vector<double> x(solver->getHorizonLength() * solver->getStateDimension());
+  std::vector<double> u(solver->getHorizonLength() * solver->getInputDimension());
 
-  if (solver->solve(x, u))
+  if (solver->solve(x.data(), u.data()))
   {
     return control_input;
   }
@@ -226,7 +229,7 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
       config_.threshold;
 
   return safe_input;
-};
+}
 
 std::shared_ptr<mpc_solvers::MpcSolver<crs_models::pacejka_model::pacejka_params,
                                        mpc_solvers::pacejka_safety_solvers::reference_input,
@@ -243,6 +246,6 @@ PacejkaMpcSafetyFilter::getSolver(std::string solver_type)
   }
 
   return nullptr;
-};
+}
 
-};  // namespace crs_safety
+}  // namespace crs_safety

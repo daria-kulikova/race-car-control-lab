@@ -30,7 +30,7 @@ TEST(ModelTests, testApplyDynamics)
   loadRandomState(current_state);
   crs_models::parafoil_4dof_model::parafoil_4dof_input current_input;
   loadRandomInput(current_input);
-  crs_models::parafoil_4dof_model::parafoil_4dof_state output_rate = model.applyModel(current_state, current_input);
+  model.applyModel(current_state, current_input);
 }
 
 /**
@@ -73,7 +73,6 @@ TEST(ModelTests, testDiscreteJacobian)
     getRandomFloat(-5, 5), getRandomFloat(-5, 5), getRandomFloat(-5, 5), 0, 0, 0, 13.13, 0, 0
   };
   crs_models::parafoil_4dof_model::parafoil_4dof_input current_input = { getRandomFloat(0.5, 0.5), 0 };
-  crs_models::parafoil_4dof_model::parafoil_4dof_state output_state = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   Eigen::Matrix<double, 9, 9> F;
   Eigen::Matrix<double, 9, 2> D;

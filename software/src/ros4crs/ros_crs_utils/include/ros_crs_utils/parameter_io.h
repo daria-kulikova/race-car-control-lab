@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <memory>
 #include <commons/static_track_trajectory.h>
+#include <commons/dynamic_point_trajectory.h>
 
 #include <Eigen/Core>
 
@@ -21,6 +22,7 @@ struct empty_params
  * @return std::shared_ptr<crs_controls::StaticTrackTrajectory>
  */
 std::shared_ptr<crs_controls::StaticTrackTrajectory> loadTrackDescriptionFromParams(const ros::NodeHandle& nh);
+std::shared_ptr<crs_controls::DynamicPointTrajectory> loadReferenceFromParams(const ros::NodeHandle& nh);
 
 /**
  * @brief Loads the parameters for a given model from the ros parameters server

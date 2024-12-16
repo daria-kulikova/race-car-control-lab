@@ -10,11 +10,11 @@
 namespace mhe_common
 {
 // --------------------------- Outlier Check Functions ---------------------------
-bool outlier_check_fnc_vicon(const Eigen::Vector3d a, const Eigen::Vector3d b, double threshold)
+bool outlier_check_fnc_mocap(const Eigen::Vector3d a, const Eigen::Vector3d b, double threshold)
 {
   bool outlier = (a - b).norm() > threshold;
   if (outlier)
-    std::cout << "Vicon outlier detected: " << (a - b).norm() << std::endl;
+    std::cout << "Mocap outlier detected: " << (a - b).norm() << std::endl;
   return outlier;
 }
 
@@ -344,7 +344,7 @@ void filter_lighthouse(const DataBuffer<Eigen::Vector4d>& buffer, DataBuffer<Eig
   }
 }
 
-void filter_vicon(const DataBuffer<Eigen::Vector3d>& buffer, DataBuffer<Eigen::Vector3d>& filtered_buffer,
+void filter_mocap(const DataBuffer<Eigen::Vector3d>& buffer, DataBuffer<Eigen::Vector3d>& filtered_buffer,
                   std::string internal_filter_type)
 {
   // Filter median

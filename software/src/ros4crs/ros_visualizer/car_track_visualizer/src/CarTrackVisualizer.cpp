@@ -4,6 +4,7 @@
 #include "std_msgs/String.h"
 #include <cmath>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <ros_crs_utils/parameter_io.h>
 #include <ros_crs_utils/validation.h>
@@ -16,6 +17,7 @@ CarTrackVisualizer::CarTrackVisualizer(ros::NodeHandle& nh, ros::NodeHandle& nh_
   setupPublisher();
   setupTrack();
   setupMarker();
+  publishTrack();  // since the topic is latched, this only happens once
 }
 
 void CarTrackVisualizer::loadParameters()
@@ -31,6 +33,9 @@ void CarTrackVisualizer::loadParameters()
   // load node parameters
   if (!nh_private_.getParam("point_downsampling_factor", point_downsampling_factor_))
     ROS_WARN_STREAM("Visualizer: did not load visualizer point_downsampling_factor.");
+
+  if (!nh_private_.getParam("frame_name", frame_name_))
+    ROS_WARN_STREAM("Did not load frame_name_, defaulting to " << frame_name_);
 
   // load node parameters
   if (!nh_private_.getParam("lloyd_flag", lloyd_flag_))
@@ -115,82 +120,132 @@ void CarTrackVisualizer::stateCallback(const boost::shared_ptr<crs_msgs::car_sta
 
 void CarTrackVisualizer::setupPublisher()
 {
-  pub_ = nh_.advertise<visualization_msgs::Marker>("track_info", 200);
+  pub_ = nh_.advertise<visualization_msgs::Marker>("car_visualization", 100);
+  // The track publisher latches the marker array, meaning it is only published once.
+  static_track_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("track_topic", 1, true);
 }
 
 void CarTrackVisualizer::setupTrack()
 {
-  ROS_INFO("Visualizer: setting up Track...");
-  track_.header.frame_id = FRAME_;
-  track_.header.stamp = ros::Time::now();
-  track_.ns = "track_center";
-  track_.action = visualization_msgs::Marker::ADD;
-  track_.pose.orientation.w = 1.0;
-  track_.type = visualization_msgs::Marker::LINE_STRIP;
-  track_.id = 1;
-  track_.scale.x = TRACK_SCALE_;
-  track_.scale.y = TRACK_SCALE_;
-  track_.scale.z = TRACK_SCALE_;
-  track_.color.r = ORANGE_[0];
-  track_.color.g = ORANGE_[1];
-  track_.color.b = ORANGE_[2];
-  track_.color.a = ORANGE_[3];
+  ROS_DEBUG("Visualizer: Setting up track message template...");
 
-  geometry_msgs::Point temp_p;
-  int idx = 0;
-  for (const auto& pt : static_track_trajectory_->getCenterLine())
-  {
-    if (idx++ % point_downsampling_factor_ != 0)
-      continue;
-    temp_p.x = pt.x();
-    temp_p.y = pt.y();
-    temp_p.z = -0.01;
-    track_.points.push_back(temp_p);
-  }
+  // Three options: Either publish the track, without angles (default),
+  // publish the track with angles (show_track_angle_ is true) or publish
+  // the track boundary (if lloyd_flag_ is set).
 
-  boundary_.header.frame_id = FRAME_;
-  boundary_.header.stamp = ros::Time::now();
-  boundary_.ns = "track_boundary";
-  boundary_.action = visualization_msgs::Marker::ADD;
-  boundary_.pose.orientation.w = 1.0;
-  boundary_.type = visualization_msgs::Marker::LINE_STRIP;
-  boundary_.id = 2;
-  boundary_.scale.x = TRACK_SCALE_;
-  boundary_.scale.y = TRACK_SCALE_;
-  boundary_.color.r = BLACK_[0];
-  boundary_.color.g = BLACK_[1];
-  boundary_.color.b = BLACK_[2];
-  boundary_.color.a = BLACK_[3];
+  // Set up the markers for the track boundary
+  visualization_msgs::Marker boundary;
 
+  boundary.header.frame_id = frame_name_;
+  boundary.header.stamp = ros::Time::now();
+  boundary.ns = "track_boundary";
+  boundary.action = visualization_msgs::Marker::ADD;
+  boundary.pose.orientation.w = 1.0;
+  boundary.type = visualization_msgs::Marker::LINE_STRIP;
+  boundary.id = 2;
+  boundary.scale.x = TRACK_SCALE_;
+  boundary.scale.y = TRACK_SCALE_;
+  boundary.color.r = BLACK_[0];
+  boundary.color.g = BLACK_[1];
+  boundary.color.b = BLACK_[2];
+  boundary.color.a = BLACK_[3];
+
+  const auto w = static_track_trajectory_->getWidth();
   const auto& center_line = static_track_trajectory_->getCenterLine();
-  for (int i = 0; i < center_line.size(); i++)
+
+  geometry_msgs::Point point;
+
+  // Two separate for loops, since subsequent markers are connected.
+  for (int i = 0; i < center_line.size(); i += point_downsampling_factor_)
   {
-    if (i % point_downsampling_factor_ != 0)
-      continue;
-    temp_p.x =
-        center_line[i].x() + static_track_trajectory_->getWidth() / 2.0 * static_track_trajectory_->getRate(i).y();
-    temp_p.y =
-        center_line[i].y() - static_track_trajectory_->getWidth() / 2.0 * static_track_trajectory_->getRate(i).x();
-    temp_p.z = 0.0;
-    boundary_.points.push_back(temp_p);
+    point.x = center_line[i].x() + w / 2.0 * static_track_trajectory_->getRate(i).y();
+    point.y = center_line[i].y() - w / 2.0 * static_track_trajectory_->getRate(i).x();
+
+    boundary.points.push_back(point);
   }
-  for (int i = 0; i < center_line.size(); i++)
+
+  for (int i = 0; i < center_line.size(); i += point_downsampling_factor_)
   {
-    if (i % point_downsampling_factor_ != 0)
-      continue;
-    temp_p.x =
-        center_line[i].x() - static_track_trajectory_->getWidth() / 2.0 * static_track_trajectory_->getRate(i).y();
-    temp_p.y =
-        center_line[i].y() + static_track_trajectory_->getWidth() / 2.0 * static_track_trajectory_->getRate(i).x();
-    boundary_.points.push_back(temp_p);
+    point.x = center_line[i].x() - w / 2.0 * static_track_trajectory_->getRate(i).y();
+    point.y = center_line[i].y() + w / 2.0 * static_track_trajectory_->getRate(i).x();
+    boundary.points.push_back(point);
   }
+
+  track_msg_.markers.push_back(boundary);
+
+  if (!lloyd_flag_)
+  {
+    // Entire track is published, either with or without track angles
+    if (!show_track_angle_)
+    {
+      // In this case, we only create one Marker message that contains all the points
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = frame_name_;
+      marker.header.stamp = ros::Time::now();
+      marker.ns = "track_center";
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.pose.orientation.w = 1.0;
+      marker.type = visualization_msgs::Marker::LINE_STRIP;
+      marker.id = 1;
+      marker.scale.x = TRACK_SCALE_;
+      marker.scale.y = TRACK_SCALE_;
+      marker.scale.z = TRACK_SCALE_;
+      marker.color.r = ORANGE_[0];
+      marker.color.g = ORANGE_[1];
+      marker.color.b = ORANGE_[2];
+      marker.color.a = ORANGE_[3];
+
+      geometry_msgs::Point temp_p;
+      int idx = 0;
+      for (const auto& pt : static_track_trajectory_->getCenterLine())
+      {
+        if (idx++ % point_downsampling_factor_ != 0)
+          continue;
+        temp_p.x = pt.x();
+        temp_p.y = pt.y();
+        temp_p.z = -0.01;
+        marker.points.push_back(temp_p);
+      }
+
+      track_msg_.markers.push_back(marker);
+    }
+    else
+    {
+      // In this case, each point needs an orientation. We fill multiple markers into the array.
+      visualization_msgs::Marker marker;
+
+      marker.type = visualization_msgs::Marker::ARROW;
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.scale.y = TRACK_SCALE_;
+      marker.scale.x = TRACK_SCALE_ * 3;
+
+      int idx = 0;
+      marker.id = 0;
+      for (const auto& pt : static_track_trajectory_->getCenterLine())
+      {
+        if (idx++ % (point_downsampling_factor_ * 3) != 0)
+          continue;
+        marker.id = marker.id + 1;
+        double angle = static_track_trajectory_->getTrackAngle(idx);
+        marker.pose.position.x = pt.x();
+        marker.pose.position.y = pt.y();
+        marker.pose.orientation.w = std::cos(angle * 0.5);
+        marker.pose.orientation.x = 0;
+        marker.pose.orientation.y = 0;
+        marker.pose.orientation.z = std::sin(angle * 0.5);
+
+        track_msg_.markers.push_back(marker);
+      }
+    }
+  }
+  ROS_DEBUG("Visualizer: Track message template set up.");
 }
 
 void CarTrackVisualizer::setupMarker()
 {
   uint32_t shape = visualization_msgs::Marker::CUBE;
 
-  gt_car_marker_.header.frame_id = FRAME_;
+  gt_car_marker_.header.frame_id = frame_name_;
   gt_car_marker_.header.stamp = ros::Time::now();
   gt_car_marker_.ns = car_namespace_ + "_groundtruth";
   gt_car_marker_.id = 0;
@@ -218,7 +273,7 @@ void CarTrackVisualizer::setupMarker()
   gt_car_marker_.color.b = COLOR_CAR_GT_[2];
   gt_car_marker_.color.a = COLOR_CAR_GT_[3];
 
-  est_car_marker_.header.frame_id = FRAME_;
+  est_car_marker_.header.frame_id = frame_name_;
   est_car_marker_.header.stamp = ros::Time::now();
   est_car_marker_.ns = car_namespace_ + "_estimated";
 
@@ -251,7 +306,7 @@ void CarTrackVisualizer::setupMarker()
   //============== Trajectory history ==============
   // ===============================================
 
-  est_trajectory_.header.frame_id = FRAME_;
+  est_trajectory_.header.frame_id = frame_name_;
   est_trajectory_.header.stamp = ros::Time::now();
   est_trajectory_.ns = car_namespace_ + "_estimated_trajectory";
   est_trajectory_.id = 0;
@@ -275,7 +330,7 @@ void CarTrackVisualizer::setupMarker()
   est_trajectory_.color.b = 0;
   est_trajectory_.color.a = 1;
 
-  gt_trajectory_.header.frame_id = FRAME_;
+  gt_trajectory_.header.frame_id = frame_name_;
   gt_trajectory_.header.stamp = ros::Time::now();
   gt_trajectory_.ns = car_namespace_ + "_groundtruth_trajectory";
   gt_trajectory_.id = 0;
@@ -346,50 +401,19 @@ void CarTrackVisualizer::publishMarker()
   {
     pub_.publish(est_trajectory_);
   }
+}
 
-  // Only publish track if we have a new subscriber
-  if (publish_track_ && (track_pub_counter_-- < 0 || track_subscribers_ != pub_.getNumSubscribers()))
+void CarTrackVisualizer::publishTrack()
+{
+  // Create message from template and adjust timestamps
+  visualization_msgs::MarkerArray track_msg = track_msg_;
+
+  for (auto& p : track_msg.markers)
   {
-    track_pub_counter_ = publish_track_every_ith_iteration_;
-
-    if (!lloyd_flag_)
-    {
-      if (show_track_angle_)
-      {
-        track_.type = visualization_msgs::Marker::ARROW;
-        track_.action = visualization_msgs::Marker::ADD;
-        track_.scale.y = TRACK_SCALE_;
-        track_.scale.x = TRACK_SCALE_ * 3;
-
-        track_.points.clear();
-        track_.colors.clear();
-
-        int idx = 0;
-        track_.id = 0;
-        for (const auto& pt : static_track_trajectory_->getCenterLine())
-        {
-          if (idx++ % (point_downsampling_factor_ * 3) != 0)
-            continue;
-          track_.id = track_.id + 1;
-          double angle = static_track_trajectory_->getTrackAngle(idx);
-          track_.pose.position.x = pt.x();
-          track_.pose.position.y = pt.y();
-          track_.pose.orientation.w = std::cos(angle * 0.5);
-          track_.pose.orientation.x = 0;
-          track_.pose.orientation.y = 0;
-          track_.pose.orientation.z = std::sin(angle * 0.5);
-          pub_.publish(track_);
-        }
-      }
-      else
-      {
-        pub_.publish(track_);
-      }
-      pub_.publish(boundary_);
-    }
-
-    track_subscribers_ = pub_.getNumSubscribers();
+    p.header.stamp = ros::Time::now();
   }
+
+  static_track_pub_.publish(track_msg);
 }
 
 void CarTrackVisualizer::run()

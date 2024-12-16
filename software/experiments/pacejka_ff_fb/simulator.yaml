@@ -8,13 +8,13 @@ input_type: pacejka_car
 #     value: [[0], [0], [0], [0], [0], [0]]
 
 sensors:
-  sensor_names: ["vicon", "imu_yaw_rate", "wheel_encoders"] # options: ["vicon", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
-  vicon:
+  sensor_names: ["mocap", "imu_yaw_rate", "wheel_encoders"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  mocap:
     R:
       value: [[0.0001], [0.0001], [0.0001]] #std of 1cm -> cov of 0.01*0.01=0.0001
       is_diag: true
     frequency: 200 # Hz
-    key: vicon # optional, if not set us e name of sensor
+    key: mocap # optional, if not set us e name of sensor
     measurement_noise:
       type: multivariate_gaussian
       seed: 1

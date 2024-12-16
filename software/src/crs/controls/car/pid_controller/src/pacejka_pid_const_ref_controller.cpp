@@ -10,7 +10,7 @@ PacejkaConstRefPIDController::PacejkaConstRefPIDController(pid_const_ref_config 
   : BaseController(reference_trajectory)
 {
   setConfig(config);
-};
+}
 
 void PacejkaConstRefPIDController::setConfig(pid_const_ref_config config)
 {
@@ -25,7 +25,7 @@ void PacejkaConstRefPIDController::setConfig(pid_const_ref_config config)
   }
   // Update config
   config_ = config;
-};
+}
 
 /**
  * @brief Wraps an angle to [-pi, pi]
@@ -40,8 +40,9 @@ double wrapToPi(double angle)
     x += 2 * M_PI;
   return x - M_PI;
 }
+
 crs_models::pacejka_model::pacejka_car_input PacejkaConstRefPIDController::getControlInput(
-    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp /* ignored */)
+    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp [[maybe_unused]])
 {
   double vx_w = state_input.vel_x * std::cos(state_input.yaw) - state_input.vel_y * std::sin(state_input.vel_y);
   double vy_w = state_input.vel_x * std::sin(state_input.yaw) + state_input.vel_y * std::cos(state_input.vel_y);
@@ -91,11 +92,7 @@ crs_models::pacejka_model::pacejka_car_input PacejkaConstRefPIDController::getCo
   u_steer = config_.use_filter ? u_steer_filter_.process(u_steer) : u_steer;
 
   // Assign saturated values to control input
-  crs_models::pacejka_model::pacejka_car_input input = {
-    .torque = std::clamp(u_torque, 0.02, 0.3), .steer = std::clamp(u_steer, -config_.steer_limit, +config_.steer_limit)
-  };
-
-  return input;
+  return { std::clamp(u_torque, 0.02, 0.3), std::clamp(u_steer, -config_.steer_limit, +config_.steer_limit) };
 }
 
 }  // namespace crs_controls

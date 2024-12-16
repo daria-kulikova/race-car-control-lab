@@ -3,6 +3,7 @@
 
 #include <dynamic_models/utils/data_conversion.h>
 #include "imu_bias/imu_bias_state.h"
+#include "imu_bias/imu_bias_input.h"
 
 namespace commons
 {
@@ -18,6 +19,13 @@ std::vector<const double*>
 convertToConstVector<crs_models::imu_bias::imu_bias_state>(const crs_models::imu_bias::imu_bias_state& state)
 {
   return { &state.bias_ax, &state.bias_ay, &state.bias_dyaw };
+}
+
+template <>
+std::vector<const double*> convertToConstVector<crs_models::imu_bias::imu_bias_input>(
+    [[maybe_unused]] const crs_models::imu_bias::imu_bias_input& control_input)
+{
+  return {};
 }
 
 template <>

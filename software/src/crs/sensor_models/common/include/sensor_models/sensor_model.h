@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <string>
 
+#include "commons/casadi_utils.h"
 #include <casadi/casadi.hpp>
 
 #include <dynamic_models/utils/data_conversion.h>
@@ -14,10 +15,7 @@ template <typename StateType, typename InputType>
 class SensorModel
 {
 public:
-  SensorModel(int dimension, std::string key)
-    : dimension(dimension)
-    , sensor_model_key(key)
-    , jacobian_fn_input_(casadi::Sparsity::dense(StateType::NX + InputType::NU, 1))
+  SensorModel(int dimension, std::string key) : dimension(dimension), sensor_model_key(key)
   {
     state_mx = commons::asCasadiSym<StateType>();
     input_mx = commons::asCasadiSym<InputType>();
@@ -50,24 +48,12 @@ public:
    * @param input current input
    * @param H the state jacobian dh/dx
    */
-  virtual void getNumericalJacobian(const StateType& state, const InputType& input,
-                                    Eigen::Matrix<double, Eigen::Dynamic, StateType::NX>& H)
+  void getNumericalJacobian(const StateType& state, const InputType& input,
+                            Eigen::Matrix<double, Eigen::Dynamic, StateType::NX>& H)
   {
     assert((H.rows() == dimension) && "Return by reference jacobian H has incorrect number of rows");
-    casadi::Function jacobian_fn = getSymbolicJacobian();
-
-    // Prepare inputs for jacobian function
-    std::vector<const double*> measurement_function_inputs = commons::convertToConstVector(state, input);
-    for (int i = 0; i < measurement_function_inputs.size(); i++)
-      jacobian_fn_input_(i) = *measurement_function_inputs[i];
-
-    // Evaluate the Jacobian at a specific point
-    casadi::DMVector H_tmp = jacobian_fn(jacobian_fn_input_);
-
-    // Copy the result to the output
-    H = Eigen::Map<Eigen::Matrix<double, -1, StateType::NX + InputType::NU, Eigen::ColMajor>>(
-            static_cast<std::vector<double>>(H_tmp[0]).data(), dimension, StateType::NX + InputType::NU)
-            .block(0, 0, dimension, StateType::NX);
+    Eigen::MatrixXd full_jacobian = measurement_function.evaluateJacobian(commons::convertToConstVector(state, input));
+    H = full_jacobian.block(0, 0, dimension, StateType::NX);
   }
 
   /**
@@ -77,7 +63,7 @@ public:
    */
   virtual casadi::Function getSymbolicJacobian()
   {
-    return jacobian_fn;
+    return measurement_function.getSymbolicJacobian();
   }
 
   /**
@@ -101,10 +87,10 @@ public:
   {
     return R_;
   }
-  const int dimension;
+  const unsigned int dimension;
 
   /**
-   * @brief Returns the key for this sensor model (e.g. vicon, imu, ....)
+   * @brief Returns the key for this sensor model (e.g. mocap, imu, ....)
    *
    * @return std::string
    */
@@ -115,8 +101,8 @@ public:
 
 protected:
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R_;
-  casadi::Function measurement_function;
-  casadi::Function jacobian_fn;
+
+  commons::CasadiFunction measurement_function;
 
   // Symbolic state variables
   std::vector<casadi::MX> state_mx;
@@ -124,18 +110,6 @@ protected:
   std::vector<casadi::MX> input_mx;
   // Symbolic state and input variables
   std::vector<casadi::MX> state_and_input_mx;
-
-  void setJacobianFromMeasFnc(const casadi::Function& measurement_function)
-  {
-    casadi::MX state_and_input_mx_cat = casadi::MX::vertcat(state_and_input_mx);
-    casadi::MX measured_states_mx_cat = casadi::MX::vertcat(measurement_function(state_and_input_mx));
-    casadi::MX jacobian_mx = casadi::MX::jacobian(measured_states_mx_cat, state_and_input_mx_cat);
-    jacobian_fn = casadi::Function("jacobianApplyMeasurementModel", { state_and_input_mx_cat }, { jacobian_mx });
-  }
-
-private:
-  // Memory allocation for casadi jacobian call
-  casadi::DM jacobian_fn_input_;
 
 private:
   std::string sensor_model_key;

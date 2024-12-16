@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(forces_pacejka_mpcc_solver)
 
 set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()

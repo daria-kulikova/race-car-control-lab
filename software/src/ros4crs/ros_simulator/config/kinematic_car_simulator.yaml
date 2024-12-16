@@ -9,13 +9,13 @@ input_type: kinematic_car
 #     value: [[0], [0], [0], [0], [0], [0]]
 
 sensors:
-  sensor_names: ["vicon"]
-  vicon:
+  sensor_names: ["mocap"]
+  mocap:
     R:
       value: [[0.001], [0.001], [0.001]]
       is_diag: true
     frequency: 200 # Hz
-    key: vicon # optional, if not set us e name of sensor
+    key: mocap # optional, if not set us e name of sensor
     measurement_noise:
       type: multivariate_gaussian
     delay: 0.0

@@ -4,7 +4,7 @@
 #include <math.h>
 #include <pacejka_sensor_model/imu_sensor_model.h>
 #include <pacejka_sensor_model/imu_yaw_rate_sensor_model.h>
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 #include <pacejka_sensor_model/wheel_encoder_sensor_model.h>
 #include <pacejka_sensor_model/lighthouse_sensor_model.h>
 
@@ -16,7 +16,7 @@
 typedef crs_models::pacejka_model::pacejka_car_state pacejka_car_state;
 typedef crs_models::pacejka_model::pacejka_car_input pacejka_car_input;
 
-typedef crs_sensor_models::pacejka_sensor_models::ViconSensorModel ViconSensorModelType;
+typedef crs_sensor_models::pacejka_sensor_models::MocapSensorModel MocapSensorModelType;
 typedef crs_sensor_models::pacejka_sensor_models::ImuSensorModel ImuSensorModelType;
 typedef crs_sensor_models::pacejka_sensor_models::ImuYawSensorModel ImuYawSensorModelType;
 typedef crs_estimators::ModelBasedEstimator<pacejka_car_state, pacejka_car_input> ModelBasedEstimatorType;
@@ -25,16 +25,16 @@ namespace registry
 {
 namespace estimators
 {
-// Provide implementation for ViconSensorModel
+// Provide implementation for MocapSensorModel
 template <>
-std::shared_ptr<ViconSensorModelType> loadSensorModel<ViconSensorModelType>(const ros::NodeHandle& nh_private,
+std::shared_ptr<MocapSensorModelType> loadSensorModel<MocapSensorModelType>(const ros::NodeHandle& nh_private,
                                                                             const std::string sensor_name,
                                                                             const parameter_io::empty_params parameters)
 {
   Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
   // Load R from params (pacejka_car_simulator.yaml)
   parameter_io::getMatrixFromParams<3, 3>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"), R);
-  return std::make_shared<ViconSensorModelType>(R);
+  return std::make_shared<MocapSensorModelType>(R);
 };
 
 // Provide implementation for ImuSensorModel
@@ -74,10 +74,10 @@ parseSensorModels<pacejka_car_state, pacejka_car_input>(ros::NodeHandle& nh, ros
   for (const std::string sensor_name : sensors_to_load)
   {
     // Load sensor model & add to ekf
-    if (sensor_name == "vicon")
+    if (sensor_name == "mocap")
     {
-      std::shared_ptr<ViconSensorModelType> sensor_model =
-          loadSensorModel<ViconSensorModelType>(nh_private, sensor_name, {});
+      std::shared_ptr<MocapSensorModelType> sensor_model =
+          loadSensorModel<MocapSensorModelType>(nh_private, sensor_name, {});
       estimator->addSensorModel(sensor_name, sensor_model);
       ROS_INFO_STREAM("Added the following sensor models to estimator: " << sensor_name);
       // Add sensor model to loaded_sensors

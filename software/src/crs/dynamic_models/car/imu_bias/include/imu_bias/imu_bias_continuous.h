@@ -26,17 +26,6 @@ public:
   imu_bias_state applyModel(const imu_bias_state state, const imu_bias_input control_input);
 
   /**
-   * @brief Get the Numerical Jacobian for a given state and control input (evaluate symbolic jacobian)
-   *
-   * @param state current state
-   * @param control_input control input
-   * @param A the state jacobian df/dx
-   * @param B the input jacobian df/du
-   */
-  void getNumericalJacobian(const imu_bias_state& state, const imu_bias_input& control_input, StateMatrix& A,
-                            InputMatrix& B);
-
-  /**
    * @brief Returns the casadi function x_dot = f(x,u)
    *
    * @param state the state x

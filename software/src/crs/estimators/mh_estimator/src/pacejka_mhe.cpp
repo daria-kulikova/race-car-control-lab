@@ -3,7 +3,7 @@
 #include <chrono>
 #include <acados_pacejka_mhe_solver/acados_pacejka_mhe_solver.h>
 #include <cmath>
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 #include <pacejka_sensor_model/imu_sensor_model.h>
 #include <pacejka_sensor_model/imu_yaw_rate_sensor_model.h>
 #include <pacejka_sensor_model/wheel_encoder_sensor_model.h>
@@ -40,17 +40,17 @@ Pacejka_MHE::Pacejka_MHE(pacejka_mhe_config config, std::shared_ptr<model_type> 
                          bool log_diagnostic_data)
   : MHE<pacejka_state, pacejka_input>(std::static_pointer_cast<MHE::discrete_model_type>(discrete_model), initial_state,
                                       initial_input, estimator, config.start_delay, log_diagnostic_data)
+  , base_station_id_(base_station_id)
+  , outlier_rejection_params_(outlier_rejection_params)
+  , input_buffer(config.max_buffer_size)
   , states_buffer(config.max_buffer_size)
-  , vicon_buffer(config.max_buffer_size)
+  , mocap_buffer(config.max_buffer_size)
   , imu_buffer(config.max_buffer_size)
   , imu_yaw_rate_buffer(config.max_buffer_size)
   , wheel_encoder_buffer(config.max_buffer_size)
   , lighthouse_sweep_1_buffer(config.max_buffer_size)
   , lighthouse_sweep_2_buffer(config.max_buffer_size)
-  , input_buffer(config.max_buffer_size)
   , reference_timestamps(config.max_buffer_size)
-  , base_station_id_(base_station_id)
-  , outlier_rejection_params_(outlier_rejection_params)
 {
   loadMheSolver();
   setConfig(config);
@@ -67,14 +67,14 @@ Pacejka_MHE::Pacejka_MHE(pacejka_mhe_config config, std::shared_ptr<model_type> 
     subsampled_inputs.push_back({});
     subsampled_states.push_back({});
 
-    subsampled_vicon.push_back(Eigen::Vector3d(0, 0, 0));
+    subsampled_mocap.push_back(Eigen::Vector3d(0, 0, 0));
     subsampled_imu.push_back(Eigen::Vector3d(0, 0, 0));
     subsampled_imu_yaw_rate.push_back(Eigen::Matrix<double, 1, 1>(0));
     subsampled_wheel_encoders.push_back(Eigen::Vector4d(0, 0, 0, 0));
     subsampled_lighthouse_sweep_1.push_back(Eigen::Vector4d(0, 0, 0, 0));
     subsampled_lighthouse_sweep_2.push_back(Eigen::Vector4d(0, 0, 0, 0));
 
-    valid_vicon.push_back(false);
+    valid_mocap.push_back(false);
     valid_imu.push_back(false);
     valid_imu_yaw_rate.push_back(false);
     valid_wheel_encoders.push_back(false);
@@ -83,7 +83,7 @@ Pacejka_MHE::Pacejka_MHE(pacejka_mhe_config config, std::shared_ptr<model_type> 
 
     horizon_shooting_ts_.push_back(solver_->getSamplePeriod());
   }
-};
+}
 
 // Returns a vector with 7 entries for each step of the horizon
 // [planned_x, planned_y, planned_velocity, planned_yaw, reference_x, reference_y, reference_yaw]
@@ -97,18 +97,18 @@ std::vector<std::vector<double>> Pacejka_MHE::getPlannedTrajectory()
     double vel = std::sqrt(std::pow(last_solution.states_[i * solver_->getStateDimension() + pacejka_vars::VX], 2) +
                            std::pow(last_solution.states_[i * solver_->getStateDimension() + pacejka_vars::VY], 2));
 
-    // If using vicon, use vicon measurement to visualize reference trajectory
-    if (valid_vicon[i])
+    // If using mocap, use mocap measurement to visualize reference trajectory
+    if (valid_mocap[i])
     {
       // Append values to trajectory for visualization
       traj.push_back({ x_pos,                                                                        // Planned x
                        y_pos,                                                                        // Planned y
                        vel,                                                                          // Planned velocity
                        last_solution.states_[i * solver_->getStateDimension() + pacejka_vars::YAW],  // Planned Yaw
-                       subsampled_vicon[i][0],                                                       // Reference x
-                       subsampled_vicon[i][1],                                                       // Reference y
-                       subsampled_vicon[i][2],                                                       // Reference yaw
-                       double(valid_vicon[i]) });
+                       subsampled_mocap[i][0],                                                       // Reference x
+                       subsampled_mocap[i][1],                                                       // Reference y
+                       subsampled_mocap[i][2],                                                       // Reference yaw
+                       double(valid_mocap[i]) });
     }
 
     // If using lighthouse, use ekf estimate to visualize reference trajectory
@@ -140,7 +140,7 @@ void Pacejka_MHE::controlInputCallback(const pacejka_input input, const double t
   MHE::previous_input_ = input;
   MHE::last_valid_ts_ = timestamp;
   bool full_buffer =
-      (vicon_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
+      (mocap_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_1_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_2_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod());
   // If the MHE is NOT up and running, i.e. start up time is not reached or measurement buffer is not full we want to
@@ -163,7 +163,7 @@ pacejka_state Pacejka_MHE::getStateEstimate(const double timestamp)
   }
 
   bool full_buffer =
-      (vicon_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
+      (mocap_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_1_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_2_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod());
 
@@ -197,7 +197,7 @@ void Pacejka_MHE::measurementCallback(const crs_sensor_models::measurement measu
   MHE::last_valid_ts_ = measurement.timestamp;
 
   bool full_buffer =
-      (vicon_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
+      (mocap_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_1_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod()) ||
       (lighthouse_sweep_2_buffer.getTimespan() >= solver_->getHorizonLength() * solver_->getSamplePeriod());
 
@@ -209,8 +209,8 @@ void Pacejka_MHE::measurementCallback(const crs_sensor_models::measurement measu
     states_buffer.addData(estimator_->getStateEstimate(), measurement.timestamp);
   }
 
-  if (measurement.sensor_key == crs_sensor_models::pacejka_sensor_models::ViconSensorModel::SENSOR_KEY)
-    vicon_buffer.addData(measurement.measurement_data, measurement.timestamp);
+  if (measurement.sensor_key == crs_sensor_models::pacejka_sensor_models::MocapSensorModel::SENSOR_KEY)
+    mocap_buffer.addData(measurement.measurement_data, measurement.timestamp);
   if (measurement.sensor_key == crs_sensor_models::pacejka_sensor_models::ImuSensorModel::SENSOR_KEY)
     imu_buffer.addData(measurement.measurement_data, measurement.timestamp);
   if (measurement.sensor_key == crs_sensor_models::pacejka_sensor_models::ImuYawSensorModel::SENSOR_KEY)
@@ -253,22 +253,12 @@ void Pacejka_MHE::initialize(pacejka_state state)
 
   mhe_solvers::pacejka_solvers::cost_values mhe_costs = { P,
                                                           config_.Q,
-                                                          config_.R_vicon,
+                                                          config_.R_mocap,
                                                           config_.R_imu,
                                                           config_.R_imu_yaw_rate,
                                                           config_.R_wheel_encoders,
                                                           config_.R_lighthouse,
                                                           config_.eta };
-
-  double x_init[6];
-  x_init[0] = state.pos_x;
-  x_init[1] = state.pos_y;
-  x_init[2] = state.yaw;
-  x_init[3] = state.vel_x;
-  x_init[4] = state.vel_y;
-  x_init[5] = state.yaw_rate;
-
-  double u_init[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // process noise values (w_x, w_y, ...)
 
   auto discrete_model = std::static_pointer_cast<crs_models::pacejka_model::DiscretePacejkaModel>(MHE::discrete_model);
 
@@ -297,14 +287,14 @@ void Pacejka_MHE::initialize(pacejka_state state)
       // Define reference at this stage
       mhe_solvers::pacejka_solvers::references references = {
         state,                                                                             // internal estimator
-        subsampled_vicon[stage],                                                           // vicon
+        subsampled_mocap[stage],                                                           // mocap
         subsampled_imu[stage],                                                             // imu
         subsampled_imu_yaw_rate[stage],                                                    // imu yaw rate
         subsampled_wheel_encoders[stage],                                                  // wheel encoders
         subsampled_lighthouse_sweep_1[stage],                                              // lighthouse_sweep_1
         subsampled_lighthouse_sweep_2[stage],                                              // lighthouse_sweep_2
         Eigen::Vector2d(subsampled_inputs[stage].torque, subsampled_inputs[stage].steer),  // input
-        valid_vicon[stage],                                                                // valid_vicon
+        valid_mocap[stage],                                                                // valid_mocap
         valid_imu[stage],                                                                  // valid_imu
         valid_imu_yaw_rate[stage],                                                         // valid_imu_yaw_rate
         valid_wheel_encoders[stage],                                                       // valid_wheel_encoders
@@ -352,7 +342,7 @@ void Pacejka_MHE::initialize(pacejka_state state)
     {
       int exit_flag = solver_->solve(&last_solution.states_[0], &last_solution.inputs_[0]);
 
-      if (exit_flag != 0)
+      if ((exit_flag > 0 && config_.solver_type == "ACADOS") || (exit_flag < 1 && config_.solver_type == "FORCES"))
       {
         std::cout << "MHE exitflag: " << exit_flag << std::endl;
       }
@@ -397,23 +387,23 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
     for (auto key_value : outlier_rejection_params_)  // outlier_rejection_params_ is a vector of pairs: <sensor_key,
                                                       // tuple<use_outlier_rejection, outlier_threshold>>
     {
-      // VICON
-      if (key_value.first == "vicon")
+      // MOCAP
+      if (key_value.first == "mocap")
       {
-        DataBuffer<Eigen::Vector3d> vicon_filtered_data(vicon_buffer.size());
-        mhe_common::filter_vicon(vicon_buffer, vicon_filtered_data, config_.internal_filter_type);
+        DataBuffer<Eigen::Vector3d> mocap_filtered_data(mocap_buffer.size());
+        mhe_common::filter_mocap(mocap_buffer, mocap_filtered_data, config_.internal_filter_type);
         use_outlier_rejection = std::get<0>(key_value.second);
         if (use_outlier_rejection)
         {
           outlier_threshold = std::get<1>(key_value.second);
-          valid_vicon =
-              vicon_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_vicon,
-                                           mhe_common::outlier_check_fnc_vicon, outlier_threshold, "bilinear");
+          valid_mocap =
+              mocap_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_mocap,
+                                           mhe_common::outlier_check_fnc_mocap, outlier_threshold, "bilinear");
         }
         else
         {
-          valid_vicon =
-              vicon_filtered_data.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_vicon);
+          valid_mocap =
+              mocap_filtered_data.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_mocap);
         }
       }
 
@@ -529,20 +519,20 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
     for (auto key_value : outlier_rejection_params_)  // outlier_rejection_params_ is a vector of pairs: <sensor_key,
                                                       // tuple<use_outlier_rejection, outlier_threshold>>
     {
-      // VICON
-      if (key_value.first == "vicon")
+      // MOCAP
+      if (key_value.first == "mocap")
       {
         use_outlier_rejection = std::get<0>(key_value.second);
         if (use_outlier_rejection)
         {
           outlier_threshold = std::get<1>(key_value.second);
-          valid_vicon =
-              vicon_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_vicon,
-                                           mhe_common::outlier_check_fnc_vicon, outlier_threshold, "bilinear");
+          valid_mocap =
+              mocap_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_mocap,
+                                           mhe_common::outlier_check_fnc_mocap, outlier_threshold, "bilinear");
         }
         else
         {
-          valid_vicon = vicon_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_vicon);
+          valid_mocap = mocap_buffer.interpolateData(1.0 / solver_->getSamplePeriod(), ref_ts, N_, subsampled_mocap);
         }
       }
 
@@ -655,7 +645,7 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
 
   mhe_solvers::pacejka_solvers::cost_values mhe_costs = { P,
                                                           config_.Q,
-                                                          config_.R_vicon,
+                                                          config_.R_mocap,
                                                           config_.R_imu,
                                                           config_.R_imu_yaw_rate,
                                                           config_.R_wheel_encoders,
@@ -673,16 +663,14 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
   // Cast discrete model pointer to pacejka model pointer type
   auto discrete_model = std::static_pointer_cast<crs_models::pacejka_model::DiscretePacejkaModel>(MHE::discrete_model);
 
-  // Load state from ekf at stage 0 as initial state
-  Eigen::Matrix<double, 6, 1> x_init = commons::convertToEigen<pacejka_state, 6>(subsampled_states[0]);
   // Cast solver to pacejka acados solver
   auto pacejka_solver = std::static_pointer_cast<mhe_solvers::pacejka_solvers::AcadosPacejkaMheSolver>(solver_);
 
   // Only for visualization / debugging
-  for (int i = 0; i < subsampled_vicon.size(); i++)
+  for (size_t i = 0; i < subsampled_mocap.size(); i++)
   {
-    if (!valid_vicon[i])
-      subsampled_vicon[i] = 0 * subsampled_vicon[i];
+    if (!valid_mocap[i])
+      subsampled_mocap[i] = 0 * subsampled_mocap[i];
   }
 
   // Setup parameter for initial solve
@@ -703,14 +691,14 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
     // Define reference at this stage
     mhe_solvers::pacejka_solvers::references references = {
       subsampled_states[current_stage],              // ekf / state buffer states
-      subsampled_vicon[current_stage],               // vicon
+      subsampled_mocap[current_stage],               // mocap
       subsampled_imu[current_stage],                 // imu
       subsampled_imu_yaw_rate[current_stage],        // imu yaw rate
       subsampled_wheel_encoders[current_stage],      // wheel encoders
       subsampled_lighthouse_sweep_1[current_stage],  // lighthouse_sweep_1
       subsampled_lighthouse_sweep_2[current_stage],  // lighthouse_sweep_2
       Eigen::Vector2d(subsampled_inputs[current_stage].torque, subsampled_inputs[current_stage].steer),  // input
-      valid_vicon[current_stage],                                                                        // valid_vicon
+      valid_mocap[current_stage],                                                                        // valid_mocap
       valid_imu[current_stage],                                                                          // valid_imu
       valid_imu_yaw_rate[current_stage],        // valid_imu_yaw_rate
       valid_wheel_encoders[current_stage],      // valid_wheel_encoders
@@ -757,7 +745,7 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
     int exit_flag = solver_->solve(&last_solution.states_[0], &last_solution.inputs_[0]);
     total_num_solves += 1;
 
-    if (exit_flag != 0)
+    if ((exit_flag > 0 && config_.solver_type == "ACADOS") || (exit_flag < 1 && config_.solver_type == "FORCES"))
     {
       num_solver_errors += 1;
       // ---------- ADD DIAGNOSTICS ----------
@@ -766,7 +754,7 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
         // add number of solver errors and total number of solves
         std::vector<float> solver_data = { float(num_solver_errors), float(total_num_solves) };
         std::string solver_data_name = "MHE/solver";
-        (MHE::dignostic_data_).push_back(std::make_pair<>(solver_data_name, solver_data));
+        BaseEstimator<pacejka_state>::logDiagnosticData(solver_data_name, solver_data);
       }
 
       // If the solver fails, we can recover the internal estimate
@@ -839,5 +827,5 @@ void Pacejka_MHE::setConfig(pacejka_mhe_config config)
   config_ = config;
 }
 
-};  // namespace mhe
-};  // namespace crs_estimators
+}  // namespace mhe
+}  // namespace crs_estimators

@@ -19,7 +19,7 @@ crs_sensor_models::measurement parseWheelEncoder(const crs_msgs::car_wheel_speed
   return measurement;
 }
 
-crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformStamped::ConstPtr msg,
+crs_sensor_models::measurement parseMocapData2D(const geometry_msgs::TransformStamped::ConstPtr msg,
                                                 const tf::StampedTransform& T_sensor)
 {
   tf::StampedTransform T_world_car;
@@ -34,7 +34,7 @@ crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformSt
   car_as_rot_mat.getRPY(roll, pitch, yaw);
 
   crs_sensor_models::measurement measurement;
-  measurement.sensor_key = "vicon";
+  measurement.sensor_key = "mocap";
   measurement.measurement_data = Eigen::Vector3d::Zero();
   measurement.measurement_data(0) = car_pose.getOrigin().getX();
   measurement.measurement_data(1) = car_pose.getOrigin().getY();
@@ -108,10 +108,10 @@ inline int sign(T val)
   return (T(0) < val) - (val < T(0));
 }
 
-ViconConverter::ViconConverter(bool update_track_transform, std::string& world_frame, std::string& track_frame)
+MocapConverter::MocapConverter(bool update_track_transform, std::string& world_frame, std::string& track_frame)
   : update_track_transform(update_track_transform), world_frame(world_frame), track_frame(track_frame){};
 
-crs_sensor_models::measurement ViconConverter::parseData2D(const geometry_msgs::TransformStamped::ConstPtr msg)
+crs_sensor_models::measurement MocapConverter::parseData2D(const geometry_msgs::TransformStamped::ConstPtr msg)
 {
   crs_sensor_models::measurement measurement;
   // No initial track transform found or we request to update the track transform every time
@@ -122,10 +122,10 @@ crs_sensor_models::measurement ViconConverter::parseData2D(const geometry_msgs::
     T_track_world_.reset(new tf::StampedTransform);
     *T_track_world_ = std::move(transform);
   }
-  measurement = parseViconData2D(msg, *T_track_world_);
+  measurement = parseMocapData2D(msg, *T_track_world_);
 
   double yaw = measurement.measurement_data(2);
-  // ================== Unwrap yaw from vicon ==================
+  // ================== Unwrap yaw from mocap ==================
   double yaw_raw_diff = last_yaw_ - yaw;
   last_yaw_ = yaw;
   if (yaw_raw_diff >= M_PI)

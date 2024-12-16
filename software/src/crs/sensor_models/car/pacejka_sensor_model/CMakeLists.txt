@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(pacejka_sensor_model)
 
 set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 find_package(catkin_simple REQUIRED)
 find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
@@ -16,7 +17,7 @@ include_directories(
 )
 
 cs_add_library(${PROJECT_NAME}
-        src/vicon_sensor_model.cpp
+        src/mocap_sensor_model.cpp
         src/imu_sensor_model.cpp
         src/imu_yaw_rate_sensor_model.cpp
         src/wheel_encoder_sensor_model.cpp
@@ -30,8 +31,8 @@ target_link_libraries(${PROJECT_NAME})
 ##########
 
 if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(vicon_sensor_model_test test/vicon_sensor_model_test.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
-  target_link_libraries(vicon_sensor_model_test ${PROJECT_NAME} ${catkin_LIBRARIES} casadi stdc++fs)
+  catkin_add_gtest(mocap_sensor_model_test test/mocap_sensor_model_test.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
+  target_link_libraries(mocap_sensor_model_test ${PROJECT_NAME} ${catkin_LIBRARIES} casadi stdc++fs)
 
   catkin_add_gtest(imu_sensor_model_test test/imu_sensor_model_test.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
   target_link_libraries(imu_sensor_model_test ${PROJECT_NAME} ${catkin_LIBRARIES} casadi stdc++fs)

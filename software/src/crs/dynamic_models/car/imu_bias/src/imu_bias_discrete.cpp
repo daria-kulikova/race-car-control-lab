@@ -38,9 +38,11 @@ DiscreteImuBias::DiscreteImuBias(Eigen::Matrix<double, DiscreteImuBias::NX, Disc
                          { "p", p },
                          { "ode", ode * input_mx[0] }
   };  // The main problem we want to solve
-  casadi::Dict opts = { { "tf", 1 } };
+  casadi::Dict opts = {};
+  const float t0 = 0;
+  const float tf = 1;
 
-  integrator_ = casadi::integrator("cont_dynamics_integrator", integration_method, dae, opts);
+  integrator_ = casadi::integrator("cont_dynamics_integrator", integration_method, dae, t0, tf, opts);
 }
 
 /**
@@ -51,8 +53,8 @@ DiscreteImuBias::DiscreteImuBias(Eigen::Matrix<double, DiscreteImuBias::NX, Disc
  * @param integration_time
  * @return imu_bias_state returns the integrated state
  */
-imu_bias_state DiscreteImuBias::applyModel(const imu_bias_state state, const imu_bias_input control_input,
-                                           double integration_time)
+imu_bias_state DiscreteImuBias::applyModel(const imu_bias_state state,
+                                           const imu_bias_input control_input [[maybe_unused]], double integration_time)
 {
   assert(integration_time >= 0);  // Model can not go backwards in time
 
@@ -70,8 +72,10 @@ imu_bias_state DiscreteImuBias::applyModel(const imu_bias_state state, const imu
   // TODO(@zrene), this is needed since the casadi integrator returns "6" entries (first one being the state of
   // dimension 4, everything else gets discarded) This is an ugly fix to make sure that states smaller than 6 can be
   // passed to the integrator. Maybe use casadi::Function::MapRes or something similar to populate output
-  while (vec.size() < integrator_.n_out())
+  while (vec.size() < static_cast<size_t>(integrator_.n_out()))
+  {
     vec.push_back(nullptr);
+  }
 
   integrator_(integrator_.buf_in(arg), vec);
 

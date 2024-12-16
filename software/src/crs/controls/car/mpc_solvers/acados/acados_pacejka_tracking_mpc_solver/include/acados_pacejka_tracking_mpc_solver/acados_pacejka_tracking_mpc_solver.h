@@ -5,13 +5,10 @@
 #include "acados/utils/types.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
+#include "mpc_solvers/pacejka_tracking_mpc_solver.h"
+#include "pacejka_model/pacejka_params.h"
 
 #include "acados_solver_pacejka_model_tracking_mpc.h"
-
-#include "mpc_solvers/pacejka_tracking_mpc_solver.h"
-#include <pacejka_model/pacejka_params.h>
-
-#include <memory>
 
 namespace mpc_solvers
 {
@@ -69,9 +66,9 @@ public:
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  const int getHorizonLength() const override;
+  int getHorizonLength() const override;
 
   /**
    * @brief Set the Initial State Constraint. The provided array must have the same length as the state dimension
@@ -109,7 +106,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   int solve(double x[], double u[]) override;
 

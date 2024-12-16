@@ -64,9 +64,9 @@ AcadosPacejkaTrackingMpcSolver::AcadosPacejkaTrackingMpcSolver()
 /**
  * @brief Get the Horizon Length
  *
- * @return const int
+ * @return int
  */
-const int AcadosPacejkaTrackingMpcSolver::getHorizonLength() const
+int AcadosPacejkaTrackingMpcSolver::getHorizonLength() const
 {
   return nlp_dims_->N;
 }
@@ -114,7 +114,6 @@ void AcadosPacejkaTrackingMpcSolver::updateParams(int stage,
                                                   const tracking_costs& costs,
                                                   const trajectory_track_point& tracking_point)
 {
-  double params[np_];
   // Tracking
   mpc_parameters[params::X_LIN] = tracking_point.x;
   mpc_parameters[params::Y_LIN] = tracking_point.y;
@@ -155,7 +154,7 @@ void AcadosPacejkaTrackingMpcSolver::updateParams(int stage,
  *
  * @param x State array or point with size N*StateDimenstion
  * @param u Input array or point with size N*Inputdimension
- * @return const int, return code. If no error occurred, return code is zero
+ * @return int, return code. If no error occurred, return code is zero
  */
 int AcadosPacejkaTrackingMpcSolver::solve(double x[], double u[])
 {
@@ -172,6 +171,6 @@ double AcadosPacejkaTrackingMpcSolver::getSamplePeriod()
 {
   return *(nlp_in_->Ts);
 }
-};  // namespace pacejka_tracking_solvers
+}  // namespace pacejka_tracking_solvers
 
 }  // namespace mpc_solvers

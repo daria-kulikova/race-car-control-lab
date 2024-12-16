@@ -9,6 +9,11 @@
 #include <pacejka_model/pacejka_car_state.h>
 #endif
 
+#ifdef kinematic_model_FOUND
+#include <kinematic_model/kinematic_car_input.h>
+#include <kinematic_model/kinematic_car_state.h>
+#endif
+
 #include <crs_msgs/car_input.h>
 #include <crs_msgs/car_state_cart.h>
 
@@ -69,6 +74,34 @@ int main(int argc, char** argv)
         trajectory_updator = new ros_controllers::DynamicTrajectoryUpdator(
             nh, nh_private, controller->controller_->getTrajectory<crs_controls::DynamicPointTrajectory>());
       }
+    }
+
+    if (!controller_ptr)
+    {
+      ROS_ERROR_STREAM("Did not find controller for type: " << controller_type << " aborting!");
+      return 1;
+    }
+  }
+#endif
+
+#ifdef kinematic_model_FOUND
+  if (state_type == "kinematic_car" && input_type == "kinematic_car")
+  {
+    auto* controller = ros_controllers::resolveController<crs_msgs::car_state_cart, crs_msgs::car_input,
+                                                          crs_models::kinematic_model::kinematic_car_state,
+                                                          crs_models::kinematic_model::kinematic_car_input>(
+        nh, nh_private, controller_type, dynamic_callback);
+
+    // Load controller
+    controller_ptr = ((void*)controller);
+
+    // This is a little bit ugly.
+    // This makes sure that the trajectory values of the controller
+    // can be updated with ros messages
+    if (controller_type == "KINEMATIC_TRACKING_MPC")
+    {
+      trajectory_updator = new ros_controllers::DynamicTrajectoryUpdator(
+          nh, nh_private, controller->controller_->getTrajectory<crs_controls::DynamicPointTrajectory>());
     }
 
     if (!controller_ptr)

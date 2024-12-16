@@ -8,7 +8,7 @@ namespace crs_sensor_models
 {
 struct measurement
 {
-  std::string sensor_key;  // where measurement comes from e.g. Vicon
+  std::string sensor_key;  // where measurement comes from e.g. Mocap
   Eigen::VectorXd measurement_data;
   double timestamp;
 };

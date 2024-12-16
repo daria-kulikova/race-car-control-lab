@@ -53,14 +53,14 @@ frame "ROS" {
 
     class KinematicDiscreteEkfRos {
         + void controlInputCallback(crs_msgs::car_input input_msg)
-        + void viconMeasurementCallback(geometry_msgs::TransformStamped msg)
+        + void mocapMeasurementCallback(geometry_msgs::TransformStamped msg)
         + void imuMeasurementCallback(sensor_msgs::Imu msg)
         + void publishState()
     }
 
     class PacejkaDiscreteEkfRos {
         + void controlInputCallback(crs_msgs::car_input input_msg)
-        + void viconMeasurementCallback(geometry_msgs::TransformStamped msg)
+        + void mocapMeasurementCallback(geometry_msgs::TransformStamped msg)
         + void imuMeasurementCallback(sensor_msgs::Imu msg)
         + void publishState()
     }
@@ -89,7 +89,7 @@ frame "ROS" {
 
     class PacejkaLowpassEstimator_ {
       - LowpassEstimator estimator
-      void viconMeasurementCallback(const geometry_msgs::TransformStamped::ConstPtr msg);
+      void mocapMeasurementCallback(const geometry_msgs::TransformStamped::ConstPtr msg);
       void publishState() override;
 
     }

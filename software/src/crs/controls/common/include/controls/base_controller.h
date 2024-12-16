@@ -44,7 +44,7 @@ public:
    * @return true if controller is already initialized
    * @return false if controller is not initialized
    */
-  virtual const bool isInitializing() = 0;
+  virtual bool isInitializing() = 0;
 
   /**
    * @brief Debug function which can be used to return some useful debug info from the controller
@@ -72,7 +72,7 @@ public:
    * @param internal_state internal state parameters to be set in the controller.
    * Could be e.g. is_running.
    */
-  virtual void setInternalControllerState(const std::vector<bool>& internal_state)
+  virtual void setInternalControllerState(const std::vector<bool>& internal_state [[maybe_unused]])
   {
   }
 

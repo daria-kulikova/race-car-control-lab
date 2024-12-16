@@ -39,7 +39,7 @@ double Rocket6DofAllocation::mapGimbalToServoAngle(const double gimbal_angle,
   return result;
 }
 
-const double Rocket6DofAllocation::constrainTorque(const double torque_x, const double thrust_magnitude)
+double Rocket6DofAllocation::constrainTorque(const double torque_x, const double thrust_magnitude)
 {
   double constrainted_torque = torque_x;
   if (torque_x > config_.constraint_coefficients(0, 0) * thrust_magnitude + config_.constraint_coefficients(0, 1))
@@ -71,11 +71,9 @@ const double Rocket6DofAllocation::constrainTorque(const double torque_x, const 
 
 Rocket6DofAllocation::Rocket6DofAllocation(std::shared_ptr<crs_models::rocket_6_dof_model::rocket_6_dof_params> model,
                                            rocket_6_dof_allocation_config config)
-  : model_(model)
-  , config_(config)
-  , debug_(2){
-
-  };
+  : model_(model), config_(config), debug_(2)
+{
+}
 
 crs_models::rocket_6_dof_model::rocket_6_dof_input Rocket6DofAllocation::getControlInput(const Eigen::Vector3d& force,
                                                                                          const Eigen::Vector3d& torque)

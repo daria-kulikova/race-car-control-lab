@@ -25,7 +25,7 @@ private:
   std::unique_ptr<ocp_nlp_out> nlp_out_;
   std::unique_ptr<ocp_nlp_solver> nlp_solver_;
 
-  bool use_vicon_sensor;
+  bool use_mocap_sensor;
   bool use_imu_sensor;
   bool use_imu_yaw_rate_sensor;
   bool use_wheel_encoder_sensor;
@@ -78,9 +78,9 @@ public:
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  const int getHorizonLength() const override;
+  int getHorizonLength() const override;
 
   void removeInitialState() override;
   /**
@@ -123,7 +123,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   int solve(double x[], double u[]) override;
 

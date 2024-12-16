@@ -17,8 +17,6 @@ ContinuousPacejkaModel::ContinuousPacejkaModel(pacejka_params params) : params(p
   state_mx.push_back(input_mx[0]);
   state_mx.push_back(input_mx[1]);
   dynamics_f_ = casadi::Function("f_pacejka_cont", state_mx, state_dot_mx);
-
-  jacobian_fn_ = getSymbolicJacobian();
 }
 
 /**
@@ -34,38 +32,6 @@ pacejka_car_state ContinuousPacejkaModel::applyModel(const pacejka_car_state sta
   // Convert casadi symbols (mx) to casadi function to be evaluated at current state & control input
   dynamics_f_(commons::convertToConstVector(state, input), commons::convertToVector(state_dot_numerical));
   return state_dot_numerical;
-};
-
-/**
- * @brief Evaluate the Symbolic Jacobian at a given state and control input. The Jacobians are saved in A, B
- *
- * @param state
- * @param control_input
- * @param A empty matrix to fill as Jacobian df/dx
- * @param B empty matrix to fill as Jacobian df/du
- */
-void ContinuousPacejkaModel::getNumericalJacobian(const pacejka_car_state& state,
-                                                  const pacejka_car_input& control_input, StateMatrix& A,
-                                                  InputMatrix& B)
-{
-  auto state_and_input = commons::convertToConstVector(state, control_input);
-
-  // Prepare inputs for jacobian function
-
-  // the jacobian function expects 6 + 2 + 6 arguments, since it can deal with implicit representation.
-  // Our function is: f(x,y,yaw,vx,vy,dyaw,u0,u1) -> (x_d,y_d,yaw_d,vx_d,vy_d,dyaw_d)
-  // jacobian_fn() returns:
-  // f(x,y,yaw,vx,vy,dyaw,u0,u1, x_d,y_d,yaw_d,vx_d,vy_d,dyaw_d) -> (dx_d/dx, dx_d/dy, dx_d/dyaw ...)
-  // Lets just add zeros at the end since we don't have any implicit dependencies
-
-  auto& state_and_input_and_implicit = state_and_input;
-  pacejka_car_state unused_implicit_inputs;
-  auto unused_implicit_inputs_vec = commons::convertToConstVector(unused_implicit_inputs);
-  state_and_input_and_implicit.insert(state_and_input.end(), unused_implicit_inputs_vec.begin(),
-                                      unused_implicit_inputs_vec.end());  // Adds unused_implicit_inputs at end of
-                                                                          // fnc_input
-
-  getNumericalJacobianInternal(state_and_input_and_implicit, A, B);
 }
 
 /**

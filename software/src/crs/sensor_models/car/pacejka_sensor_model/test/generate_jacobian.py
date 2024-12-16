@@ -33,7 +33,8 @@ def generate_jacobian(
             os.path.dirname(os.path.abspath(__file__))
             + "/params/example_pacejka_params.yaml",
             "r",
-        )
+        ),
+        yaml.FullLoader,
     )
 
     lr_val = params["lr"]
@@ -62,7 +63,8 @@ def generate_jacobian(
                 os.path.dirname(os.path.abspath(__file__))
                 + "/params/example_lighthouse_params.yaml",
                 "r",
-            )
+            ),
+            yaml.FullLoader,
         )
         # Lighthouse parameters
         bs_position_val = lighthouse_params["bs_position"]

@@ -32,7 +32,8 @@ def generate_jacobian(
             os.path.dirname(os.path.abspath(__file__))
             + "/params/example_pacejka_params.yaml",
             "r",
-        )
+        ),
+        yaml.FullLoader,
     )
 
     lr_val = params["lr"]

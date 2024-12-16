@@ -97,9 +97,9 @@ struct references
   crs_models::pacejka_model::pacejka_car_state state;
 
   /**
-   * @brief Measurement of the vicon system (x,y,yaw)
+   * @brief Measurement of the mocap system (x,y,yaw)
    */
-  Eigen::Vector3d vicon_measurement;
+  Eigen::Vector3d mocap_measurement;
 
   /**
    * @brief Measurement of the imu system (ax,ay,dyaw)
@@ -132,9 +132,9 @@ struct references
   Eigen::Vector2d input;
 
   /**
-   * @brief Bool determining wether vicon can be used
+   * @brief Bool determining wether mocap can be used
    */
-  bool valid_vicon;
+  bool valid_mocap;
 
   /**
    * @brief Bool determining wether imu can be used
@@ -181,10 +181,10 @@ struct cost_values
   Eigen::Matrix<double, 6, 6> Q;
 
   /**
-   * @brief Vicon Measurement Noise Matrix
+   * @brief Mocap Measurement Noise Matrix
    *
    */
-  Eigen::Matrix3d R_vicon;
+  Eigen::Matrix3d R_mocap;
 
   /**
    * @brief IMU Measurement Noise Matrix
@@ -224,9 +224,9 @@ public:
   /**
    * @brief Get the Dimension of the state
    *
-   * @return const int
+   * @return int
    */
-  const int getStateDimension() const override
+  int getStateDimension() const override
   {
     return 6;
   }
@@ -234,9 +234,9 @@ public:
   /**
    * @brief Get the Dimension of the input
    *
-   * @return const int
+   * @return int
    */
-  const int getInputDimension() const override
+  int getInputDimension() const override
   {
     return 6;  // inputs are now process noise values for each state (w_x, w_y, ...)
   }
@@ -244,9 +244,9 @@ public:
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  virtual const int getHorizonLength() const = 0;
+  virtual int getHorizonLength() const = 0;
 
   virtual void removeInitialState() = 0;
   /**
@@ -277,7 +277,7 @@ public:
    * @param model_dynamics  the model dynamics
    * @param costs  the cost parameters
    * @param references references measurements/inputs.
-   *  In case of missing measurements, you can set references.valid_vicon = false or references.valid_imu = false to
+   *  In case of missing measurements, you can set references.valid_mocap = false or references.valid_imu = false to
    * ignore them.
    */
   virtual void updateParams(
@@ -291,7 +291,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   virtual int solve(double x[], double u[]) = 0;
 };

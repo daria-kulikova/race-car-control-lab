@@ -36,10 +36,10 @@ public:
                   outlier_rejection_params = {},
               bool log_diagnostic_data = false)
     : KalmanEstimator<StateType, InputType>(initial_state, initial_input, outlier_rejection_params, log_diagnostic_data)
-    , discrete_model(discrete_model)
     , P_prior(P_init)
     , P_posterior(P_init)
     , outlier_rejection_params(outlier_rejection_params)
+    , discrete_model(discrete_model)
   {
     // Initialize rejection counter for each sensor to 0
     for (auto key_value : outlier_rejection_params)
@@ -56,10 +56,10 @@ public:
                   outlier_rejection_params = {},
               bool log_diagnostic_data = false)
     : KalmanEstimator<StateType, InputType>(initial_state, outlier_rejection_params, log_diagnostic_data)
-    , discrete_model(discrete_model)
     , P_prior(P_init)
     , P_posterior(P_init)
     , outlier_rejection_params(outlier_rejection_params)
+    , discrete_model(discrete_model)
   {
     // Initialize rejection counter for each sensor to 0
     for (auto key_value : outlier_rejection_params)
@@ -230,7 +230,7 @@ public:
         std::vector<float> rejected_data = { float(rejected_num_meas[data.sensor_key]),
                                              float(total_num_meas[data.sensor_key]) };
         std::string rejected_data_name = data.sensor_key + "/rejection_stats";
-        (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(rejected_data_name, rejected_data));
+        BaseEstimator<StateType>::logDiagnosticData(rejected_data_name, rejected_data);
       }
 
       // ============ COVARIANCE THRESHOLD ============
@@ -243,7 +243,7 @@ public:
           std::vector<float> threshold_data = { float(y_hat.norm()),
                                                 float(outlier_threshold * std::sqrt(S.diagonal().sum())) };
           std::string threshold_data_name = data.sensor_key + "/threshold_data";
-          (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(threshold_data_name, threshold_data));
+          BaseEstimator<StateType>::logDiagnosticData(threshold_data_name, threshold_data);
         }
         // -------------------------------------------------------------------------
         // 3σ outlier rejection based on prior covariance
@@ -274,8 +274,8 @@ public:
       {
         double mahalanobis_dist_squared = y_hat.transpose() * S.inverse() * y_hat;
         double mahalanobis_dist = sqrt(mahalanobis_dist_squared);
-        double eps = 0.1;
-        double weighted_mahalanobis_dist = 1 / (1 + exp(-mahalanobis_dist + eps));
+        // double eps = 0.1;
+        // double weighted_mahalanobis_dist = 1 / (1 + exp(-mahalanobis_dist + eps));
 
         // t = 2 * gamma_p_inv(v / 2, p)
         int nr_deg = sensor_model->dimension;
@@ -288,7 +288,7 @@ public:
           // add norm of innovation as well as used threshold
           std::vector<float> threshold_data = { float(mahalanobis_dist), float(t) };
           std::string threshold_data_name = data.sensor_key + "/threshold_data";
-          (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(threshold_data_name, threshold_data));
+          BaseEstimator<StateType>::logDiagnosticData(threshold_data_name, threshold_data);
         }
         // -------------------------------------------------------------------------
 
@@ -319,8 +319,8 @@ public:
       {
         double mahalanobis_dist_squared = y_hat.transpose() * S.inverse() * y_hat;
         double mahalanobis_dist = sqrt(mahalanobis_dist_squared);
-        double eps = 0.1;
-        double weighted_mahalanobis_dist = 1 / (1 + exp(-mahalanobis_dist + eps));
+        // double eps = 0.1;
+        // double weighted_mahalanobis_dist = 1 / (1 + exp(-mahalanobis_dist + eps));
 
         // t = 2 * gamma_p_inv(v / 2, p)
         int nr_deg = sensor_model->dimension;
@@ -451,8 +451,8 @@ public:
     return P_posterior;
   }
 
-  // map saves objects that have a key and a value (here key = string, e.g. vicon, value = sensor_model e.g.
-  // vicon_sensor_model)
+  // map saves objects that have a key and a value (here key = string, e.g. mocap, value = sensor_model e.g.
+  // mocap_sensor_model)
   std::map<std::string, std::shared_ptr<crs_sensor_models::SensorModel<StateType, InputType>>> key_to_sensor_model_;
 
 private:

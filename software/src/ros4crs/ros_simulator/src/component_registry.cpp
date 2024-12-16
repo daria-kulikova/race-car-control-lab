@@ -1,12 +1,11 @@
 #include "ros_simulator/component_registry.h"
 #include <ros_crs_utils/parameter_io.h>
 
-#define pacejka_model_FOUND
 #ifdef pacejka_model_FOUND
 #include "ros_simulator/ros_pacejka_simulator.h"
 #include <pacejka_sensor_model/imu_sensor_model.h>
 #include <pacejka_sensor_model/imu_yaw_rate_sensor_model.h>
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 #include <pacejka_sensor_model/wheel_encoder_sensor_model.h>
 #include <pacejka_sensor_model/lighthouse_sensor_model.h>
 #endif
@@ -14,15 +13,15 @@
 #ifdef kinematic_model_FOUND
 #include "ros_simulator/ros_kinematic_simulator.h"
 #include <kinematic_sensor_model/imu_sensor_model.h>
-#include <kinematic_sensor_model/vicon_sensor_model.h>
+#include <kinematic_sensor_model/mocap_sensor_model.h>
 #endif
 
 #ifdef rocket_6_dof_model_FOUND
 #include "ros_simulator/ros_rocket_simulator.h"
 #include <rocket_6_dof_sensor_model/full_state_sensor_model.h>
 #include <rocket_6_dof_sensor_model/imu_sensor_model.h>
-#include <rocket_6_dof_sensor_model/vicon_pose_sensor_model.h>
-#include <rocket_6_dof_sensor_model/vicon_twist_sensor_model.h>
+#include <rocket_6_dof_sensor_model/mocap_pose_sensor_model.h>
+#include <rocket_6_dof_sensor_model/mocap_twist_sensor_model.h>
 #endif
 
 namespace ros_simulator
@@ -49,19 +48,19 @@ Simulator* resolveSimulator(ros::NodeHandle& nh, ros::NodeHandle& nh_private, co
       double delay = 0.0;
       nh_private.getParam("sensors/" + sensor_name + "/delay", delay);
 
-      if (sensor_key == crs_sensor_models::pacejka_sensor_models::ViconSensorModel::SENSOR_KEY)
+      if (sensor_key == crs_sensor_models::pacejka_sensor_models::MocapSensorModel::SENSOR_KEY)
       {
-        // ===================== VICON MODEL ===============================================
+        // ===================== MOCAP MODEL ===============================================
         Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
         parameter_io::getMatrixFromParams<3, 3>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"),
                                                 R);  // Load R from params (pacejka_car_simulator.yaml)
 
-        // Create vicon sensor model using R
-        std::shared_ptr<crs_sensor_models::pacejka_sensor_models::ViconSensorModel> vicon_sensor_model =
-            std::make_shared<crs_sensor_models::pacejka_sensor_models::ViconSensorModel>(R);
+        // Create mocap sensor model using R
+        std::shared_ptr<crs_sensor_models::pacejka_sensor_models::MocapSensorModel> mocap_sensor_model =
+            std::make_shared<crs_sensor_models::pacejka_sensor_models::MocapSensorModel>(R);
 
         // Sensor used for simulation
-        pacejka_simulator->registerSensorModel(vicon_sensor_model, delay);
+        pacejka_simulator->registerSensorModel(mocap_sensor_model, delay);
       }
       else if (sensor_key == crs_sensor_models::pacejka_sensor_models::ImuSensorModel::SENSOR_KEY)
       {
@@ -200,18 +199,18 @@ Simulator* resolveSimulator(ros::NodeHandle& nh, ros::NodeHandle& nh_private, co
       double delay = 0.0;
       nh_private.getParam("sensors/" + sensor_name + "/delay", delay);
 
-      if (sensor_key == crs_sensor_models::kinematic_sensor_models::ViconSensorModel::SENSOR_KEY)
+      if (sensor_key == crs_sensor_models::kinematic_sensor_models::MocapSensorModel::SENSOR_KEY)
       {
         Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
         parameter_io::getMatrixFromParams<3, 3>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"),
                                                 R);  // Load R from params (pacejka_car_simulator.yaml)
 
-        // Create vicon sensor model using R
-        std::shared_ptr<crs_sensor_models::kinematic_sensor_models::ViconSensorModel> vicon_sensor_model =
-            std::make_shared<crs_sensor_models::kinematic_sensor_models::ViconSensorModel>(R);
+        // Create mocap sensor model using R
+        std::shared_ptr<crs_sensor_models::kinematic_sensor_models::MocapSensorModel> mocap_sensor_model =
+            std::make_shared<crs_sensor_models::kinematic_sensor_models::MocapSensorModel>(R);
 
         // Sensor used for simulation
-        kinematic_simulator->registerSensorModel(vicon_sensor_model, delay);
+        kinematic_simulator->registerSensorModel(mocap_sensor_model, delay);
       }
       else if (sensor_key == crs_sensor_models::kinematic_sensor_models::ImuSensorModel::SENSOR_KEY)
       {
@@ -298,31 +297,31 @@ Simulator* resolveSimulator(ros::NodeHandle& nh, ros::NodeHandle& nh_private, co
         // Sensor used for simulation
         rocket_simulator->registerSensorModel(imu_sensor_model, delay);
       }
-      else if (sensor_key == crs_sensor_models::rocket_6_dof_sensor_models::ViconPoseSensorModel::SENSOR_KEY)
+      else if (sensor_key == crs_sensor_models::rocket_6_dof_sensor_models::MocapPoseSensorModel::SENSOR_KEY)
       {
         Eigen::Matrix<double, 7, 7> R = Eigen::Matrix<double, 7, 7>::Identity();
         parameter_io::getMatrixFromParams<7, 7>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"),
                                                 R);  // Load R from params (rocket_simulator.yaml)
 
         // Create full state sensor model using R
-        std::shared_ptr<crs_sensor_models::rocket_6_dof_sensor_models::ViconPoseSensorModel> vicon_pose_sensor_model =
-            std::make_shared<crs_sensor_models::rocket_6_dof_sensor_models::ViconPoseSensorModel>(R);
+        std::shared_ptr<crs_sensor_models::rocket_6_dof_sensor_models::MocapPoseSensorModel> mocap_pose_sensor_model =
+            std::make_shared<crs_sensor_models::rocket_6_dof_sensor_models::MocapPoseSensorModel>(R);
 
         // Sensor used for simulation
-        rocket_simulator->registerSensorModel(vicon_pose_sensor_model, delay);
+        rocket_simulator->registerSensorModel(mocap_pose_sensor_model, delay);
       }
-      else if (sensor_key == crs_sensor_models::rocket_6_dof_sensor_models::ViconTwistSensorModel::SENSOR_KEY)
+      else if (sensor_key == crs_sensor_models::rocket_6_dof_sensor_models::MocapTwistSensorModel::SENSOR_KEY)
       {
         Eigen::Matrix<double, 6, 6> R = Eigen::Matrix<double, 6, 6>::Identity();
         parameter_io::getMatrixFromParams<6, 6>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"),
                                                 R);  // Load R from params (rocket_simulator.yaml)
 
         // Create full state sensor model using R
-        std::shared_ptr<crs_sensor_models::rocket_6_dof_sensor_models::ViconTwistSensorModel> vicon_twist_sensor_model =
-            std::make_shared<crs_sensor_models::rocket_6_dof_sensor_models::ViconTwistSensorModel>(R);
+        std::shared_ptr<crs_sensor_models::rocket_6_dof_sensor_models::MocapTwistSensorModel> mocap_twist_sensor_model =
+            std::make_shared<crs_sensor_models::rocket_6_dof_sensor_models::MocapTwistSensorModel>(R);
 
         // Sensor used for simulation
-        rocket_simulator->registerSensorModel(vicon_twist_sensor_model, delay);
+        rocket_simulator->registerSensorModel(mocap_twist_sensor_model, delay);
       }
       else
       {

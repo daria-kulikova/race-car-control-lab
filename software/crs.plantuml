@@ -146,7 +146,7 @@ frame "A" {
         + {static} string getKey()
       }
 
-      class ViconSensorModel<kinematic_car_state, kinematic_car_input, 4> {
+      class MocapSensorModel<kinematic_car_state, kinematic_car_input, 4> {
         - Matrix<3,3> R
         + Vector applyModel(kinematic_car_state state, kinematic_car_input control_input)
         + void getNumericalJacobian(kinematic_car_state state, kinematic_car_input input, Matrix& H)
@@ -155,13 +155,13 @@ frame "A" {
       }
 
 
-      SensorModel <-- ViconSensorModel
+      SensorModel <-- MocapSensorModel
       SensorModel <-- ImuSensorModel
 
       ImuSensorModel o-- kinematic_car_state
       ImuSensorModel o-- kinematic_car_input
-      ViconSensorModel o-- kinematic_car_state
-      ViconSensorModel o-- kinematic_car_input
+      MocapSensorModel o-- kinematic_car_state
+      MocapSensorModel o-- kinematic_car_input
     }
 
 
@@ -175,7 +175,7 @@ frame "A" {
         + {static} string getKey()
       }
 
-      class ViconSensorModel_<pacejka_car_state, pacejka_car_input, 6> {
+      class MocapSensorModel_<pacejka_car_state, pacejka_car_input, 6> {
         - Matrix<3,3> R
         + Vector applyModel(pacejka_car_state state, pacejka_car_input control_input)
         + void getNumericalJacobian(pacejka_car_state state, pacejka_car_input input, Matrix& H)
@@ -183,13 +183,13 @@ frame "A" {
         + {static} string getKey()
       }
 
-      SensorModel <-- ViconSensorModel_
+      SensorModel <-- MocapSensorModel_
       SensorModel <-- ImuSensorModel_
 
       ImuSensorModel_ o-- kinematic_car_state
       ImuSensorModel_ o-- kinematic_car_input
-      ViconSensorModel_ o-- kinematic_car_state
-      ViconSensorModel_ o-- kinematic_car_input
+      MocapSensorModel_ o-- kinematic_car_state
+      MocapSensorModel_ o-- kinematic_car_input
     }
   }
 

@@ -23,7 +23,7 @@
   <!-- Optional -->
   <depend>acados_pacejka_mpcc_solver</depend>
   <depend>acados_pacejka_tracking_mpc_solver</depend>
-
+  <depend>acados_kinematic_tracking_mpc_solver</depend>
   <depend>forces_pacejka_mpcc_solver</depend>
 
   <export></export>

@@ -5,7 +5,7 @@ namespace crs_planning
 {
 
 std::vector<multi_car_cartesian_reference_point> MultiPacejkaCirclePlanner::getPlannedTrajectory(
-    const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> state, double timestamp)
+    const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> state, double timestamp [[maybe_unused]])
 {
   float radius = 1;  // 1m
 
@@ -38,7 +38,7 @@ std::vector<multi_car_cartesian_reference_point> MultiPacejkaCirclePlanner::getP
   }
 
   return pts;
-};
+}
 
 bool MultiPacejkaCirclePlanner::goalReached(
     const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> states,
@@ -58,7 +58,7 @@ bool MultiPacejkaCirclePlanner::goalReached(
     {
       auto last_entry = trajectory.at(trajectory.size() - 1);
       int car_idx = -1;
-      for (int i = 0; i < last_entry.namespaces.size(); i++)
+      for (size_t i = 0; i < last_entry.namespaces.size(); i++)
       {
         if (last_entry.namespaces[i] == car_reached->first)
         {

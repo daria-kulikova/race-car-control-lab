@@ -7,7 +7,7 @@ solver_creation:
   # Note: The linear least squares cannot deal with e.g. imu measurements.
   # It is only for the case where the measurement model is linear in the states.
   cost_type: "NONLINEAR_LS" #"NONLINEAR_LS" # LINEAR_LS
-  sensors: ["lighthouse"] # what sensors should be considered in the cost formulation of the mhe. Options: "imu", "imu_yaw_rate", "wheel_encoders", "vicon", "lighthouse"
+  sensors: ["lighthouse"] # what sensors should be considered in the cost formulation of the mhe. Options: "imu", "imu_yaw_rate", "wheel_encoders", "mocap", "lighthouse"
 
 # State Bounds
 model_bounds:

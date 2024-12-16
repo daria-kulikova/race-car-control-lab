@@ -18,6 +18,10 @@ typedef mpc_solvers::pacejka_tracking_solvers::inputs pacejka_tracking_inputs;
 
 namespace crs_controls
 {
+
+#ifndef TRACKING_MPC_SOLUTION
+#define TRACKING_MPC_SOLUTION
+
 /**
  * @brief The predicted mpc solution
  *
@@ -41,6 +45,8 @@ struct tracking_mpc_solution
   std::vector<double> inputs_;
   std::vector<Eigen::Vector2d> reference_;
 };
+
+#endif
 
 class PacejkaTrackingMpcController
   : public MpcController<crs_models::pacejka_model::DiscretePacejkaModel, crs_models::pacejka_model::pacejka_car_state,
@@ -127,7 +133,7 @@ public:
    * @return true if controller is already initialized
    * @return false if controller is not initialized
    */
-  const bool isInitializing() override
+  bool isInitializing() override
   {
     return initializing;
   }

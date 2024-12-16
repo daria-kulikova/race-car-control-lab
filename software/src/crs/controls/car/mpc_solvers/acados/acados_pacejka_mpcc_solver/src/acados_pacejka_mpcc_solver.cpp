@@ -63,9 +63,9 @@ AcadosPacejkaMpccSolver::AcadosPacejkaMpccSolver()
 /**
  * @brief Get the Horizon Length
  *
- * @return const int
+ * @return int
  */
-const int AcadosPacejkaMpccSolver::getHorizonLength() const
+int AcadosPacejkaMpccSolver::getHorizonLength() const
 {
   return nlp_dims_->N;
 }
@@ -111,7 +111,6 @@ void AcadosPacejkaMpccSolver::setInputInitialGuess(int stage, double constraint[
 void AcadosPacejkaMpccSolver::updateParams(int stage, const crs_models::pacejka_model::pacejka_params& model_dynamics,
                                            const tracking_costs& costs, const trajectory_track_point& tracking_point)
 {
-  double params[np_];
   // Tracking
   mpc_parameters[params::X_LIN] = tracking_point.x;
   mpc_parameters[params::Y_LIN] = tracking_point.y;
@@ -173,6 +172,6 @@ double AcadosPacejkaMpccSolver::getSamplePeriod()
 {
   return *(nlp_in_->Ts);
 }
-};  // namespace pacejka_solvers
+}  // namespace pacejka_solvers
 
 }  // namespace mpc_solvers

@@ -3,8 +3,8 @@
 namespace crs_planning
 {
 
-std::vector<cartesian_reference_point>
-PacejkaCirclePlanner::getPlannedTrajectory(const crs_models::pacejka_model::pacejka_car_state state, double timestamp)
+std::vector<cartesian_reference_point> PacejkaCirclePlanner::getPlannedTrajectory(
+    const crs_models::pacejka_model::pacejka_car_state state [[maybe_unused]], double timestamp [[maybe_unused]])
 {
   float radius = 2;  // 1m
   float center_x = 0.1;
@@ -21,7 +21,7 @@ PacejkaCirclePlanner::getPlannedTrajectory(const crs_models::pacejka_model::pace
   ref_pt.y = std::cos(angle_) * radius + center_y;  // + state.pos_y;
   pts.push_back(ref_pt);
   return pts;
-};
+}
 
 bool PacejkaCirclePlanner::goalReached(const crs_models::pacejka_model::pacejka_car_state state,
                                        const std::vector<cartesian_reference_point>& trajectory)

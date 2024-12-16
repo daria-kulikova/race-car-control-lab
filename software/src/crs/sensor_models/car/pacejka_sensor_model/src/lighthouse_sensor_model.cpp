@@ -35,10 +35,6 @@ LighthouseSensorModel::LighthouseSensorModel(const Eigen::Matrix4d& R, Eigen::Ve
 
   measurement_function = casadi::Function("applyMeasurementModel", state_and_input_mx, measured_states_mx);
 
-  // Define jacobian function using casadi
-  // This sets the jacobian_fn directly from the measurement_function
-  setJacobianFromMeasFnc(measurement_function);
-
   setR(R);
   setLighthouseParams(sensor_positions, position, rotation, light_plane_tilt);
 }

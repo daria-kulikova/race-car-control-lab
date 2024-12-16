@@ -18,7 +18,7 @@ ros::Time current_time;
  * @brief Function gets calles in a specific intervall, depending on how fast the measurements are published
  *
  * @param event Ros Timer Event - Ignored
- * @param sensor name of sensor e.g. vicon
+ * @param sensor name of sensor e.g. mocap
  */
 void publishMeasurementsCallback(const ros::TimerEvent& event, const std::string& sensor)
 {
@@ -60,7 +60,7 @@ void advanceSimulator(const ros::TimerEvent& event)
  *
  * @param nh nodehandel pointing to /<NAMESPACE>/*  e.g LEMANS_CAR/
  * @param nh_private nodehandle pointing to /<NAMESPACE>/simulator_ros/*  e.g LEMANS_CAR/simulator_ros/
- * @param sensors_to_load list of sensor names that should be loaded e.g. vicon, imu, ... (see
+ * @param sensors_to_load list of sensor names that should be loaded e.g. mocap, imu, ... (see
  * pacejka_car_simulator.yaml - sensors/sensor_names)
  * @return int Status Code to return. Returns 0 if everything was ok
  */
@@ -83,7 +83,7 @@ int setupSimulator(ros::NodeHandle nh, ros::NodeHandle nh_private, const std::ve
   if (sensors_to_load.empty())
     ROS_WARN_STREAM("Provided sensor list was empty!. Running without any sensors!");
 
-  simulator = ros_simulator::resolveSimulator(nh, nh_private, input_type, state_type, sensors_to_load);
+  simulator = ros_simulator::resolveSimulator(nh, nh_private, state_type, input_type, sensors_to_load);
 
   if (!simulator)
   {

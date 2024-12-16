@@ -14,23 +14,23 @@ public:
   /**
    * @brief Get the Dimension of the state
    *
-   * @return const int
+   * @return int
    */
-  virtual const int getStateDimension() const = 0;
+  virtual int getStateDimension() const = 0;
 
   /**
    * @brief Get the Dimension of the input
    *
-   * @return const int
+   * @return int
    */
-  virtual const int getInputDimension() const = 0;
+  virtual int getInputDimension() const = 0;
 
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  virtual const int getHorizonLength() const = 0;
+  virtual int getHorizonLength() const = 0;
 
   /**
    * @brief Set the Initial State Constraint. The provided array must have the same length as the state dimension
@@ -73,7 +73,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   virtual int solve(double x[], double u[]) = 0;
 

@@ -16,7 +16,7 @@ protected:
   virtual std::shared_ptr<mpc_solvers::MpcSolver<MpcModel, MpcCost, MpcParams>> getSolver(std::string solver_type) = 0;
 
 public:
-  MpcBasedSafetyFilter(std::string solver_type, std::shared_ptr<Model> model)
+  MpcBasedSafetyFilter(std::string solver_type [[maybe_unused]], std::shared_ptr<Model> model)
     : ModelBasedSafetyFilter<StateType, InputType, Model>(model){};
 
   virtual InputType getSafeControlInput(const StateType state, const InputType control_input) = 0;

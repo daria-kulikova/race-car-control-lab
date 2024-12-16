@@ -86,7 +86,7 @@ public:
    * @return true if controller is initializing
    * @return false if controller is not initializing
    */
-  const bool isInitializing()
+  bool isInitializing()
   {
     return false;
   }
@@ -96,7 +96,7 @@ public:
    *
    *  @return float which specifies the loop rate of the controller in Hz
    */
-  const float getLoopRate()
+  float getLoopRate()
   {
     return config_.loop_rate;
   }

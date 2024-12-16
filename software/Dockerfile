@@ -1,44 +1,24 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:focal
+FROM ros:noetic-ros-core-focal
 
-# -------- Basic ROS setup --------
-# setup timezone
-RUN echo 'Etc/UTC' > /etc/timezone && \
-    ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    apt-get update && \
-    apt-get install -q -y --no-install-recommends tzdata && \
-    rm -rf /var/lib/apt/lists/*
-
-# install packages
-RUN apt-get update && apt-get install -q -y --no-install-recommends \
-    dirmngr \
-    gnupg2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# setup sources.list
-RUN echo "deb http://packages.ros.org/ros/ubuntu focal main" > /etc/apt/sources.list.d/ros1-latest.list
-
-# setup keys
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-
-# setup environment
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-
-ENV ROS_DISTRO noetic
-
-# install ros packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-desktop=1.5.0-1* \
-    && rm -rf /var/lib/apt/lists/*
+# Install, on top of core, the desktop packages of ROS
+RUN \
+    --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
+    --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-desktop=1.5.0-1*
 
 # install bootstrap tools
-RUN apt-get update && apt-get install --no-install-recommends -y \
+RUN \
+    --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
+    --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     python3-rosdep \
     python3-rosinstall \
-    python3-vcstools \
-    && rm -rf /var/lib/apt/lists/*
+    python3-vcstools
 
 # bootstrap rosdep
 RUN rosdep init && \
@@ -48,15 +28,48 @@ RUN rosdep init && \
 
 WORKDIR /code
 
-# APT DEPENDENCIES
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# APT dependencies for the compilation of casadi/acados
+RUN \
+    --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
+    --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
     git \
     ccache \
-    libsasl2-dev \
     python3-pip \
-    libgmp3-dev \
-    libsnmp-dev \
     libeigen3-dev \
+    # IPOPT for lighthouse_calib
+    gfortran \
+    coinor-libipopt-dev \
+    libblas-dev \
+    liblapack-dev \
+    pkg-config \
+    cm-super \
+    dvipng \
+    texlive-latex-extra \
+    texlive-latex-recommended \
+    python3-cffi
+
+# Compile and install CasADi
+COPY .setup/ubuntu/install_casadi.sh .setup/ubuntu/install_casadi.sh
+RUN sudo ./.setup/ubuntu/install_casadi.sh
+
+# Compile and install acados
+COPY .setup/ubuntu/install_acados.sh .setup/ubuntu/install_acados.sh
+RUN sudo ./.setup/ubuntu/install_acados.sh
+ENV ACADOS_SOURCE_DIR="/acados"
+ENV LD_LIBRARY_PATH="/acados/lib:$LD_LIBRARY_PATH"
+
+# Setup the Tera renderer on Arm machines
+COPY .setup/ubuntu/install_tera_renderer.sh .setup/ubuntu/install_tera_renderer.sh
+RUN sudo ./.setup/ubuntu/install_tera_renderer.sh
+
+# Other apt dependencies
+RUN \
+    --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
+    --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
     # Joystick support
     ros-noetic-joy \
     # Realitimetools for RT Controller
@@ -74,39 +87,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # GDB debugger
     gdb \
     valgrind \
-    tmux \
-    # IPOPT for lighthouse_calib
-    gfortran \
-    coinor-libipopt-dev \
-    libblas-dev \
-    liblapack-dev \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+    tmux
 
 
-# INSTALL REQUIREMENTS
+# Install Python requirements, caching the installation
 COPY requirements.txt requirements.txt
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,sharing=locked,target=/root/.cache \
+    python3 -m pip install -r requirements.txt
 
+# Install car plotting script
+COPY ./src/scripts/car_plotter ./src/scripts/car_plotter
+RUN pip install -e src/scripts/car_plotter
 # Install catkin
-RUN pip3 install --no-cache-dir catkin_tools
+RUN --mount=type=cache,sharing=locked,target=/root/.cache \
+    pip3 install catkin_tools
 
 COPY .crs/ .crs/
 RUN sudo ./.crs/setup-crs.sh
-
-# CASADI
-COPY .setup/ubuntu/install_casadi.sh .setup/ubuntu/install_casadi.sh
-RUN sudo ./.setup/ubuntu/install_casadi.sh
-
-# ACADOS
-COPY .setup/ubuntu/install_acados.sh .setup/ubuntu/install_acados.sh
-RUN sudo ./.setup/ubuntu/install_acados.sh
-ENV ACADOS_SOURCE_DIR="/acados"
-ENV LD_LIBRARY_PATH="/acados/lib:$LD_LIBRARY_PATH"
-
-# Setup the Tera renderer on Arm machines
-COPY .setup/ubuntu/install_tera_renderer.sh .setup/ubuntu/install_tera_renderer.sh
-RUN sudo ./.setup/ubuntu/install_tera_renderer.sh
 
 # OPENMP SETTINGS
 ENV OMP_NUM_THREADS=2
@@ -118,7 +115,7 @@ COPY .setup/ubuntu/install_gtest.sh .setup/ubuntu/install_gtest.sh
 RUN sudo ./.setup/ubuntu/install_gtest.sh
 
 # Let git run pre-commit inside container
-RUN git config --system --add safe.directory *
+RUN git config --system --add safe.directory .
 
 # MANIPULATE BASHRC
 RUN echo "[[ -f /code/devel/setup.bash ]] && source /code/devel/setup.bash" >> ~/.bashrc

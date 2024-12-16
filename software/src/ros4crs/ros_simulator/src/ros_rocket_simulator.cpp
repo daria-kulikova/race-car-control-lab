@@ -2,8 +2,8 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <rocket_6_dof_sensor_model/full_state_sensor_model.h>
 #include <rocket_6_dof_sensor_model/imu_sensor_model.h>
-#include <rocket_6_dof_sensor_model/vicon_pose_sensor_model.h>
-#include <rocket_6_dof_sensor_model/vicon_twist_sensor_model.h>
+#include <rocket_6_dof_sensor_model/mocap_pose_sensor_model.h>
+#include <rocket_6_dof_sensor_model/mocap_twist_sensor_model.h>
 #include <ros/console.h>
 #include <ros_crs_utils/parameter_io.h>
 #include <sensor_msgs/Imu.h>
@@ -217,19 +217,19 @@ void RocketSimulator::registerSensorModel(
     auto imu_pub = nh_private_.advertise<sensor_msgs::Imu>(key, 10);
     sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, imu_pub, delay)));
   }
-  else if (key == crs_sensor_models::rocket_6_dof_sensor_models::ViconPoseSensorModel::SENSOR_KEY)
+  else if (key == crs_sensor_models::rocket_6_dof_sensor_models::MocapPoseSensorModel::SENSOR_KEY)
   {
     // TODO currently, there can only be e.g. 1 IMU as they would publish on the same key. Change this
     // publish sensor measurements to topic "key"
-    auto vicon_pose_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(key, 10);
-    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, vicon_pose_pub, delay)));
+    auto mocap_pose_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(key, 10);
+    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, mocap_pose_pub, delay)));
   }
-  else if (key == crs_sensor_models::rocket_6_dof_sensor_models::ViconTwistSensorModel::SENSOR_KEY)
+  else if (key == crs_sensor_models::rocket_6_dof_sensor_models::MocapTwistSensorModel::SENSOR_KEY)
   {
     // TODO currently, there can only be e.g. 1 IMU as they would publish on the same key. Change this
     // publish sensor measurements to topic "key"
-    auto vicon_twist_pub = nh_private_.advertise<geometry_msgs::TwistStamped>(key, 10);
-    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, vicon_twist_pub, delay)));
+    auto mocap_twist_pub = nh_private_.advertise<geometry_msgs::TwistStamped>(key, 10);
+    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, mocap_twist_pub, delay)));
   }
   else
   {
@@ -255,7 +255,7 @@ void RocketSimulator::publishMeasurement(const std::string& key)
     Eigen::MatrixXd measurement = sensor_model->applyModel(current_state_, last_input_);
 
     Eigen::MatrixXd noise;
-    // sensor_name_to_noise_model_ of the form: {'vicon': GaussianNoise, 'imu': GaussianNoise}
+    // sensor_name_to_noise_model_ of the form: {'mocap': GaussianNoise, 'imu': GaussianNoise}
     auto sensor_iter = sensor_name_to_noise_model_.find(key);
     if (sensor_iter != sensor_name_to_noise_model_.end())                           // Key was found
       noise = sensor_iter->second->sampleNoiseFromCovMatrix(sensor_model->getR());  // get R from noise model
@@ -302,7 +302,7 @@ void RocketSimulator::publishMeasurement(const std::string& key)
       msg.header.stamp = ros::Time::now();
       publisher->publish(msg);
     }
-    else if (sensor_model->getKey() == crs_sensor_models::rocket_6_dof_sensor_models::ViconPoseSensorModel::SENSOR_KEY)
+    else if (sensor_model->getKey() == crs_sensor_models::rocket_6_dof_sensor_models::MocapPoseSensorModel::SENSOR_KEY)
     {
       geometry_msgs::TransformStamped msg;
 
@@ -317,7 +317,7 @@ void RocketSimulator::publishMeasurement(const std::string& key)
       msg.header.stamp = ros::Time::now();
       publisher->publish(msg);
     }
-    else if (sensor_model->getKey() == crs_sensor_models::rocket_6_dof_sensor_models::ViconTwistSensorModel::SENSOR_KEY)
+    else if (sensor_model->getKey() == crs_sensor_models::rocket_6_dof_sensor_models::MocapTwistSensorModel::SENSOR_KEY)
     {
       geometry_msgs::TwistStamped msg;
 

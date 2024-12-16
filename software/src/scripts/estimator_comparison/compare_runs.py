@@ -206,7 +206,7 @@ def main(args):
     lh_df = pd.read_csv(bag.message_by_topic("/car1/lighthouse"))
 
     gt_df = qs_pose_df.join(qs_vel_df, rsuffix="_vel")
-    # dorp na
+    # dorp nans
     gt_df = gt_df.dropna()
 
     dataframes = [gt_df, lh_df]
@@ -374,7 +374,7 @@ if __name__ == "__main__":
         "-output_folder",
         type=str,
         help="Output Folder",
-        default="/home/sabodmer/crs-2.0/src/scripts/estimator_comparison/paper/21_03_2024",
+        default="/home/sabodmer/crs-2.0/src/scripts/estimator_comparison/data",
     )
 
     parser.add_argument(

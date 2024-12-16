@@ -3,6 +3,7 @@
 type: "discrete_ekf"
 pub_rate: 50.0 # Hz
 measurement_timeout_threshold: 2.0 # seconds
+max_callback_rate: 50.0  # Hz
 # initial state
 initial_state:
   type: "pacejka_car"
@@ -24,12 +25,12 @@ P_init:
   ]
 
 sensors:
-  sensor_names: ["vicon", "imu"]
-  vicon:
+  sensor_names: ["mocap", "imu"]
+  mocap:
     R:
       value: [[0.001], [0.001], [0.001]]
       is_diag: true
-    key: vicon # optional, if not set us e name of sensor
+    key: mocap # optional, if not set us e name of sensor
 
   imu:
     R:

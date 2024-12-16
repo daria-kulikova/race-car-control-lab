@@ -24,6 +24,15 @@
 #ifdef mpc_controller_FOUND
 #include <mpc_controller/pacejka_controller/mpcc_pacejka_controller.h>
 #include <mpc_controller/pacejka_controller/tracking_mpc_pacejka_controller.h>
+
+#ifdef kinematic_model_FOUND
+#include <mpc_controller/kinematic_controller/tracking_mpc_kinematic_controller.h>
+#endif
+#endif
+
+#ifdef kinematic_model_FOUND
+#include <kinematic_model/kinematic_car_input.h>
+#include <kinematic_model/kinematic_car_state.h>
 #endif
 
 #ifdef pacejka_model_FOUND
@@ -277,8 +286,74 @@ inline pacejka_ros_controller* getPacejkaTrackingMPCController(ros::NodeHandle& 
   // "controller_params"), ptr); //not existant at the moment
   return new pacejka_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
 }
+
 #endif  // mpc_controller_FOUND
 #endif  // pacejka_model_FOUND
+
+#ifdef kinematic_model_FOUND
+// Shorten type names
+typedef crs_msgs::car_state_cart ros_car_state;
+typedef crs_msgs::car_input ros_car_input;
+typedef crs_models::kinematic_model::kinematic_car_state kinematic_state;
+typedef crs_models::kinematic_model::kinematic_car_input kinematic_input;
+typedef crs_models::kinematic_model::kinematic_params kinematic_model_params;
+typedef RosController<ros_car_state, ros_car_input, kinematic_state, kinematic_input> kinematic_ros_controller;
+
+#ifdef mpc_controller_FOUND
+
+inline kinematic_ros_controller* getKinematicTrackingMPCController(ros::NodeHandle& nh, ros::NodeHandle& nh_private,
+                                                                   void*& dynamic_callback_allocator)
+{
+  crs_controls::tracking_mpc_kinematic_config cfg =
+      parameter_io::getConfig<crs_controls::tracking_mpc_kinematic_config>(
+          ros::NodeHandle(nh_private, "controller_params"));
+
+  // Load model from params
+  kinematic_model_params kinematic_params;
+
+  // First load generic, gt model
+  parameter_io::getModelParams<kinematic_model_params>(ros::NodeHandle(nh, "model/model_params"), kinematic_params);
+
+  // Patch certain params
+  parameter_io::getModelParams<kinematic_model_params>(ros::NodeHandle(nh_private, "model/model_params"),
+                                                       kinematic_params, false);
+
+  // Load model from params
+  std::shared_ptr<crs_models::kinematic_model::DiscreteKinematicModel> kinematic_model =
+      std::make_shared<crs_models::kinematic_model::DiscreteKinematicModel>(kinematic_params);
+
+  // start track points
+  /* std::vector<double> x_start = { 0.3 };
+  std::vector<double> y_start = { 0.0 }; */
+
+  std::shared_ptr<crs_controls::StaticTrackTrajectory> static_track =
+      parameter_io::loadTrackDescriptionFromParams(ros::NodeHandle(nh, "track"));
+  std::cout << "loading track" << std::endl;
+
+  std::shared_ptr<crs_controls::DynamicPointTrajectory> dynamic_ref =
+      parameter_io::loadReferenceFromParams(ros::NodeHandle(nh, "reference"));
+
+  std::cout << "loading reference" << std::endl;
+
+  // Create Controller
+  auto ptr = std::make_shared<crs_controls::KinematicTrackingMpcController>(cfg, kinematic_model, dynamic_ref);
+
+  // Downcast to BaseController type
+  auto derived_ptr =
+      std::dynamic_pointer_cast<crs_controls::MpcController<crs_models::kinematic_model::DiscreteKinematicModel,
+                                                            kinematic_state, kinematic_input>>(ptr);
+
+  auto visualizer_ptr =
+      loadControllerVisualizer<crs_models::kinematic_model::DiscreteKinematicModel, kinematic_state, kinematic_input>(
+          ros::NodeHandle(nh_private, "visualizer"), derived_ptr);
+
+  // dynamic_callback_allocator = (void*)new ros_controllers::DynamicPacejkaMPCCConfigServer(ros::NodeHandle(nh_private,
+  // "controller_params"), ptr); //not existant at the moment
+  return new kinematic_ros_controller(nh, nh_private, std::move(visualizer_ptr), derived_ptr);
+}
+
+#endif  // mpc_controller_FOUND
+#endif  // kinematic_model_FOUND
 
 #ifdef rocket_6_dof_model_FOUND
 // =============================================================================================
@@ -367,10 +442,13 @@ pacejka_ros_controller* resolveController<ros_car_state, ros_car_input, pacejka_
     return getPacejkaMPCCController(nh, nh_private, dynamic_callback_allocator);
   }
 
+#ifdef pacejka_tracking  // not existent at the moment
   if (controller_type == "TRACKING_MPC")
   {
     return getPacejkaTrackingMPCController(nh, nh_private, dynamic_callback_allocator);
   }
+#endif  // pacejka_tracking
+
 #endif  // mpc_controller_FOUND
 
 #endif  // pacejka_model_FOUND
@@ -378,6 +456,25 @@ pacejka_ros_controller* resolveController<ros_car_state, ros_car_input, pacejka_
   assert(true && "Did not find registered controller for specified controller type.");
   return nullptr;
 }
+
+#ifdef kinematic_model_FOUND
+template <>
+kinematic_ros_controller* resolveController<ros_car_state, ros_car_input, kinematic_state, kinematic_input>(
+    ros::NodeHandle& nh, ros::NodeHandle& nh_private, const std::string& controller_type,
+    void*& dynamic_callback_allocator)
+{
+#ifdef mpc_controller_FOUND
+  if (controller_type == "KINEMATIC_TRACKING_MPC")
+  {
+    ROS_WARN("KINEMATIC_TRACKING_MPC");
+    return getKinematicTrackingMPCController(nh, nh_private, dynamic_callback_allocator);
+  }
+#endif  // mpc_controller_FOUND
+
+  assert(true && "Did not find registered controller for specified controller type.");
+  return nullptr;
+}
+#endif  // kinematic_model_FOUND
 
 template <>
 rocket_ros_controller* resolveController<ros_rocket_state, ros_rocket_input, rocket_6_dof_state, rocket_6_dof_input>(

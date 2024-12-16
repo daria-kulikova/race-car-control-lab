@@ -9,9 +9,9 @@ initial_state:
   value: [0, 0, 0, 0.5, 0, 0]
 
 sensors:
-  sensor_names: ["vicon"]
-  vicon:
-    key: vicon # optional, if not set us e name of sensor
+  sensor_names: ["mocap"]
+  mocap:
+    key: mocap # optional, if not set us e name of sensor
 
 b_dx: [0.0029, 0.0087, 0.0087, 0.0029]
 a_dx: [1.0000, -2.3741, 1.9294, -0.5321]

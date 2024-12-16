@@ -2,7 +2,7 @@
 #include <ros_crs_utils/parameter_io.h>
 
 #include <kinematic_sensor_model/imu_sensor_model.h>
-#include <kinematic_sensor_model/vicon_sensor_model.h>
+#include <kinematic_sensor_model/mocap_sensor_model.h>
 
 #include <estimators/model_based_estimator.h>
 
@@ -12,7 +12,7 @@
 typedef crs_models::kinematic_model::kinematic_car_state kinematic_car_state;
 typedef crs_models::kinematic_model::kinematic_car_input kinematic_car_input;
 
-typedef crs_sensor_models::kinematic_sensor_models::ViconSensorModel ViconSensorModelType;
+typedef crs_sensor_models::kinematic_sensor_models::MocapSensorModel MocapSensorModelType;
 typedef crs_sensor_models::kinematic_sensor_models::ImuSensorModel ImuSensorModelType;
 typedef crs_estimators::ModelBasedEstimator<kinematic_car_state, kinematic_car_input> ModelBasedEstimatorType;
 
@@ -20,16 +20,16 @@ namespace registry
 {
 namespace estimators
 {
-// Provide implementation for ViconSensorModel
+// Provide implementation for MocapSensorModel
 template <>
-std::shared_ptr<ViconSensorModelType> loadSensorModel<ViconSensorModelType>(const ros::NodeHandle& nh_private,
+std::shared_ptr<MocapSensorModelType> loadSensorModel<MocapSensorModelType>(const ros::NodeHandle& nh_private,
                                                                             const std::string sensor_name,
                                                                             const parameter_io::empty_params parameters)
 {
   Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
   // Load R from params (pacejka_car_simulator.yaml)
   parameter_io::getMatrixFromParams<3, 3>(ros::NodeHandle(nh_private, "sensors/" + sensor_name + "/R"), R);
-  return std::make_shared<ViconSensorModelType>(R);
+  return std::make_shared<MocapSensorModelType>(R);
 };
 
 // Provide implementation for ImuSensorModel
@@ -58,10 +58,10 @@ parseSensorModels<kinematic_car_state, kinematic_car_input>(ros::NodeHandle& nh,
   for (const std::string sensor_name : sensors_to_load)
   {
     // Load sensor model & add to ekf
-    if (sensor_name == "vicon")
+    if (sensor_name == "mocap")
     {
-      std::shared_ptr<ViconSensorModelType> sensor_model =
-          loadSensorModel<ViconSensorModelType>(nh_private, sensor_name, {});
+      std::shared_ptr<MocapSensorModelType> sensor_model =
+          loadSensorModel<MocapSensorModelType>(nh_private, sensor_name, {});
       estimator->addSensorModel(sensor_name, sensor_model);
       // Add sensor model to loaded_sensors
       loaded_sensors.push_back(sensor_name);

@@ -71,7 +71,7 @@ void AcadosPacejkaMheSolver::removeInitialState()
 void AcadosPacejkaMheSolver::parseCompiledSensors()
 {
   // Parse compiled sensor support.
-  use_vicon_sensor = false;
+  use_mocap_sensor = false;
   use_imu_sensor = false;
   use_imu_yaw_rate_sensor = false;
   use_wheel_encoder_sensor = false;
@@ -81,9 +81,9 @@ void AcadosPacejkaMheSolver::parseCompiledSensors()
   //
   for (int i = 0; i < SOLVER_MHE_NUM_SENSORS; i++)
   {
-    if (std::string(SOLVER_MHE_SENSOR_LIST[i]) == "vicon")
+    if (std::string(SOLVER_MHE_SENSOR_LIST[i]) == "mocap")
     {
-      use_vicon_sensor = true;
+      use_mocap_sensor = true;
       n_measurements += 3;
     }
     if (std::string(SOLVER_MHE_SENSOR_LIST[i]) == "imu")
@@ -112,9 +112,9 @@ void AcadosPacejkaMheSolver::parseCompiledSensors()
 /**
  * @brief Get the Horizon Length
  *
- * @return const int
+ * @return int
  */
-const int AcadosPacejkaMheSolver::getHorizonLength() const
+int AcadosPacejkaMheSolver::getHorizonLength() const
 {
   return nlp_dims_->N;
 }
@@ -231,10 +231,10 @@ void AcadosPacejkaMheSolver::updateParams(
     // Add zeros as reference for w
     reference.insert(reference.end(), { 0, 0, 0, 0, 0, 0 });
 
-    if (use_vicon_sensor)  // Solver supports the usage of vicon
+    if (use_mocap_sensor)  // Solver supports the usage of mocap
     {
-      reference.insert(reference.end(), { references.vicon_measurement(0), references.vicon_measurement(1),
-                                          references.vicon_measurement(2) });
+      reference.insert(reference.end(), { references.mocap_measurement(0), references.mocap_measurement(1),
+                                          references.mocap_measurement(2) });
     }
     if (use_imu_sensor)  // Solver supports the usage of imu
     {
@@ -265,7 +265,7 @@ void AcadosPacejkaMheSolver::updateParams(
 
     // Update cost weights
     // 12 = dimension of state covariance matrix P + dimension of process noise covariance matrix Q
-    // n_measurements = dimension of measurement covariance matrices e.g. dim(R_vicon) + dim(R_imu)
+    // n_measurements = dimension of measurement covariance matrices e.g. dim(R_mocap) + dim(R_imu)
     Eigen::MatrixXd W = Eigen::MatrixXd::Zero(12 + n_measurements, 12 + n_measurements);
     W.block(0, 0, 6, 6) =
         discount_factor * costs.P.inverse();  // first values = where block starts, second values = size of block
@@ -273,11 +273,11 @@ void AcadosPacejkaMheSolver::updateParams(
 
     int measurement_start = 12;
 
-    if (use_vicon_sensor)
+    if (use_mocap_sensor)
     {
-      if (references.valid_vicon)
+      if (references.valid_mocap)
       {
-        W.block(measurement_start, measurement_start, 3, 3) = discount_factor * costs.R_vicon.inverse();
+        W.block(measurement_start, measurement_start, 3, 3) = discount_factor * costs.R_mocap.inverse();
       }
       measurement_start += 3;  // Increase pointer to point to IMU measurement.
     }
@@ -339,10 +339,10 @@ void AcadosPacejkaMheSolver::updateParams(
     // Add zeros as reference for w
     reference.insert(reference.end(), { 0, 0, 0, 0, 0, 0 });
 
-    if (use_vicon_sensor)  // Solver supports the usage of vicon
+    if (use_mocap_sensor)  // Solver supports the usage of mocap
     {
-      reference.insert(reference.end(), { references.vicon_measurement(0), references.vicon_measurement(1),
-                                          references.vicon_measurement(2) });
+      reference.insert(reference.end(), { references.mocap_measurement(0), references.mocap_measurement(1),
+                                          references.mocap_measurement(2) });
     }
     if (use_imu_sensor)  // Solver supports the usage of imu
     {
@@ -380,10 +380,10 @@ void AcadosPacejkaMheSolver::updateParams(
 
     int measurement_start = 6;
 
-    if (!use_vicon_sensor && references.valid_vicon)
+    if (!use_mocap_sensor && references.valid_mocap)
     {
       throw std::runtime_error(
-          "PacejkaMHESolver was compiled without vicon support but vicon measurement is provided as reference!");
+          "PacejkaMHESolver was compiled without mocap support but mocap measurement is provided as reference!");
     }
     if (!use_imu_sensor && references.valid_imu)
     {
@@ -408,12 +408,12 @@ void AcadosPacejkaMheSolver::updateParams(
                                "provided as reference!");
     }
 
-    // Vicon
-    if (use_vicon_sensor)
+    // Mocap
+    if (use_mocap_sensor)
     {
-      if (references.valid_vicon)
+      if (references.valid_mocap)
       {
-        W.block(measurement_start, measurement_start, 3, 3) = discount_factor * costs.R_vicon.inverse();
+        W.block(measurement_start, measurement_start, 3, 3) = discount_factor * costs.R_mocap.inverse();
       }
       measurement_start += 3;  // Increase pointer to point to IMU measurement.
     }
@@ -481,7 +481,7 @@ void AcadosPacejkaMheSolver::updateParams(
  *
  * @param x State array or point with size N*StateDimenstion
  * @param u Input array or point with size N*Inputdimension
- * @return const int, return code. If no error occurred, return code is zero
+ * @return int, return code. If no error occurred, return code is zero
  */
 int AcadosPacejkaMheSolver::solve(double x[], double u[])
 {
@@ -499,6 +499,6 @@ double AcadosPacejkaMheSolver::getSamplePeriod()
 {
   return *(nlp_in_->Ts);
 }
-};  // namespace pacejka_solvers
+}  // namespace pacejka_solvers
 
 }  // namespace mhe_solvers

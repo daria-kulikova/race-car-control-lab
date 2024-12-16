@@ -73,7 +73,7 @@ public:
    * @return true if controller is  initializing
    * @return false if controller is not initializing
    */
-  const bool isInitializing() override
+  bool isInitializing() override
   {
     return false;  // PID does not need initializing
   }

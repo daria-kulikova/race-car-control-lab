@@ -29,7 +29,7 @@ std::vector<T> MultiPacejkaLloydPlanner::arange(T start, T stop, T step)
 }
 
 std::vector<multi_car_cartesian_reference_point> MultiPacejkaLloydPlanner::getPlannedTrajectory(
-    const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> state, double timestamp)
+    const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> state, double timestamp [[maybe_unused]])
 {
   num_agents_ = state.size();
   std::cout << num_agents_;
@@ -62,7 +62,7 @@ std::vector<multi_car_cartesian_reference_point> MultiPacejkaLloydPlanner::getPl
   }
 
   return pts;
-};
+}
 
 bool MultiPacejkaLloydPlanner::goalReached(
     const std::map<std::string, crs_models::pacejka_model::pacejka_car_state> states,
@@ -82,7 +82,7 @@ bool MultiPacejkaLloydPlanner::goalReached(
     {
       auto last_entry = trajectory.at(trajectory.size() - 1);
       int car_idx = -1;
-      for (int i = 0; i < last_entry.namespaces.size(); i++)
+      for (size_t i = 0; i < last_entry.namespaces.size(); i++)
       {
         if (last_entry.namespaces[i] == car_reached->first)
         {
@@ -150,9 +150,9 @@ MultiPacejkaLloydPlanner::createGrid(std::vector<cartesian_reference_point>& vor
   std::vector<cartesian_reference_point> grid;
   grid.reserve(x_range.size() * y_range.size());
 
-  for (int i = 0; i < x_range.size(); i++)
+  for (size_t i = 0; i < x_range.size(); i++)
   {
-    for (int j = 0; j < y_range.size(); j++)
+    for (size_t j = 0; j < y_range.size(); j++)
     {
       cartesian_reference_point p;
       p.x = x_range[i];
@@ -168,7 +168,7 @@ bool MultiPacejkaLloydPlanner::pnpoly(std::vector<cartesian_reference_point>& ve
 {
   bool inside = false;
 
-  for (int i = 0; i < vertices.size(); i++)
+  for (size_t i = 0; i < vertices.size(); i++)
   {
     // i is the index of the first vertex, j is the next one
     int j = (i + 1) % vertices.size();
@@ -182,7 +182,7 @@ bool MultiPacejkaLloydPlanner::pnpoly(std::vector<cartesian_reference_point>& ve
     // check whether edge intersects a line from (-inf, y) to (x, y)
 
     // first check if line crosses the horizontal line at y in either direction
-    if ((yp0 <= p.y) && (yp1 > p.y) || (yp1 <= p.y) && (yp0 > p.y))
+    if (((yp0 <= p.y) && (yp1 > p.y)) || ((yp1 <= p.y) && (yp0 > p.y)))
     {
       // if so, get the point where it crosses that line (solve linear system)
       double cross = (xp1 - xp0) * (p.y - yp0) / (yp1 - yp0) + xp0;
@@ -200,7 +200,7 @@ cartesian_reference_point MultiPacejkaLloydPlanner::pointCenterOfMass(std::vecto
 {
   double x_sum = 0;
   double y_sum = 0;
-  for (int i = 0; i < points.size(); i++)
+  for (size_t i = 0; i < points.size(); i++)
   {
     x_sum += points[i].x * values[i];
     y_sum += points[i].y * values[i];
@@ -265,7 +265,7 @@ void MultiPacejkaLloydPlanner::computeVoronoiDiagram(
 
   // setup voronoi variables
   jcv_diagram diagram;
-  jcv_point points[num_agents_];
+  std::vector<jcv_point> points(num_agents_);
   const jcv_site* sites;
   jcv_graphedge* graph_edge;
   memset(&diagram, 0, sizeof(jcv_diagram));
@@ -293,7 +293,7 @@ void MultiPacejkaLloydPlanner::computeVoronoiDiagram(
   }
 
   // generate voronoi diagram
-  jcv_diagram_generate(num_agents_, (const jcv_point*)points, &bounding_box_, 0, &diagram);
+  jcv_diagram_generate(num_agents_, (const jcv_point*)points.data(), &bounding_box_, 0, &diagram);
 
   // extract partition data from diagram
   sites = jcv_diagram_get_sites(&diagram);
@@ -364,10 +364,10 @@ void MultiPacejkaLloydPlanner::computeVoronoiDiagram(
 std::vector<std::vector<double>> MultiPacejkaLloydPlanner::getVorEdgesX()
 {
   std::vector<std::vector<double>> vor_edges_x;
-  for (int i = 0; i < vor_cell_edges_.size(); i++)
+  for (size_t i = 0; i < vor_cell_edges_.size(); i++)
   {
     std::vector<double> vor_edges_single_car_x;
-    for (int j = 0; j < vor_cell_edges_[i].size(); j++)
+    for (size_t j = 0; j < vor_cell_edges_[i].size(); j++)
     {
       vor_edges_single_car_x.push_back(vor_cell_edges_[i][j].first.x);
     }
@@ -379,10 +379,10 @@ std::vector<std::vector<double>> MultiPacejkaLloydPlanner::getVorEdgesX()
 std::vector<std::vector<double>> MultiPacejkaLloydPlanner::getVorEdgesY()
 {
   std::vector<std::vector<double>> vor_edges_y;
-  for (int i = 0; i < vor_cell_edges_.size(); i++)
+  for (size_t i = 0; i < vor_cell_edges_.size(); i++)
   {
     std::vector<double> vor_edges_single_car_y;
-    for (int j = 0; j < vor_cell_edges_[i].size(); j++)
+    for (size_t j = 0; j < vor_cell_edges_[i].size(); j++)
     {
       vor_edges_single_car_y.push_back(vor_cell_edges_[i][j].first.y);
     }

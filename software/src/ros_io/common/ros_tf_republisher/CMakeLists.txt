@@ -38,7 +38,9 @@ include_directories(
 
 cs_add_executable(republisher_node
   app/republisher_node.cpp)
-#target_link_libraries(republisher_node ${PROJECT_NAME})
+
+cs_add_executable(car_state_converter
+  app/qualisys_car_state_converter.cpp)
 
 
 ##########

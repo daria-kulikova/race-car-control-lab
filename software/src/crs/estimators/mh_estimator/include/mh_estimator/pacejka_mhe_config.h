@@ -21,10 +21,10 @@ struct pacejka_mhe_config
   Eigen::Matrix<double, 6, 6> Q;
 
   /**
-   * @brief Vicon Measurement Noise Matrix
+   * @brief Mocap Measurement Noise Matrix
    *
    */
-  Eigen::Matrix3d R_vicon;
+  Eigen::Matrix3d R_mocap;
 
   /**
    * @brief IMU Measurement Noise Matrix

@@ -27,7 +27,7 @@ namespace pacejka_model
 DiscretePacejkaModel::DiscretePacejkaModel(pacejka_params params,
                                            Eigen::Matrix<double, DiscretePacejkaModel::NX, DiscretePacejkaModel::NX> Q,
                                            std::string integration_method /* rk (default) */)
-  : params_(params), DiscreteDynamicModelWrapper(Q)
+  : DiscreteDynamicModelWrapper(Q), params_(params)
 {
   cont_model = std::make_unique<crs_models::pacejka_model::ContinuousPacejkaModel>(params);
 
@@ -42,14 +42,16 @@ DiscretePacejkaModel::DiscretePacejkaModel(pacejka_params params,
   auto p = vertcat(input_mx);
   auto ode = vertcat(state_dot_mx);
 
-  casadi::MXDict dae = { // list of lists
-                         { "x", x },
-                         { "p", p },
-                         { "ode", ode * input_mx[2] }
+  casadi::MXDict dae = {
+    { "x", x },
+    { "p", p },
+    { "ode", ode * input_mx[2] },
   };  // The main problem we want to solve
-  casadi::Dict opts = { { "tf", 1 } };
+  casadi::Dict opts = {};
+  const float t0 = 0;
+  const float tf = 1;
 
-  integrator_ = casadi::integrator("cont_dynamics_integrator", integration_method, dae, opts);
+  integrator_ = casadi::integrator("cont_dynamics_integrator", integration_method, dae, t0, tf, opts);
 }
 
 /**
@@ -81,8 +83,10 @@ pacejka_car_state DiscretePacejkaModel::applyModel(const pacejka_car_state state
   // TODO(@zrene), this is needed since the casadi integrator returns "6" entries (first one being the state of
   // dimension 4, everything else gets discarded) This is an ugly fix to make sure that states smaller than 6 can be
   // passed to the integrator. Maybe use casadi::Function::MapRes or something similar to populate output
-  while (vec.size() < integrator_.n_out())
+  while (vec.size() < static_cast<size_t>(integrator_.n_out()))
+  {
     vec.push_back(nullptr);
+  }
 
   integrator_(integrator_.buf_in(arg), vec);
 

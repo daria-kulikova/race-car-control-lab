@@ -2,7 +2,7 @@
 
 # What sensor models we are using
 -
-  type: "pacejka_vicon_sensor_model"
+  type: "pacejka_mocap_sensor_model"
   # R (measurement noise covariance matrix)
   R: [[1.0, 0, 0, 0, 0, 0],
          [0, 1.0, 0, 0, 0, 0],

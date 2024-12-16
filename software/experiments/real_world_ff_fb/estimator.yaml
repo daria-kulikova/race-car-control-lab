@@ -1,6 +1,6 @@
 type: "discrete_ekf"
 pub_rate: 300.0 # Hz
-max_callback_rate: 100.0
+max_callback_rate: 200.0
 measurement_timeout_threshold: 2.0 # seconds
 log_diagnostic_data: true
 
@@ -26,12 +26,12 @@ P_init:
 
 # ============ SENSORS ============
 sensors:
-  sensor_names: ["vicon", "imu_yaw_rate", "wheel_encoders"] # options: ["vicon", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
-  vicon:
+  sensor_names: ["mocap", "imu_yaw_rate", "wheel_encoders"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  mocap:
     R:
       value: [[0.0001], [0.0001], [0.0001]] # std of 1cm -> cov of 0.01 * 0.01 = 0.0001
       is_diag: true
-    key: vicon # optional, if not set us e name of sensor
+    key: mocap # optional, if not set us e name of sensor
     outlier_rejection:
       use_outlier_rejection: true
       outlier_rejection_type: "cov_threshold"

@@ -47,8 +47,6 @@ public:
     StateType k1 = cont_model->applyModel(state, control_input);
     StateType k2 = cont_model->applyModel(state + (integration_time / 2.0) * k1, control_input);
     StateType k3 = cont_model->applyModel(state + (integration_time / 2.0) * k2, control_input);
-    StateType k4 = cont_model->applyModel(state + integration_time * k3, control_input);
-    StateType next_state = state + (integration_time / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4);
 
     Eigen::Matrix<double, StateType::NX, StateType::NX> F_k1;
     Eigen::Matrix<double, StateType::NX, InputType::NU> D_k1;
@@ -76,5 +74,5 @@ public:
         (integration_time / 6.0) * (D_k1 + 2 * D_k1 + 2 * D_k3 + D_k4);
   }
 };
-};  // namespace crs_models
+}  // namespace crs_models
 #endif

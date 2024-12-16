@@ -7,6 +7,11 @@ add_compile_options(-fPIC)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
+# DEFINE CATKIN WORKSPACE DIRECTORY
+execute_process(COMMAND catkin locate
+                OUTPUT_VARIABLE CATKIN_WORKSPACE_DIR
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 #############
 # Libraries #
 #############
@@ -18,7 +23,7 @@ file(MAKE_DIRECTORY ${SOLVER_LIB_DIR})
 # Run solver creation once at build generation time so we can track the
 # solver files.
 execute_process(
-  COMMAND bash ./script/create_solver.sh
+  COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
 )
 
@@ -43,7 +48,7 @@ file(GLOB MODEL_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_model/*.c")
 # step. in that case simply run `catkin build --force-cmake package-name` to reinitialize the
 # MODEL_SRC and OCP_SRC variables.
 add_custom_target(${PROJECT_NAME}_c_solver_lib
-  COMMAND bash ./script/create_solver.sh
+  COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR} update
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   BYPRODUCTS ${MODEL_SRC} ${OCP_SRC}
   COMMENT "Generate acados C solvers and create lib/ directory"
@@ -64,7 +69,7 @@ target_include_directories(${PROJECT_NAME}_acados_solver INTERFACE ${SOLVER_LIB_
 # The actual solver library we want to export.
 cs_add_library(${PROJECT_NAME} SHARED src/acados_pacjeka_safety_model_solver.cpp)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_c_solver_lib ${PROJECT_NAME}_acados_solver)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_acados_solver)
 
 ##########

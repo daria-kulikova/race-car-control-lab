@@ -2,10 +2,11 @@
 
 #include <cmath>
 #include <casadi/casadi.hpp>
+#include <Eigen/Geometry>
+#include <array>
 
 namespace ros_lighthouse
 {
-
 bool LighthouseCalibrationSolver::solve(const BaseStation& base_station, const CalibrationDataset& calibration_data,
                                         const LighthousePose& initial_condition)
 {
@@ -116,25 +117,23 @@ bool LighthouseCalibrationSolver::solve(const BaseStation& base_station, const C
   // Solve the optimization problem
   try
   {
+    // For legibility of the following
+    using Eigen::AngleAxisd;
+    using Eigen::Matrix3d;
+    using Eigen::Vector3d;
+
     casadi::OptiSol sol = opti.solve();  // will throw on failure
 
-    std::vector<double> solution = {
+    std::array solution{
       (double)sol.value(bs_angle_z), (double)sol.value(bs_angle_y), (double)sol.value(bs_angle_x),
       (double)sol.value(bs_pos_x),   (double)sol.value(bs_pos_y),   (double)sol.value(bs_pos_z),
     };
 
-    // Calculate the rotation matrix from the solution.
-    Eigen::Matrix3d rot_solutionZ;
-    Eigen::Matrix3d rot_solutionY;
-    Eigen::Matrix3d rot_solutionX;
-    rot_solutionZ << cos(solution[0]), -sin(solution[0]), 0, sin(solution[0]), cos(solution[0]), 0, 0, 0, 1;
-    rot_solutionY << cos(solution[1]), 0, sin(solution[1]), 0, 1, 0, -sin(solution[1]), 0, cos(solution[1]);
-    rot_solutionX << 1, 0, 0, 0, cos(solution[2]), -sin(solution[2]), 0, sin(solution[2]), cos(solution[2]);
+    auto [rot_z, rot_y, rot_x, pos_x, pos_y, pos_z] = solution;
 
-    rotation_ = rot_solutionZ * rot_solutionY * rot_solutionX;
-
-    // Calculate the position from the solution.
-    position_ = { solution[3], solution[4], solution[5] };
+    orientation_ = (AngleAxisd(rot_z, Vector3d::UnitZ()) * AngleAxisd(rot_y, Vector3d::UnitY()) *
+                    AngleAxisd(rot_x, Vector3d::UnitX()));
+    position_ = Vector3d(pos_x, pos_y, pos_z);
 
     return true;
   }

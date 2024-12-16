@@ -1,7 +1,7 @@
 <launch>
     <arg name="estimator_config" default="$(find ros_estimators)/config/pacejka_car_ekf.yaml" />
     <arg name="input_topic" default="control_input" />
-    <arg name="vicon_topic" default="vicon" />
+    <arg name="mocap_topic" default="mocap" />
     <arg name="imu_topic" default="imu" />
     <arg name="imu_yaw_rate_topic" default="imu" />
     <arg name="wheel_encoder_topic" default="wheel_encoders" />
@@ -19,7 +19,7 @@
         <rosparam command="load" file="$(arg estimator_config)" />
         <remap from="imu" to="$(arg imu_topic)" />
         <remap from="imu_yaw_rate" to="$(arg imu_yaw_rate_topic)" />
-        <remap from="vicon" to="$(arg vicon_topic)" />
+        <remap from="mocap" to="$(arg mocap_topic)" />
         <remap from="wheel_encoders" to="$(arg wheel_encoder_topic)" />
         <remap from="control_input" to="$(arg input_topic)" />
         <remap from="lighthouse"    to="$(arg lighthouse_topic)" />

@@ -13,6 +13,9 @@
     <arg name = "use_backtracker"     default = "false"       doc = "If true, uses a backtracker as defined in the backtracker.yaml config to recover from crashes "/>
 
     <arg name = "track_name"          default = "DEMO_TRACK"  doc = "Name of the track that should be loaded. "/>
+    <arg name = "reference_name"      default = "REFERENCE"   doc = "Name of the reference that should be loaded. "/>
+    <arg name = "load_reference"      default = "true"        doc = "If true, loads reference yaml file."/>
+
     <!-- Recording arguments  -->
     <arg name = "copy_config"         default = "true"        doc = "if true, backs up all .yaml configurations on execution" />
     <arg name = "record_bag"          default = "false"       doc = "if true, recoard a .bag file with all topics"/>
@@ -23,6 +26,7 @@
 
     <arg name= "use_filter"            default = "false"       doc = "if true, loads filter nodes" />
 
+    <arg name = "gt_topic"            default = "ros_simulator/gt_state"   doc = "Topic where the gt state estimate is published" />
 
 
     <!-- =================================================================
@@ -31,7 +35,7 @@
 
     <arg name = "control_state_topic" default = "estimation_node/best_state"/>
     <arg name = "control_input_topic" default = "control_input"/>
-    <arg name = "vicon_topic"         default = "vicon"/>
+    <arg name = "mocap_topic"         default = "mocap"/>
     <arg name = "imu_topic"           default = "imu"/>
     <arg name = "imu_yaw_rate_topic"  default = "imu_yaw_rate"/>
     <arg name = "wheel_encoder_topic" default = "wheel_encoders"/>
@@ -105,6 +109,11 @@
         <!-- Load the track configuration into the /track parameters. -->
         <rosparam command = "load" file = "$(find track_generation)/tracks/$(arg track_name).yaml" />
 
+        <group if="$(arg load_reference)">
+            <!-- Load the reference configuration into the /reference parameters. -->
+            <rosparam command = "load" file = "$(find track_generation)/tracks/$(arg reference_name).yaml" />
+        </group>
+
         <!-- Load the Model -->
         <group ns = "model">
             <rosparam command = "load" file = "$(arg model_config)" />
@@ -133,7 +142,7 @@
 
                 <arg name = "estimator_config"   value = "$(arg estimator_config)" />
                 <arg name = "input_topic"        value = "$(arg control_input_topic)" />
-                <arg name = "vicon_topic"        value = "$(arg vicon_topic)" />
+                <arg name = "mocap_topic"        value = "$(arg mocap_topic)" />
                 <arg name = "imu_topic"          value = "$(arg imu_topic)" />
                 <arg name = "imu_yaw_rate_topic" value = "$(arg imu_yaw_rate_topic)" />
                 <arg name = "wheel_encoder_topic" value = "$(arg wheel_encoder_topic)" />
@@ -148,7 +157,7 @@
                     <arg name = "frame_name"    value = "mhe_estimate" />
                     <arg name = "estimator_config"    value = "$(arg second_estimator_config)" />
                     <arg name = "input_topic"         value = "$(arg control_input_topic)" />
-                    <arg name = "vicon_topic"         value = "$(arg vicon_topic)" />
+                    <arg name = "mocap_topic"         value = "$(arg mocap_topic)" />
                     <arg name = "imu_topic"           value = "$(arg imu_topic)" />
                     <arg name = "imu_yaw_rate_topic" value = "$(arg imu_yaw_rate_topic)" />
                     <arg name = "wheel_encoder_topic" value = "$(arg wheel_encoder_topic)" />
@@ -207,9 +216,10 @@
         <include file = "$(find car_track_visualizer)/launch/default.launch">
             <arg name = "visualizer_config"   value = "$(arg visualizer_config)" />
             <arg name = "namespace"           value = "$(arg namespace)" />
-            <arg name = "gt_car_state_topic"  value = "ros_simulator/gt_state" />
+            <arg name = "gt_car_state_topic"  value = "$(arg gt_topic)" />
             <arg name = "est_car_state_topic" value = "estimation_node/best_state" />
-            <arg name = "output_topic"        value = "/track_info" />
+            <arg name = "car_topic"           value = "/car_visualization" />
+            <arg name = "track_topic"         value = "/track" />
         </include>
 
         <!-- ==============================================================

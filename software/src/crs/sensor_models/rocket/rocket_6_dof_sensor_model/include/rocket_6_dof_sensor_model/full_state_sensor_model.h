@@ -1,5 +1,5 @@
-#ifndef ROCKET_6_DOF_SENSOR_MODEL_VICON_SENSOR_MODEL_H
-#define ROCKET_6_DOF_SENSOR_MODEL_VICON_SENSOR_MODEL_H
+#ifndef ROCKET_6_DOF_SENSOR_MODEL_MOCAP_SENSOR_MODEL_H
+#define ROCKET_6_DOF_SENSOR_MODEL_MOCAP_SENSOR_MODEL_H
 
 #include <rocket_6_dof_model/rocket_6_dof_input.h>
 #include <rocket_6_dof_model/rocket_6_dof_state.h>

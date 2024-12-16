@@ -3,6 +3,7 @@
 
 #include <sensor_models/sensor_measurement.h>
 #include <memory>
+#include <mutex>
 
 namespace crs_estimators
 {
@@ -16,7 +17,7 @@ public:
    */
   BaseEstimator(){};
 
-  virtual StateType getStateEstimate(const double timestamp)
+  virtual StateType getStateEstimate(const double timestamp [[maybe_unused]])
   {
     // Default implementation, ignore timestamp
     return getStateEstimate();
@@ -55,13 +56,27 @@ public:
    */
   virtual std::vector<std::pair<std::string, std::vector<float>>> getDiagnosticData()
   {
-    auto data = std::move(dignostic_data_);  // Copy the data to return
-    dignostic_data_ = {};                    // Clear the data
+    std::lock_guard<std::mutex> lock(BaseEstimator<StateType>::diagnostic_data_mutex_);
+    auto data = diagnostic_data_;
+    diagnostic_data_.clear();
     return data;
   }
 
 protected:
-  std::vector<std::pair<std::string, std::vector<float>>> dignostic_data_;
+  /**
+   * @brief Log diagnostic data of the estimator.
+   * @note Only use this function to log data, as it ensures thread safety.
+   */
+  inline void logDiagnosticData(const std::string& name, const std::vector<float>& data)
+  {
+    std::lock_guard<std::mutex> lock(BaseEstimator<StateType>::diagnostic_data_mutex_);
+    diagnostic_data_.push_back({ name, data });
+  }
+
+private:
+  /** Mutex to protect @see diagnostic_data_. Private by design so derived classes need accessors.  */
+  std::mutex diagnostic_data_mutex_;
+  std::vector<std::pair<std::string, std::vector<float>>> diagnostic_data_;
 };
 
 }  // namespace crs_estimators

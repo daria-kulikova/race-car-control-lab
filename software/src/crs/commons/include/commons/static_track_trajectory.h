@@ -19,7 +19,7 @@ struct track_error
    */
   int index;
   /**
-   * @brief Encoding of side +1 if car is on the left of the track otherwise -1
+   * @brief Encoding of side -1 if car is on the left of the track otherwise +1
    *
    */
   int side;
@@ -111,10 +111,10 @@ public:
     : Trajectory(x_coord, y_coord)
     , x_rate_(x_rate)
     , y_rate_(y_rate)
-    , width_(width)
     , curvature_(curvature)
-    , tangent_angle_(tangent_angle)
     , arc_length_(arc_length)
+    , tangent_angle_(tangent_angle)
+    , width_(width)
     , density_(density)
   {
     tangent_angle_unwrapped_.resize(tangent_angle_.size() * 2, 0.0);
@@ -201,7 +201,7 @@ public:
    *
    * @return const double
    */
-  const double getLastRequestedTrackAngle() const override;
+  double getLastRequestedTrackAngle() const override;
 
   /**
    * @brief Get the Curvature of the track at a given index
@@ -209,7 +209,7 @@ public:
    * @param track_idx
    * @return const double
    */
-  const double getCurvature(int track_idx) const;
+  double getCurvature(int track_idx) const;
 
   /**
    * @brief Get the Track Angle at a given index.
@@ -218,7 +218,7 @@ public:
    * @param track_idx
    * @return const double
    */
-  const double getTrackAngle(int track_idx) const;
+  double getTrackAngle(int track_idx) const;
 
   /**
    * @brief Get the Mean Curvature along a path starting from start_idx ranging for a total number of distance points
@@ -227,7 +227,7 @@ public:
    * @param distance number of points to calculate curvature
    * @return const double
    */
-  const double getMeanCurvatureAlongPath(int start_idx, int distance) const;
+  double getMeanCurvatureAlongPath(int start_idx, int distance) const;
 
   /**
    * @brief Call this to notify when a lap has been finished. Adds 2*pi to each angle of the track

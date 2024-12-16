@@ -60,7 +60,7 @@ public:
       i += trajectory_coordinates_.size();
 
     // Handle roll over (x_coords.size() + 1 -> 1)
-    while (i >= trajectory_coordinates_.size())
+    while (i >= static_cast<int>(trajectory_coordinates_.size()))
       i -= trajectory_coordinates_.size();
 
     return trajectory_coordinates_[i];

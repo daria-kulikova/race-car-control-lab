@@ -37,11 +37,6 @@ GPSSensorModel::GPSSensorModel(const Eigen::Matrix<double, 6, 6>& R)
 
   state_mx.insert(state_mx.end(), input_mx.begin(), input_mx.end());  // Append input at the end of state vector
   measurement_function = casadi::Function("applyMeasurementModel", state_mx, measured_states_mx);
-  // Define jacobian function using casadi
-  casadi::MX state_mx_cat = casadi::MX::vertcat(state_mx);
-  casadi::MX measured_states_mx_cat = casadi::MX::vertcat(measured_states_mx);
-  casadi::MX jacobian_mx = casadi::MX::jacobian(measured_states_mx_cat, state_mx_cat);
-  jacobian_fn = casadi::Function("jacobianApplyMeasurementModel", { state_mx_cat }, { jacobian_mx });
 
   setR(R);
 }

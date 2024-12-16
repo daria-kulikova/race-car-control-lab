@@ -29,7 +29,7 @@ void DynamicPointTrajectory::resetVorEdges(std::vector<double> x_edge, std::vect
   voronoi_edges_y_ = y_edge;
 }
 
-const double DynamicPointTrajectory::getLastRequestedTrackAngle() const
+double DynamicPointTrajectory::getLastRequestedTrackAngle() const
 {
   return 0;
 }

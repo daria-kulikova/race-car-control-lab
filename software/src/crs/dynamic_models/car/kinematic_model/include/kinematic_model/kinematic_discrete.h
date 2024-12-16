@@ -18,9 +18,11 @@ namespace crs_models
 namespace kinematic_model
 {
 
-class DiscreteKinematicModel
-  : public DiscreteDynamicModelWrapper<kinematic_car_state, kinematic_model::kinematic_car_input>
+class DiscreteKinematicModel : public DiscreteDynamicModelWrapper<kinematic_car_state, kinematic_car_input>
 {
+private:
+  kinematic_params params_;
+
 public:
   /**
    * @brief Construct a new Discrete Kinematic Model object.
@@ -48,6 +50,11 @@ public:
                              integration_method)
   {
     std::cout << "[WARNING] No Q Matrix specified for DiscreteKinematicModel. Using identity Matrix! " << std::endl;
+  }
+
+  kinematic_params getParams() const
+  {
+    return params_;
   }
 
   /**

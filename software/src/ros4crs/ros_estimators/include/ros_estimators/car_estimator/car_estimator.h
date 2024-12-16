@@ -67,15 +67,27 @@ public:
     }
 
     // Load config
-    nh_private.getParam("max_callback_rate", max_measurement_rate_);
-    nh_private.getParam("measurement_timeout_threshold", measurement_timeout_threshold_);
-    if (!nh_private.getParam("world_frame", vicon_converter.world_frame))
-      ROS_WARN_STREAM("Did not load parameter for world frame. Defaulting to: " << vicon_converter.world_frame);
-    if (!nh_private.getParam("track_frame", vicon_converter.track_frame))
-      ROS_WARN_STREAM("Did not load parameter for track frame. Defaulting to: " << vicon_converter.track_frame);
-    if (!nh_private.getParam("update_track_transform", vicon_converter.update_track_transform))
+    if (!nh_private.getParam("max_callback_rate", max_callback_rate_))
+    {
+      ROS_WARN_STREAM(
+          "Did not load parameter for max_callback_rate. Defaulting to processing all sensor measurements.");
+      enforce_sensor_rate_limit_ = false;
+    }
+    else if (max_callback_rate_ <= 0)
+    {
+      ROS_INFO_STREAM("max_callback_rate is set to " << max_callback_rate_ << ". Disabling sensor rate limiting.");
+      enforce_sensor_rate_limit_ = false;
+    }
+    if (!nh_private.getParam("measurement_timeout_threshold", measurement_timeout_threshold_))
+      ROS_WARN_STREAM("Did not load parameter for measurement_timeout_threshold. Defaulting to: "
+                      << measurement_timeout_threshold_);
+    if (!nh_private.getParam("world_frame", mocap_converter.world_frame))
+      ROS_WARN_STREAM("Did not load parameter for world frame. Defaulting to: " << mocap_converter.world_frame);
+    if (!nh_private.getParam("track_frame", mocap_converter.track_frame))
+      ROS_WARN_STREAM("Did not load parameter for track frame. Defaulting to: " << mocap_converter.track_frame);
+    if (!nh_private.getParam("update_track_transform", mocap_converter.update_track_transform))
       ROS_WARN_STREAM("Did not load parameter for update_track_transform. Defaulting to: "
-                      << vicon_converter.update_track_transform);
+                      << mocap_converter.update_track_transform);
 
     // Setup ros publishers
     state_estimate_pub_ = nh_private_.advertise<crs_msgs::car_state_cart>("best_state", 10);
@@ -83,10 +95,10 @@ public:
     // Register callbacks for keys
     for (const auto& key : measurement_keys)
     {
-      if (key == "vicon")
+      if (key == "mocap")
       {
-        ROS_INFO("subscribing to vicon");
-        measurement_subs_.push_back(nh_.subscribe(key, 1, &RosCarEstimator::viconMeasurementCallback, this));
+        ROS_INFO("subscribing to mocap");
+        measurement_subs_.push_back(nh_.subscribe(key, 1, &RosCarEstimator::mocapMeasurementCallback, this));
       }
       else if (key == "wheel_encoders")
       {
@@ -140,10 +152,7 @@ public:
     parameter_io::getModelParams<ParamType>(ros::NodeHandle(nh, "model/model_params/"), model_params);
     // Then overwrite specific parameters from local config (private nodehandle)
     parameter_io::getModelParams<ParamType>(ros::NodeHandle(nh_private, "model/model_params/"), model_params, false);
-
-    // Load generic parameter which is not specific to the estimator.
-    nh_private.getParam("frequency_check_enabled", frequency_check_enabled_);
-  };
+  }
 
   void checkMissingMeasurements(const long current_time)
   {
@@ -180,6 +189,14 @@ public:
     }
   }
 
+  /**
+   * @brief Checks if a given sensor callback should be executed.
+   *
+   * The check uses the current state of the estimator (is it even running?) and enforces rate limits
+   * on a per-sensor basis.
+   *
+   * @return True if the callback should continue, false if no measurement update should be performed right now.
+   */
   bool checkSensorFrequency(const std::string sensor_name, const double timestamp)
   {
     if (!is_running_)
@@ -187,7 +204,7 @@ public:
       return false;
     }
 
-    if (frequency_check_enabled_ && (timestamp - sensor_last_timestamp_[sensor_name] < 1 / max_measurement_rate_))
+    if (enforce_sensor_rate_limit_ && (timestamp - sensor_last_timestamp_[sensor_name] < 1 / max_callback_rate_))
     {
       return false;
     }
@@ -201,8 +218,8 @@ public:
     if (!is_running_)
       return;
 
-    // Check if some measurements are ignored. This is here since we can not guarante that the measuremnt callbacks are
-    // executed.
+    // Check if some measurements are ignored. This is here since we can not guarante that the measuremnt callbacks
+    // are executed.
     checkMissingMeasurements(input_msg->header.stamp.toSec());
 
     // We have a valid input now.
@@ -223,16 +240,16 @@ public:
     base_estimator->measurementCallback(parseWheelEncoder(msg));
   }
 
-  void viconMeasurementCallback(const geometry_msgs::TransformStamped::ConstPtr msg)
+  void mocapMeasurementCallback(const geometry_msgs::TransformStamped::ConstPtr msg)
   {
-    // If there is no valid input, we set initial position and yaw to the vicon measurement.
+    // If there is no valid input, we set initial position and yaw to the mocap measurement.
     if (!has_valid_input_)
     {
       StateType current_state = base_estimator->getStateEstimate();
       // Override position and yaw
       try
       {
-        auto measurement = vicon_converter.parseData2D(msg);
+        auto measurement = mocap_converter.parseData2D(msg);
         current_state.pos_x = measurement.measurement_data(0);
         current_state.pos_y = measurement.measurement_data(1);
         current_state.yaw = measurement.measurement_data(2);
@@ -241,17 +258,17 @@ public:
       }
       catch (tf::TransformException ex)
       {
-        ROS_WARN_STREAM("Could not find transform for vicon. Error: " << ex.what());
+        ROS_WARN_STREAM("Could not find transform for mocap. Error: " << ex.what());
         return;
       }
     }
 
-    if (!checkSensorFrequency("vicon", msg->header.stamp.toSec()) || !has_valid_input_)
+    if (!checkSensorFrequency("mocap", msg->header.stamp.toSec()) || !has_valid_input_)
       return;
 
     try
     {
-      base_estimator->measurementCallback(vicon_converter.parseData2D(msg));
+      base_estimator->measurementCallback(mocap_converter.parseData2D(msg));
     }
     catch (tf::TransformException ex)
     {
@@ -341,10 +358,9 @@ public:
 
   void publishDiagnosticData()
   {
-    for (auto key_value : base_estimator->getDiagnosticData())
+    for (auto const [key, value] : base_estimator->getDiagnosticData())
     {
-      auto topic = "diagnostics/" + key_value.first;
-      auto value = key_value.second;
+      const std::string topic = "diagnostics/" + key;
 
       if (diagnostic_data_pubs_.find(topic) == diagnostic_data_pubs_.end())
       {
@@ -356,22 +372,20 @@ public:
       // Convert diagnostic data to ros message and publish it
       crs_msgs::double_array_stamped msg;
       msg.header.stamp = ros::Time::now();
-      for (auto v : value)
-        msg.data.push_back(v);
+      msg.data = std::vector<double>(value.begin(), value.end());
       diagnostic_data_pubs_[topic].publish(msg);
 
       // Throttle current rejection stats if available.
       // This is saved under the key "<sensor_name>/rejection_stats" and
       // contains the number of rejected measurements and the total number of measurements.
-      std::size_t idx = (key_value.first).find("/");
+      const std::size_t idx = key.find("/");
       if (idx == std::string::npos)
       {
         ROS_WARN_STREAM("Could not find sensor name. Diagnostic data will not be published.");
-        return;
+        continue;
       }
-      std::string sensor_name = key_value.first.substr(0, idx);  // e.g. "lighthouse_0_1" or "MHE"
-      auto type_of_data =
-          (key_value.first).substr(idx + 1, (key_value.first).length());  // "rejection_stats" or "solver"
+      const std::string sensor_name = key.substr(0, idx);                  // e.g. "lighthouse_0_1" or "MHE"
+      const std::string type_of_data = key.substr(idx + 1, key.length());  // "rejection_stats" or "solver"
 
       int n_rejected = int(value[0]);
       int n_msgs = int(value[1]);
@@ -412,9 +426,19 @@ public:
   ParamType model_params;
 
 private:
-  double max_measurement_rate_ = 50;            // Hz
+  /**
+   * @brief Rate limiting on sensor (measurement) callback functions.
+   *
+   * This sets the maximum rate [Hz] at which a sensor callback is executed. Samples that arrive faster are dropped.
+   * Applies to each sensor key, individually.
+   *
+   * @note The rate limiting is only enforced if @ref enforce_sensor_rate_limit_ is set to @c true.
+   */
+  double max_callback_rate_ = 200;              // Hz
   double measurement_timeout_threshold_ = 2.0;  // s
-  bool frequency_check_enabled_ = true;
+
+  /** If true, rate limiting on sensor callbacks is enabled. @see max_callback_rate_ */
+  bool enforce_sensor_rate_limit_ = true;
 
   std::map<std::string, double> sensor_last_timestamp_;
 
@@ -441,13 +465,13 @@ private:
   ros::Publisher state_estimate_pub_;
 
   // List with publishers for diagnostic data
-  std::map<std::string, ros::Publisher> diagnostic_data_pubs_;
+  std::unordered_map<std::string, ros::Publisher> diagnostic_data_pubs_;
 
   // Subscriptions
   ros::Subscriber control_input_sub_;
   std::vector<ros::Subscriber> measurement_subs_;
 
-  ViconConverter vicon_converter;
+  MocapConverter mocap_converter;
   std::shared_ptr<crs_estimators::BaseEstimator<StateType>> base_estimator;
 
   // Visualizer for estimaotr

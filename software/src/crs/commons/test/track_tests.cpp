@@ -36,7 +36,7 @@ TEST(TrackTest, testTrackGeneration)
   auto center_line = track_from_list.getCenterLine();
   EXPECT_EQ(center_line.size(), x_cords.size());
 
-  for (int i = 0; i < center_line.size(); i++)
+  for (size_t i = 0; i < center_line.size(); i++)
   {
     EXPECT_EQ(center_line[i].x(), x_cords[i]);
     EXPECT_EQ(center_line[i].y(), y_cords[i]);
@@ -46,7 +46,7 @@ TEST(TrackTest, testTrackGeneration)
   center_line = track_from_pts.getCenterLine();
   EXPECT_EQ(center_line.size(), x_cords.size());
 
-  for (int i = 0; i < center_line.size(); i++)
+  for (size_t i = 0; i < center_line.size(); i++)
   {
     EXPECT_EQ(center_line[i].x(), x_cords[i]);
     EXPECT_EQ(center_line[i].y(), y_cords[i]);

@@ -25,11 +25,6 @@ public:
   Filter(const std::vector<double>& b, const std::vector<double>& a) : b_(b), a_(a), z_(a.size(), 0){};  // NOLINT
 
   /**
-   * @brief assignment operator
-   */
-  Filter(const Filter& t){};
-
-  /**
    * @brief implement digital Filter using difference equation in
    *        direct II transposed structure form
    * @param sig new value of signal to Filter

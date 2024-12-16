@@ -21,10 +21,10 @@ void publish_input_msg()
 
 void publish_meas_msg()
 {
-  geometry_msgs::TransformStamped vicon_meas;
-  vicon_meas.header.stamp = ros::Time::now();
-  vicon_meas.transform.translation.x = vicon_meas.transform.translation.x + 0.5;
-  measurement_publisher.publish(vicon_meas);
+  geometry_msgs::TransformStamped mocap_meas;
+  mocap_meas.header.stamp = ros::Time::now();
+  mocap_meas.transform.translation.x = mocap_meas.transform.translation.x + 0.5;
+  measurement_publisher.publish(mocap_meas);
 }
 
 /**
@@ -55,11 +55,11 @@ TEST(KalmanTestSuite, inputCallbackTest)
 }
 
 /**
- * @brief Test viconMeasurementCallback of the EKF. Publish a measurement input and check if the published state
+ * @brief Test mocapMeasurementCallback of the EKF. Publish a measurement input and check if the published state
  * changes.
  *
  */
-TEST(KalmanTestSuite, viconMeasurementCallback)
+TEST(KalmanTestSuite, mocapMeasurementCallback)
 {
   // Current state estimate
   auto state_msg = ros::topic::waitForMessage<crs_msgs::car_state_cart>("/estimation_node/best_state");
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 
   ros::Duration(5).sleep();  // Wait for ekf to start....
   input_publisher = nh->advertise<crs_msgs::car_input>("/ros_simulator/control_input", 10);
-  measurement_publisher = nh->advertise<geometry_msgs::TransformStamped>("/ros_simulator/vicon", 10);
+  measurement_publisher = nh->advertise<geometry_msgs::TransformStamped>("/ros_simulator/mocap", 10);
 
   return RUN_ALL_TESTS();
 }

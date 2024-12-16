@@ -39,7 +39,7 @@ private:
   // Measurements
   std::vector<std::shared_ptr<crs_sensor_models::SensorModel<crs_models::kinematic_model::kinematic_car_state,
                                                              crs_models::kinematic_model::kinematic_car_input>>>
-      sensor_models_;  // list of sensor models e.g. vicon, imu, ...
+      sensor_models_;  // list of sensor models e.g. mocap, imu, ...
   std::vector<DelayedPublisher> sensor_models_pub_;
 
   crs_models::kinematic_model::kinematic_params params;

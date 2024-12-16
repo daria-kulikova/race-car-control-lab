@@ -36,7 +36,7 @@ crs_sensor_models::measurement measureState(crs_models::pacejka_model::pacejka_c
   measurement(0) = state.pos_x;
   measurement(1) = state.pos_y;
   measurement(2) = state.yaw;
-  crs_sensor_models::measurement m = { "vicon", measurement, time };
+  crs_sensor_models::measurement m = { "mocap", measurement, time };
   return m;
 }
 

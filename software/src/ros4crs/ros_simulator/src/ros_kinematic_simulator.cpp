@@ -1,7 +1,7 @@
 #include "ros_simulator/ros_kinematic_simulator.h"
 #include <geometry_msgs/TransformStamped.h>
 #include <kinematic_sensor_model/imu_sensor_model.h>
-#include <kinematic_sensor_model/vicon_sensor_model.h>
+#include <kinematic_sensor_model/mocap_sensor_model.h>
 #include <ros/console.h>
 #include <ros_crs_utils/parameter_io.h>
 #include <sensor_msgs/Imu.h>
@@ -176,10 +176,10 @@ void KinematicSimulator::registerSensorModel(
   sensor_models_.push_back(sensor_model);  // append sensor_model to list of all sensor models
   std::string key = sensor_model->getKey();
 
-  if (key == crs_sensor_models::kinematic_sensor_models::ViconSensorModel::SENSOR_KEY)
+  if (key == crs_sensor_models::kinematic_sensor_models::MocapSensorModel::SENSOR_KEY)
   {
-    auto vicon_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(key, 10);
-    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, vicon_pub, delay)));
+    auto mocap_pub = nh_private_.advertise<geometry_msgs::TransformStamped>(key, 10);
+    sensor_models_pub_.push_back(std::move(DelayedPublisher(nh_private_, mocap_pub, delay)));
   }
   else if (key == crs_sensor_models::kinematic_sensor_models::ImuSensorModel::SENSOR_KEY)
   {
@@ -210,20 +210,20 @@ void KinematicSimulator::publishMeasurement(const std::string& key)
     Eigen::MatrixXd measurement = sensor_model->applyModel(current_state_, last_input_);
 
     Eigen::MatrixXd noise;
-    // sensor_name_to_noise_model_ of the form: {'vicon': GaussianNoise, 'imu': GaussianNoise}
+    // sensor_name_to_noise_model_ of the form: {'mocap': GaussianNoise, 'imu': GaussianNoise}
     auto sensor_iter = sensor_name_to_noise_model_.find(key);
     if (sensor_iter != sensor_name_to_noise_model_.end())                           // Key was found
       noise = sensor_iter->second->sampleNoiseFromCovMatrix(sensor_model->getR());  // get R from noise model
     else
       noise.setZero(sensor_model->getR().rows(), 1);  // no noise
 
-    // ========== VICON ==========
+    // ========== MOCAP ==========
 
-    if (sensor_model->getKey() == crs_sensor_models::kinematic_sensor_models::ViconSensorModel::SENSOR_KEY)
+    if (sensor_model->getKey() == crs_sensor_models::kinematic_sensor_models::MocapSensorModel::SENSOR_KEY)
     {
       geometry_msgs::TransformStamped msg;
 
-      // Parse vicon measurements to ros messagex to publish it
+      // Parse mocap measurements to ros messagex to publish it
       msg.transform.translation.x = measurement(0) + noise(0);  // x positiion
       msg.transform.translation.y = measurement(1) + noise(1);  // y position
       // yaw angle, ros msg wants quaternion not euler angles

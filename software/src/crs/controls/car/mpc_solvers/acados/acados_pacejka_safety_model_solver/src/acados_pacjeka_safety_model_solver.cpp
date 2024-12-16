@@ -64,9 +64,9 @@ AcadosPacejkaSafetySolver::AcadosPacejkaSafetySolver()
 /**
  * @brief Get the Horizon Length
  *
- * @return const int
+ * @return int
  */
-const int AcadosPacejkaSafetySolver::getHorizonLength() const
+int AcadosPacejkaSafetySolver::getHorizonLength() const
 {
   return nlp_dims_->N;
 }
@@ -183,7 +183,7 @@ void AcadosPacejkaSafetySolver::updateParams(int stage, const crs_models::pacejk
  *
  * @param x State array or point with size N*StateDimenstion
  * @param u Input array or point with size N*Inputdimension
- * @return const int, return code. If no error occurred, return code is zero
+ * @return int, return code. If no error occurred, return code is zero
  */
 int AcadosPacejkaSafetySolver::solve(double x[], double u[])
 {
@@ -209,6 +209,6 @@ double AcadosPacejkaSafetySolver::getSamplePeriod()
 {
   return *(nlp_in_->Ts);
 }
-};  // namespace pacejka_safety_solvers
+}  // namespace pacejka_safety_solvers
 
 }  // namespace mpc_solvers

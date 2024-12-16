@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 
-#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "lighthouse_calibration.h"
 
@@ -41,9 +41,9 @@ public:
    * @return std::optional<Eigen::Matrix3d> The base station's rotation
    *         if the calibration was found.
    */
-  std::optional<Eigen::Matrix3d> getBasestationRotation() const
+  std::optional<Eigen::Quaterniond> getBaseStationOrientation() const
   {
-    return rotation_;
+    return orientation_;
   };
 
   /**
@@ -59,7 +59,7 @@ public:
 
 private:
   bool print_debug_information_;
-  std::optional<Eigen::Matrix3d> rotation_ = {};
+  std::optional<Eigen::Quaterniond> orientation_ = {};
   std::optional<Eigen::Vector3d> position_ = {};
 };
 

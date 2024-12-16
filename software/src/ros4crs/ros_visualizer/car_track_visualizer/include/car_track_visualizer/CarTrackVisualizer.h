@@ -8,7 +8,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <visualization_msgs/Marker.h>
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 //!  CarTrackVisualizer
 /*!
@@ -70,6 +70,9 @@ public:
    */
   void publishMarker();
 
+  /** Publish the track center line and boundaries as a marker array to @ref static_track_pub. */
+  void publishTrack();
+
   //!
   /*!
    * updates and publishes the marker
@@ -111,14 +114,25 @@ private:
   crs_msgs::car_state_cart car_state_estimated_;
 
   ros::Publisher pub_;
+
+  /**
+   * @brief A "static" publisher on the /track topic
+   *
+   * Since the track does not update often, the topic is latched, and displays
+   * the center line and boundaries.
+   */
+  ros::Publisher static_track_pub_;
+
   ros::Subscriber sub_gt_;
   ros::Subscriber sub_est_;
   visualization_msgs::Marker gt_car_marker_;
   visualization_msgs::Marker est_car_marker_;
   tf2::Quaternion q_;
-  visualization_msgs::Marker track_;
-  visualization_msgs::Marker boundary_;
-  const char FRAME_[20] = "crs_frame";
+
+  /** Pre-filled message for the track. */
+  visualization_msgs::MarkerArray track_msg_;
+
+  std::string frame_name_ = "crs_frame";
 
   std::shared_ptr<crs_controls::StaticTrackTrajectory> static_track_trajectory_;
 
@@ -151,10 +165,5 @@ private:
   const float BLACK_[4] = { 0.0, 0.0, 0.0, 1.0 };
   float COLOR_CAR_EST_[4] = { 1.0, 0.0, 0.0, 1.0 };
   float COLOR_CAR_GT_[4] = { 0.0, 1.0, 0.0, 0.7 };
-
-  // Make sure to not always puslish track at 30fps and completely flooding the topic
-  const double publish_track_every_ith_iteration_ = 50;
-  double track_pub_counter_ = publish_track_every_ith_iteration_;
-  double track_subscribers_ = 0;
 };
 #endif

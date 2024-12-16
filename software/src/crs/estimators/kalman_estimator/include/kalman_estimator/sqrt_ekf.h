@@ -229,7 +229,7 @@ public:
         std::vector<float> rejected_data = { float(rejected_num_meas[data.sensor_key]),
                                              float(total_num_meas[data.sensor_key]) };
         std::string rejected_data_name = data.sensor_key + "/rejection_stats";
-        (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(rejected_data_name, rejected_data));
+        BaseEstimator<StateType>::logDiagnosticData(rejected_data_name, rejected_data);
       }
 
       // ============ COVARIANCE THRESHOLD ============
@@ -242,7 +242,7 @@ public:
           std::vector<float> threshold_data = { float(y_hat.norm()),
                                                 float(outlier_threshold * std::sqrt(S.diagonal().sum())) };
           std::string threshold_data_name = data.sensor_key + "/threshold_data";
-          (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(threshold_data_name, threshold_data));
+          BaseEstimator<StateType>::logDiagnosticData(threshold_data_name, threshold_data);
         }
         // -------------------------------------------------------------------------
 
@@ -290,7 +290,7 @@ public:
           // add norm of innovation as well as used threshold
           std::vector<float> threshold_data = { float(mahalanobis_dist), float(t) };
           std::string threshold_data_name = data.sensor_key + "/threshold_data";
-          (BaseEstimator<StateType>::dignostic_data_).push_back(std::make_pair<>(threshold_data_name, threshold_data));
+          BaseEstimator<StateType>::logDiagnosticData(threshold_data_name, threshold_data);
         }
         // -------------------------------------------------------------------------
 
@@ -415,8 +415,8 @@ public:
     return F_posterior.transpose() * F_posterior;
   }
 
-  // map saves objects that have a key and a value (here key = string, e.g. vicon, value = sensor_model e.g.
-  // vicon_sensor_model)
+  // map saves objects that have a key and a value (here key = string, e.g. mocap, value = sensor_model e.g.
+  // mocap_sensor_model)
   std::map<std::string, std::shared_ptr<crs_sensor_models::SensorModel<StateType, InputType>>> key_to_sensor_model_;
   std::map<std::string, Eigen::MatrixXd> key_to_sensor_r_sqrt;
 

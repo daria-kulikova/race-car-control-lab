@@ -74,7 +74,7 @@ public:
    *
    * @return const double
    */
-  virtual const double getLastRequestedTrackAngle() const = 0;
+  virtual double getLastRequestedTrackAngle() const = 0;
 
   /**
    * @brief Get the Voronoi Edges (only for visualization). Leave empty if unused.

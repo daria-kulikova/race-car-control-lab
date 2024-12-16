@@ -12,9 +12,9 @@ namespace lowpass_estimator
  */
 void PacejkaLowpassEstimator::measurementCallback(const crs_sensor_models::measurement data)
 {
-  if (data.sensor_key != "vicon")
+  if (data.sensor_key != "mocap")
   {
-    std::cout << "[WARN] PacejkaLowpassEstimator can only run with vicon measurements. Got: " << data.sensor_key
+    std::cout << "[WARN] PacejkaLowpassEstimator can only run with mocap measurements. Got: " << data.sensor_key
               << std::endl;
     return;
   }
@@ -66,7 +66,7 @@ void PacejkaLowpassEstimator::measurementCallback(const crs_sensor_models::measu
                           state_filt_world_frame_.vel_y * std::sin(state_filt_world_frame_.yaw);
   state_est_filt_.vel_y = -state_filt_world_frame_.vel_x * std::sin(state_filt_world_frame_.yaw) +
                           state_filt_world_frame_.vel_y * std::cos(state_filt_world_frame_.yaw);
-};
+}
 
 }  // namespace lowpass_estimator
 }  // namespace crs_estimators

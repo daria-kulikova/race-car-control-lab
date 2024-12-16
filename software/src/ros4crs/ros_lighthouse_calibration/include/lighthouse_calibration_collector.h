@@ -12,13 +12,11 @@
 
 namespace ros_lighthouse
 {
-
 enum CalibrationState
 {
   INIT,
   READ_CALIB_STREAM,
-  INPUT_POINT_COUNT,
-  INPUT_COORDINATES,
+  WAIT_FOR_POSITION,
   COLLECT_DATA,
   FINISHED
 };
@@ -35,8 +33,9 @@ struct AngleAverage
 /**
  * @brief A class to collect Lighthouse calibration data interactively on the console.
  *
- * To use this object to collect the calibration data, instantiate it. Then, subscribe to the lighthouse_sweep topic
- * and make sure that @see lighthouseCallback is called for each new sweep. Then, call @see spinOnce in a loop.
+ * To use this object to collect the calibration data, instantiate it using a set of x-y coordinates
+ * where measurements should be taken. Then, subscribe to the lighthouse_sweep topic
+ * and make sure that @see lighthouseCallback is called for each new sweep. Call @see spinOnce in a loop.
  * Once @see isFinished returns true, the data collection is complete and the data can be retrieved using
  * @see getPointCoordinates and @see getAverageAngles.
  */
@@ -44,14 +43,7 @@ class LighthouseCalibrationCollector
 {
 public:
   /**
-   * @brief Construct a new Lighthouse Calibration collection process.
-   * @param sweeps_per_point How many sweeps to collect per point to average the angles.
-   */
-  LighthouseCalibrationCollector(unsigned int sweeps_per_point)
-    : LighthouseCalibrationCollector(sweeps_per_point, {}, {}){};
-
-  /**
-   * @brief Constructor for the alternative data collection mode: all the x-y coordinates are known and only the angles
+   * @brief Construct the collector and initialize the known x-y coordinates known where only the angles
    * should be collected.
    *
    * @param sweeps_per_point How many sweeps to collect per point.
@@ -62,17 +54,13 @@ public:
                                  std::vector<BaseStation> base_stations)
     : sweeps_per_point_(sweeps_per_point), point_coordinates_(points)
   {
-    if (points.size() > 0)
+    if (points.size() < 6)
     {
-      // A set of points has been provided that we should use instead of asking the user for them.
-      if (points.size() < 6)
-      {
-        // Complain about too few points
-        throw std::invalid_argument("At least 6 points are required for calibration.");
-      }
-      coordinates_known_ = true;
-      point_count_ = points.size();
+      // Complain about too few points
+      throw std::invalid_argument("At least 6 points are required for calibration.");
     }
+
+    point_count_ = points.size();
 
     if (!base_stations.empty())
     {
@@ -117,6 +105,21 @@ public:
     return true;
   }
 
+  unsigned int getActivePointIndex()
+  {
+    return current_point_post_ + 1;
+  }
+
+  bool hasNewData()
+  {
+    if (new_data_)
+    {
+      new_data_ = false;
+      return true;
+    }
+    return false;
+  }
+
   /** Update the state machine. */
   void spinOnce();
 
@@ -157,13 +160,14 @@ private:
     }
   }
 
-  bool coordinates_known_ = false;
-
   /** How many sweeps to collect per point to average the angles. */
   unsigned int sweeps_per_point_;
   int sweeps_to_wait_auto_detect_ = 2000;  // ~20s for 1 base station, ~5s for 4 base stations
 
   /* Collected data -------------------------------------------------------- */
+
+  unsigned int current_point_post_ = 0;  ///< Point index that all base stations are past.
+  bool new_data_ = false;
 
   /**
    * @brief A map of all the collected data.
@@ -177,7 +181,7 @@ private:
 
   unsigned int point_count_;
 
-  TrackpointSet point_coordinates_;
+  const TrackpointSet point_coordinates_;
 };
 
 }  // namespace ros_lighthouse

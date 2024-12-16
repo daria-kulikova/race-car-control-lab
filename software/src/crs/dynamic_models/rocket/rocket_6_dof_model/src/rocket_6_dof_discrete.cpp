@@ -96,8 +96,10 @@ rocket_6_dof_state DiscreteRocket6DofModel::applyModel(const rocket_6_dof_state 
   // TODO(@zrene), this is needed since the casadi integrator returns "6" entries (first one being the state of
   // dimension 4, everything else gets discarded) This is an ugly fix to make sure that states smaller than 6 can be
   // passed to the integrator. Maybe use casadi::Function::MapRes or something similar to populate output
-  while (vec.size() < integrator_.n_out())
+  while (vec.size() < static_cast<size_t>(integrator_.n_out()))
+  {
     vec.push_back(nullptr);
+  }
 
   integrator_(integrator_.buf_in(arg), vec);
 

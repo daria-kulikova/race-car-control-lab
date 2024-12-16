@@ -15,8 +15,8 @@ crs_estimators::pacejka_mhe_config getConfig<crs_estimators::pacejka_mhe_config>
   if (!getMatrixFromParams<6, 6>(ros::NodeHandle(nh, "Q"), params.Q))
     ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load Q");
 
-  if (!getMatrixFromParams<3, 3>(ros::NodeHandle(nh, "R_vicon"), params.R_vicon))
-    ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load R_vicon");
+  if (!getMatrixFromParams<3, 3>(ros::NodeHandle(nh, "R_mocap"), params.R_mocap))
+    ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load R_mocap");
 
   if (!getMatrixFromParams<3, 3>(ros::NodeHandle(nh, "R_imu"), params.R_imu))
     ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load R_imu");

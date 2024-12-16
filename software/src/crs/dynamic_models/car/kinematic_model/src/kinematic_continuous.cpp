@@ -17,9 +17,7 @@ ContinuousKinematicModel::ContinuousKinematicModel(kinematic_params params) : pa
   state_mx.push_back(input_mx[0]);
   state_mx.push_back(input_mx[1]);
   dynamics_f_ = casadi::Function("f_kinematic_cont", state_mx, state_dot_mx);
-
-  jacobian_fn_ = getSymbolicJacobian();
-}  // Constructor
+}
 
 /**
  * @brief evaluated state_dot (= f(x,u)) at current state and control input
@@ -35,34 +33,6 @@ kinematic_car_state ContinuousKinematicModel::applyModel(const kinematic_car_sta
   // Convert casadi symbols (mx) to casadi function to be evaluated at current state & control input
   dynamics_f_(commons::convertToConstVector(state, input), commons::convertToVector(state_dot_numerical));
   return state_dot_numerical;
-};
-
-/**
- * @brief Evaluate the Symbolic Jacobian at a given state and control input. The Jacobians are saved in A, B
- *
- * @param state
- * @param control_input
- * @param A empty matrix to fill as Jacobian df/dx
- * @param B empty matrix to fill as Jacobian df/du
- */
-void ContinuousKinematicModel::getNumericalJacobian(const kinematic_car_state& state,
-                                                    const kinematic_model::kinematic_car_input& control_input,
-                                                    StateMatrix& A, InputMatrix& B)
-{
-  // Preprocessing state + inputs.
-  // The Jacobian function expects (State + Input + State) as one input vector
-  // Note that the last State part is only used if there are implicit function definitions and can usely be empty.
-
-  auto state_and_input = commons::convertToConstVector(state, control_input);
-  // Prepare inputs for jacobian function
-  auto& state_and_input_and_implicit = state_and_input;
-  kinematic_car_state unused_implicit_inputs;
-  auto unused_implicit_inputs_vec = commons::convertToConstVector(unused_implicit_inputs);
-  state_and_input_and_implicit.insert(state_and_input.end(), unused_implicit_inputs_vec.begin(),
-                                      unused_implicit_inputs_vec.end());  // Adds unused_implicit_inputs at end of
-                                                                          // fnc_input
-
-  getNumericalJacobianInternal(state_and_input_and_implicit, A, B);
 }
 
 /**

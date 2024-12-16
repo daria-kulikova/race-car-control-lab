@@ -100,9 +100,8 @@ public:
    * @param timestamp current timestamp, will be ignored
    * @return crs_models::rocket_6_dof_model::rocket_6_dof_input
    */
-  crs_models::rocket_6_dof_model::rocket_6_dof_input
-  getControlInput(crs_models::rocket_6_dof_model::rocket_6_dof_state state,
-                  double timestamp = 0 /* timestamp will be ignored */) override
+  crs_models::rocket_6_dof_model::rocket_6_dof_input getControlInput(
+      crs_models::rocket_6_dof_model::rocket_6_dof_state state, double timestamp [[maybe_unused]] = 0) override
   {
     current_rocket_state_.store(state);
 
@@ -166,10 +165,11 @@ public:
 
   rocket_controller_config<highLevelControllerType, lowLevelControllerType, allocatorType> getConfig()
   {
-    return { high_level_controller_->getConfig(), low_level_controller_->getConfig() };
+    return { high_level_controller_->getConfig(), low_level_controller_->getConfig(),
+             control_allocation_->getConfig() };
   }
 
-  const bool isInitializing()
+  bool isInitializing()
   {
     return false;
   }

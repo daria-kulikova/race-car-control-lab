@@ -50,9 +50,9 @@
 
     <arg name = "control_input_topic" default = "control_input"/>
 
-    <arg name = "vicon_topic"         default = "/vicon/$(arg namespace)/$(arg namespace)" if = "$(arg use_vicon)" />
-    <arg name = "vicon_topic"         default = "/mocap/$(arg namespace)" unless = "$(arg use_vicon)" />
-    <!-- <arg name = "vicon_topic"         default = "/qualisys/PAPER/pose" unless = "$(arg use_vicon)" /> -->
+    <arg name = "mocap_topic"         default = "/vicon/$(arg namespace)/$(arg namespace)" if = "$(arg use_vicon)" />
+    <arg name = "mocap_topic"         default = "/mocap/$(arg namespace)" unless = "$(arg use_vicon)" />
+    <!-- <arg name = "mocap_topic"         default = "/qualisys/PAPER/pose" unless = "$(arg use_vicon)" /> -->
 
     <arg name = "imu_topic"           default = "imu" unless="$(arg use_filter)"/>
     <arg name = "imu_topic"           default = "imu_filt" if="$(arg use_filter)"/>
@@ -105,7 +105,7 @@
 
         <arg name = "control_state_topic"  value = "$(arg control_state_topic)"/>
         <arg name = "control_input_topic"  value = "$(arg control_input_topic)"/>
-        <arg name = "vicon_topic"          value = "$(arg vicon_topic)"/>
+        <arg name = "mocap_topic"          value = "$(arg mocap_topic)"/>
         <arg name = "imu_topic"            value = "$(arg imu_topic)"/>
         <arg name = "imu_yaw_rate_topic"   value = "$(arg imu_yaw_rate_topic)" />
         <arg name = "wheel_encoder_topic"  value = "$(arg wheel_encoder_topic)"/>

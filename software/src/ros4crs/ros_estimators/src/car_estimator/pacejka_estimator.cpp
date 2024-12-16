@@ -61,7 +61,7 @@ void RosCarEstimator<crs_models::pacejka_model::pacejka_car_state, crs_models::p
     marker.scale.z = 0.02;
 
     int id = 0;
-    for (const Eigen::Vector3d meas : mhe_estimator->vicon_reference)
+    for (const Eigen::Vector3d meas : mhe_estimator->mocap_reference)
     {
       marker.pose.position.x = meas[0];
       marker.pose.position.y = meas[1];

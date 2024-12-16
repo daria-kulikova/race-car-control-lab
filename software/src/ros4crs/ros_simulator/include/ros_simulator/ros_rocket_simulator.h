@@ -43,7 +43,7 @@ private:
   // Measurements
   std::vector<std::shared_ptr<crs_sensor_models::SensorModel<crs_models::rocket_6_dof_model::rocket_6_dof_state,
                                                              crs_models::rocket_6_dof_model::rocket_6_dof_input>>>
-      sensor_models_;  // list of sensor models e.g. vicon, imu, ...
+      sensor_models_;  // list of sensor models e.g. mocap, imu, ...
   std::vector<DelayedPublisher> sensor_models_pub_;
 
   bool got_init_input = false;

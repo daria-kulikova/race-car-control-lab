@@ -22,6 +22,7 @@
 
   <!-- Optional Dependencies -->
   <depend>pacejka_model</depend>
+  <depend>kinematic_model</depend>
   <depend>pid_controller</depend>
   <depend>ff_fb_controller</depend>
   <depend>mpc_controller</depend>

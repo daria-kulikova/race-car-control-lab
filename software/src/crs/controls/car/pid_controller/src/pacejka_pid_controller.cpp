@@ -9,7 +9,7 @@ PacejkaPIDController::PacejkaPIDController(pid_config config, std::shared_ptr<St
   : BaseController(std::static_pointer_cast<Trajectory>(track))
 {
   setConfig(config);
-};
+}
 
 void PacejkaPIDController::setConfig(pid_config config)
 {
@@ -24,10 +24,10 @@ void PacejkaPIDController::setConfig(pid_config config)
   }
   // Update config
   config_ = config;
-};
+}
 
 crs_models::pacejka_model::pacejka_car_input PacejkaPIDController::getControlInput(
-    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp /* ignored */)
+    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp [[maybe_unused]])
 {
   double vx_w = state_input.vel_x * std::cos(state_input.yaw) - state_input.vel_y * std::sin(state_input.vel_y);
   double vy_w = state_input.vel_x * std::sin(state_input.yaw) + state_input.vel_y * std::cos(state_input.vel_y);
@@ -36,7 +36,6 @@ crs_models::pacejka_model::pacejka_car_input PacejkaPIDController::getControlInp
   double look_ahead_y = state_input.pos_y + vy_w * config_.lag_compensation_time;
 
   auto track_error = getTrajectory<StaticTrackTrajectory>()->getTrackError(Eigen::Vector2d(look_ahead_x, look_ahead_y));
-  int track_idx = track_error.index;
   int track_side = track_error.side;
 
   // Basic PID control law
@@ -53,11 +52,7 @@ crs_models::pacejka_model::pacejka_car_input PacejkaPIDController::getControlInp
   double u_torque = (config_.target_velocity - config_.b_torque) / config_.a_torque;
 
   // Assign saturated values to control input
-  crs_models::pacejka_model::pacejka_car_input input = {
-    .torque = std::clamp(u_torque, 0.0, 1.0), .steer = std::clamp(u_steer, -config_.steer_limit, +config_.steer_limit)
-  };
-
-  return input;
+  return { std::clamp(u_torque, 0.0, 1.0), std::clamp(u_steer, -config_.steer_limit, +config_.steer_limit) };
 }
 
 }  // namespace crs_controls

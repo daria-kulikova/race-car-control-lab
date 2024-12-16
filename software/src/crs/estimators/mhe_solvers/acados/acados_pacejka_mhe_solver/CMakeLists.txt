@@ -7,57 +7,58 @@ add_compile_options(-fPIC)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-#############
-# Libraries #
-#############
+# DEFINE CATKIN WORKSPACE DIRECTORY
+execute_process(COMMAND catkin locate
+                OUTPUT_VARIABLE CATKIN_WORKSPACE_DIR
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-# NOTE(@naefjo): Create lib directory at build system generation time.
-# If this dir isn't present, the cs_export fails.
+# ##############################################################################
+# Libraries #
+# ##############################################################################
+
+# NOTE(@naefjo): Create lib directory at build system generation time. If this
+# dir isn't present, the cs_export fails.
 set(SOLVER_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 file(MAKE_DIRECTORY ${SOLVER_LIB_DIR})
-# Run solver creation once at build generation time so we can track the
-# solver files.
-execute_process(
-  COMMAND bash ./script/create_solver.sh
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-)
-
+# Run solver creation once at build generation time so we can track the solver
+# files.
+execute_process(COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
 # Define the solver source files.
 set(MODEL_NAME pacejka_model)
 file(GLOB OCP_COST_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_cost/*.c")
 file(GLOB OCP_CONSTR_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_constraints/*.c")
 
-set(OCP_SRC
-  ${OCP_COST_SRC}
-  ${OCP_CONSTR_SRC}
-  ${SOLVER_LIB_DIR}/acados_solver_${MODEL_NAME}.c
-)
+set(OCP_SRC ${OCP_COST_SRC} ${OCP_CONSTR_SRC}
+            ${SOLVER_LIB_DIR}/acados_solver_${MODEL_NAME}.c)
 file(GLOB MODEL_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_model/*.c")
 
-add_custom_target(${PROJECT_NAME}_c_solver_lib
-  COMMAND bash ./script/create_solver.sh
+add_custom_target(
+  ${PROJECT_NAME}_c_solver_lib
+  COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR} update
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   BYPRODUCTS ${MODEL_SRC} ${OCP_SRC}
-  COMMENT "Generate acados C solvers and create lib/ directory"
-)
+  COMMENT "Generate acados C solvers and create lib/ directory")
 
 add_library(${PROJECT_NAME}_acados_solver OBJECT ${MODEL_SRC} ${OCP_SRC})
 add_dependencies(${PROJECT_NAME}_acados_solver ${PROJECT_NAME}_c_solver_lib)
-target_include_directories(${PROJECT_NAME}_acados_solver INTERFACE ${SOLVER_LIB_DIR})
+target_include_directories(${PROJECT_NAME}_acados_solver
+                           INTERFACE ${SOLVER_LIB_DIR})
 
 cs_add_library(${PROJECT_NAME} SHARED src/acados_pacejka_mhe_solver.cpp)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_c_solver_lib ${PROJECT_NAME}_acados_solver)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_c_solver_lib
+                 ${PROJECT_NAME}_acados_solver)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_acados_solver)
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export(INCLUDE_DIRS ${SOLVER_LIB_DIR})

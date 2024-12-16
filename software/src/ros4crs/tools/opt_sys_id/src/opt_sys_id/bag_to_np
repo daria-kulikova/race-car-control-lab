@@ -191,7 +191,7 @@ def parse_rosbag(bagname: str, args: argparse.Namespace):
                         t_y += [msg.header.stamp.to_sec()]
 
                     # Simulated moction capture data
-                    if measurement_topic.endswith("/vicon"):
+                    if measurement_topic.endswith("/mocap"):
                         T = msg.transform.translation
                         R = msg.transform.rotation
                         psi = quaternion_to_euler_angle(R.w, R.x, R.y, R.z)[2]

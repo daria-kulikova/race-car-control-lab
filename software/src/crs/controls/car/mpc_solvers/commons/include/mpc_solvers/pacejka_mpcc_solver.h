@@ -1,9 +1,9 @@
 #ifndef MPC_SOLVERS_PACEJKA_MPCC_SOLVER_H
 #define MPC_SOLVERS_PACEJKA_MPCC_SOLVER_H
 
-#include "mpc_solver.h"
+#include "pacejka_model/pacejka_params.h"
 
-#include <pacejka_model/pacejka_params.h>
+#include "mpc_solver.h"
 
 namespace mpc_solvers
 {
@@ -160,9 +160,9 @@ public:
   /**
    * @brief Get the Dimension of the state
    *
-   * @return const int
+   * @return int
    */
-  const int getStateDimension() const override
+  int getStateDimension() const override
   {
     return 9;
   }
@@ -170,9 +170,9 @@ public:
   /**
    * @brief Get the Dimension of the input
    *
-   * @return const int
+   * @return int
    */
-  const int getInputDimension() const override
+  int getInputDimension() const override
   {
     return 3;
   }
@@ -180,9 +180,9 @@ public:
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  virtual const int getHorizonLength() const = 0;
+  virtual int getHorizonLength() const = 0;
 
   /**
    * @brief Set the Initial State Constraint. The provided array must have the same length as the state dimension
@@ -221,7 +221,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   virtual int solve(double x[], double u[]) = 0;
 };

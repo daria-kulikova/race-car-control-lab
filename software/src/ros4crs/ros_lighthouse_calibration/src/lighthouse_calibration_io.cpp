@@ -5,13 +5,12 @@
  */
 
 #include "lighthouse_calibration_io.h"
-#include <ros_crs_utils/parameter_io.h>
-#include <math.h>
+
 #include <ros/ros.h>
 #include <casadi/casadi.hpp>
-#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <ros_crs_utils/parameter_io.h>
-#include "crs_msgs/lighthouse_sweep.h"
 
 #include "lighthouse_calibration.h"
 #include "lighthouse_calibration_solver.h"
@@ -19,18 +18,23 @@
 
 namespace ros_lighthouse
 {
-
 /* Data loading functions -------------------------------------------------- */
 
-LighthousePose loadInitialCondition(const ros::NodeHandle& nh)
+Eigen::Affine3d loadInitialCondition(const ros::NodeHandle& nh)
 {
   Eigen::Matrix<double, 1, 3> initial_position, initial_angles;
 
   parameter_io::getMatrixFromParams<1, 3>(ros::NodeHandle(nh, "initial_condition/position"), initial_position);
   parameter_io::getMatrixFromParams<1, 3>(ros::NodeHandle(nh, "initial_condition/angles"), initial_angles);
 
-  return { .position = { initial_position(0, 0), initial_position(0, 1), initial_position(0, 2) },
-           .angles = { initial_angles(0, 0), initial_angles(0, 1), initial_angles(0, 2) } };
+  Eigen::Matrix3d rot = (Eigen::AngleAxisd(initial_angles(0, 2), Eigen::Vector3d::UnitZ()) *
+                         Eigen::AngleAxisd(initial_angles(0, 1), Eigen::Vector3d::UnitY()) *
+                         Eigen::AngleAxisd(initial_angles(0, 0), Eigen::Vector3d::UnitX()))
+                            .toRotationMatrix();
+  auto transform = Eigen::Affine3d(rot);
+  transform.translation() = initial_position.transpose();
+
+  return transform;
 }
 
 std::map<BaseStation, std::optional<MeasuredAngleSet>> loadAvailableBaseStations(const ros::NodeHandle& nh)
@@ -149,9 +153,6 @@ void writeCalibrationMeasurements(std::ostream& out, const std::map<BaseStation,
     out << "    id: " << base_station.id.value() << std::endl;
     out << "    dt1: " << base_station.dt1.value() << std::endl;
     out << "    dt2: " << base_station.dt2.value() << std::endl;
-    out << "    points:" << std::endl;
-    out << "      value: ";
-    out << calibration_data.first << std::endl;
     out << "    angles:" << std::endl;
     out << "      value: ";
     out << calibration_data.second << std::endl;

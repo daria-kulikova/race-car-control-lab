@@ -250,9 +250,7 @@ def compute_rmse(data_1, data_2, title):
     print("dyaw:  ", dyaw_mse)
 
 
-def resample(
-    df, Ts: float | np.ndarray, start_ts: float, end_ts: float = None, method="nearest"
-):
+def resample(df, Ts, start_ts: float, end_ts: float = None, method="nearest"):
     """Simple function to resample a dataframe with a given timesteps/frequency.
 
     Args:

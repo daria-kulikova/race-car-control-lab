@@ -69,7 +69,7 @@ public:
    * @return true if controller is already initialized
    * @return false if controller is not initialized
    */
-  const bool isInitializing()
+  bool isInitializing()
   {
     return false;
   }

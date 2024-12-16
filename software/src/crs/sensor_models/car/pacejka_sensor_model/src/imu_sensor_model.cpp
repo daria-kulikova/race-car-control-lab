@@ -25,10 +25,6 @@ ImuSensorModel::ImuSensorModel(const std::shared_ptr<crs_models::pacejka_model::
   std::vector<casadi::MX> measured_states_mx = { cont_dynamics[3], cont_dynamics[4], cont_dynamics[2] };
   measurement_function = casadi::Function("applyMeasurementModel", state_and_input_mx, measured_states_mx);
 
-  // Define jacobian function using casadi
-  // This sets the jacobian_fn directly from the measurement_function
-  setJacobianFromMeasFnc(measurement_function);
-
   setR(R);
 }
 

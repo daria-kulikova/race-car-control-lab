@@ -15,6 +15,12 @@ else()
   message("Pacejka Model not found. Building without Pacejka model support")
 endif()
 
+if(${kinematic_model_FOUND})
+   add_definitions(-Dkinematic_model_FOUND)
+else()
+  message("Kinematic Model not found. Building without Kinematic model support")
+endif()
+
 if(${pid_controller_FOUND})
 add_definitions(-Dpid_controller_FOUND)
 else()

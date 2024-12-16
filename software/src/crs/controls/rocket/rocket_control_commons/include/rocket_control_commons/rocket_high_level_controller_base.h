@@ -71,14 +71,14 @@ public:
    * @return true if controller is already initialized
    * @return false if controller is not initialized
    */
-  virtual const bool isInitializing() = 0;
+  virtual bool isInitializing() = 0;
 
   /**
    * @brief Returns the loop rate of the controller.
    *
    *  @return float which specifies the loop rate of the controller in Hz
    */
-  const float getLoopRate()
+  float getLoopRate()
   {
     return config_.loop_rate;
   }

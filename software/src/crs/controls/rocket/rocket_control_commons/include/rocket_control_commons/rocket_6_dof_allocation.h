@@ -34,9 +34,9 @@ protected:
    *
    * @param torque_x is the desired torque around the body x axis
    * @param thrust_magnitude is the desired thurst magnitude of the rocket
-   * @return const double which is the new constrained torque_x
+   * @return double which is the new constrained torque_x
    */
-  const double constrainTorque(const double torque_x, const double thrust_magnitude);
+  double constrainTorque(const double torque_x, const double thrust_magnitude);
 
 public:
   /**
@@ -55,6 +55,16 @@ public:
   crs_models::rocket_6_dof_model::rocket_6_dof_input getControlInput(const Eigen::Vector3d& force,
                                                                      const Eigen::Vector3d& torque);
 
+  /**
+   * @brief Return a reference(!) to the allocation config
+   *
+   * @return rocket_6_dof_allocation_config&
+   */
+  rocket_6_dof_allocation_config& getConfig()
+  {
+    return config_;
+  }
+
   std::vector<double> getDebugControllerState()
   {
     return debug_;
@@ -66,7 +76,7 @@ public:
    * @return true if allocation is already initialized
    * @return false if allocation is not initialized
    */
-  const bool isInitializing()
+  bool isInitializing()
   {
     return false;
   }

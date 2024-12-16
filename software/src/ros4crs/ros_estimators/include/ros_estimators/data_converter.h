@@ -14,14 +14,14 @@ namespace ros_estimators
 /**
  * @brief Converts a TransformStamped into a measurement vector (x,y,yaw)
  *
- * @param msg the message from vicon
+ * @param msg the message from mocap
  * @param T_sensor the transformation to apply before extracting x,y, and yaw
  *                 (e.g. transform from track frame to shared global frame)
  * @return crs_sensor_models::measurement Measurement struct containing x,y, and yaw as well as a valid timestamp and
- * sensor key (vicon)
+ * sensor key (mocap)
  *
  */
-crs_sensor_models::measurement parseViconData2D(const geometry_msgs::TransformStamped::ConstPtr msg,
+crs_sensor_models::measurement parseMocapData2D(const geometry_msgs::TransformStamped::ConstPtr msg,
                                                 const tf::StampedTransform& T_sensor);
 
 /**
@@ -62,10 +62,10 @@ crs_sensor_models::measurement parseImuYawData2D(const sensor_msgs::Imu::ConstPt
 crs_sensor_models::measurement parseLighthouseSweep(const crs_msgs::lighthouse_sweep::ConstPtr msg);
 
 /**
- * @brief Class that converts vicon measurements into a simple 3D measurement vector (x,y,yaw) with unwrapped yaw angle
+ * @brief Class that converts mocap measurements into a simple 3D measurement vector (x,y,yaw) with unwrapped yaw angle
  *
  */
-class ViconConverter
+class MocapConverter
 {
 private:
   // Frame lookup (get car pose realtive to track not world)
@@ -81,21 +81,21 @@ public:
   std::string world_frame = "world";
   std::string track_frame = "world";
 
-  ViconConverter(){};
+  MocapConverter(){};
   /**
-   * @brief Construct a new Vicon Converter object
+   * @brief Construct a new Mocap Converter object
    *
    * @param update_track_transform If true, always update the transformation between world_frame and track_frame.
    * Otherwise cache first transformation
-   * @param world_frame Name of the shared frame in vicon (usually world)
+   * @param world_frame Name of the shared frame in mocap (usually world)
    * @param track_frame Name of the frame of the track
    */
-  ViconConverter(bool update_track_transform, std::string& world_frame, std::string& track_frame);
+  MocapConverter(bool update_track_transform, std::string& world_frame, std::string& track_frame);
 
   /**
-   * @brief Converts a Vicon Measurement into a sensor measurment (x,y and yaw). Also unwraps the yaw angle.
+   * @brief Converts a Mocap Measurement into a sensor measurment (x,y and yaw). Also unwraps the yaw angle.
    *
-   * @param msg the vicon measurement
+   * @param msg the mocap measurement
    * @return crs_sensor_models::measurement
    */
   crs_sensor_models::measurement parseData2D(const geometry_msgs::TransformStamped::ConstPtr msg);

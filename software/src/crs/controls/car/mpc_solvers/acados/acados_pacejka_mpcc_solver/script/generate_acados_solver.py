@@ -63,7 +63,6 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model, confi
     ocp.dims.nbx = nx
     ocp.dims.nbu = nu
     ocp.dims.nu = nu
-    ocp.dims.N = N
     ocp.dims.nh = 1
     ocp.dims.nsh = 1
     ocp.dims.ns = nx + nu + 1
@@ -100,6 +99,12 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model, confi
     ocp.cost.zu = 100 * np.ones(nu + nx + 1)
     ocp.cost.Zl = np.zeros(nu + nx + 1)
     ocp.cost.Zu = np.zeros(nu + nx + 1)
+
+    # Configure slacks on initial state
+    ocp.cost.zl_0 = 100 * np.ones(nu)
+    ocp.cost.zu_0 = 100 * np.ones(nu)
+    ocp.cost.Zl_0 = np.zeros(nu)
+    ocp.cost.Zu_0 = np.zeros(nu)
 
     # setting constraints
 
@@ -146,6 +151,7 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model, confi
     ocp.constraints.idxbx_0 = np.arange(nx)
     ocp.parameter_values = np.zeros(ocp.dims.np)
     # set QP solver and integration
+    ocp.solver_options.N_horizon = N
     ocp.solver_options.Tsim = Ts
     ocp.solver_options.tf = Ts * N
     ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
@@ -187,9 +193,16 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    rospack = rospkg.RosPack()
-    controller_path = rospack.get_path("acados_pacejka_mpcc_solver")
-    os.chdir(controller_path)
+    try:
+        rospack = rospkg.RosPack()
+        controller_path = rospack.get_path("acados_pacejka_mpcc_solver")
+        os.chdir(controller_path)
+    except:
+        print(
+            "Did not find rospackage acados_pacejka_mpcc_solver. Assuming script is called from the scripts folder."
+        )
+        os.chdir("../src")
+        controller_path = "../"
 
     with open(os.path.join(controller_path, "config", args.config)) as f:
         cfg = yaml.load(f, Loader=yaml.loader.SafeLoader)

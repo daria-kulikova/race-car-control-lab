@@ -10,7 +10,7 @@
 #include <pacejka_model/pacejka_discrete.h>
 #include <pacejka_model/tests/test_utils.h>
 
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 #include <sensor_models/sensor_measurement.h>
 
 #include "kalman_estimator/discrete_ekf.h"
@@ -38,8 +38,6 @@ TEST(EKFTest, testControlCallback)
     crs_estimators::kalman::DiscreteEKF<crs_models::pacejka_model::pacejka_car_state,
                                         crs_models::pacejka_model::pacejka_car_input>
         ekf(model, gt_dynamic_state, Eigen::Matrix<double, 6, 6>::Identity(), {}, false);
-
-    crs_models::pacejka_model::pacejka_car_state output_state = gt_dynamic_state;
 
     double timestep = 0.05;  // 20Hz
     double time = 0;
@@ -81,7 +79,7 @@ TEST(EKFTest, testControlCallback)
  */
 TEST(EKFTest, testMeasurementCallback)
 {
-  typedef crs_sensor_models::pacejka_sensor_models::ViconSensorModel ViconSensorModel;
+  typedef crs_sensor_models::pacejka_sensor_models::MocapSensorModel MocapSensorModel;
   auto start = std::chrono::high_resolution_clock::now();
 
   int kalman_steps = 10;
@@ -92,8 +90,8 @@ TEST(EKFTest, testMeasurementCallback)
     std::shared_ptr<crs_models::pacejka_model::DiscretePacejkaModel> model =
         std::make_shared<crs_models::pacejka_model::DiscretePacejkaModel>(params);
 
-    std::shared_ptr<ViconSensorModel> vicon_sensor_model = std::make_shared<ViconSensorModel>();
-    vicon_sensor_model->setR(Eigen::Matrix3d::Identity());
+    std::shared_ptr<MocapSensorModel> mocap_sensor_model = std::make_shared<MocapSensorModel>();
+    mocap_sensor_model->setR(Eigen::Matrix3d::Identity());
     // States used for simulation
     crs_models::pacejka_model::pacejka_car_state gt_state;
     loadRandomState(gt_state);
@@ -102,7 +100,7 @@ TEST(EKFTest, testMeasurementCallback)
                                         crs_models::pacejka_model::pacejka_car_input>
         ekf(model, gt_state, Eigen::Matrix<double, 6, 6>::Identity(), {}, false);
 
-    ekf.addSensorModel(ViconSensorModel::SENSOR_KEY, vicon_sensor_model);
+    ekf.addSensorModel(MocapSensorModel::SENSOR_KEY, mocap_sensor_model);
 
     crs_models::pacejka_model::pacejka_car_input current_input;
     loadRandomInput(current_input);
@@ -128,12 +126,12 @@ TEST(EKFTest, testMeasurementCallback)
       gt_state = model->applyModel(gt_state, current_input, timestep);
       time += timestep;
 
-      // Fake vicon measurement
-      Eigen::Vector3d vicon_measurement;
-      vicon_measurement[0] = gt_state.pos_x;
-      vicon_measurement[1] = gt_state.pos_y;
-      vicon_measurement[2] = gt_state.yaw;
-      crs_sensor_models::measurement measurement = { ViconSensorModel::SENSOR_KEY, vicon_measurement, time };
+      // Fake mocap measurement
+      Eigen::Vector3d mocap_measurement;
+      mocap_measurement[0] = gt_state.pos_x;
+      mocap_measurement[1] = gt_state.pos_y;
+      mocap_measurement[2] = gt_state.yaw;
+      crs_sensor_models::measurement measurement = { MocapSensorModel::SENSOR_KEY, mocap_measurement, time };
 
       ekf.measurementCallback(measurement);
 

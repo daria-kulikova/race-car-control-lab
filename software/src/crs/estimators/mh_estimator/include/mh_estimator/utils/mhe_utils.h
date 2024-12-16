@@ -12,7 +12,7 @@
 namespace mhe_common
 {
 // --------------------------- Outlier Check Functions ---------------------------
-bool outlier_check_fnc_vicon(const Eigen::Vector3d a, const Eigen::Vector3d b, double threshold);
+bool outlier_check_fnc_mocap(const Eigen::Vector3d a, const Eigen::Vector3d b, double threshold);
 
 bool outlier_check_fnc_lh(const Eigen::Vector4d a, const Eigen::Vector4d b, double threshold);
 
@@ -36,7 +36,7 @@ void filter_wheel_encoders(const DataBuffer<Eigen::Vector4d>& buffer, DataBuffer
 void filter_lighthouse(const DataBuffer<Eigen::Vector4d>& buffer, DataBuffer<Eigen::Vector4d>& filtered_buffer,
                        std::string internal_filter_type);
 
-void filter_vicon(const DataBuffer<Eigen::Vector3d>& buffer, DataBuffer<Eigen::Vector3d>& filtered_buffer,
+void filter_mocap(const DataBuffer<Eigen::Vector3d>& buffer, DataBuffer<Eigen::Vector3d>& filtered_buffer,
                   std::string internal_filter_type);
 
 }  // namespace mhe_common

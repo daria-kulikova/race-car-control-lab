@@ -14,9 +14,9 @@ crs_models::pacejka_model::pacejka_car_input
 SimplePacejkaCollisionAvoider::getSafeControlInput(const crs_models::pacejka_model::pacejka_car_state state,
                                                    const crs_models::pacejka_model::pacejka_car_input control_input)
 {
-  double lookahead_time = 0.2;  // s
-  double max_distance = 0.2;    // m
-  auto future_state = model->applyModel(state, control_input, lookahead_time);
+  // double lookahead_time = 0.2;  // s
+  double max_distance = 0.2;  // m
+  // auto future_state = model->applyModel(state, control_input, lookahead_time);
 
   Eigen::Vector2d car_pt = Eigen::Vector2d(state.pos_x, state.pos_y);
 
@@ -41,5 +41,5 @@ SimplePacejkaCollisionAvoider::getSafeControlInput(const crs_models::pacejka_mod
   }
 
   return control_input;
-};
-};  // namespace crs_safety
+}
+}  // namespace crs_safety

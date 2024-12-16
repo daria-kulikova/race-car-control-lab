@@ -49,7 +49,7 @@ public:
    *
    * @return const double
    */
-  const double getLastRequestedTrackAngle() const override;
+  double getLastRequestedTrackAngle() const override;
 };
 
 }  // namespace crs_controls

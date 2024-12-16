@@ -31,7 +31,7 @@ TEST(PacejkaTests, testApplyDynamics)
   loadRandomState(current_state);
   crs_models::pacejka_model::pacejka_car_input current_input;
   loadRandomInput(current_input);
-  crs_models::pacejka_model::pacejka_car_state output_rate = model.applyModel(current_state, current_input);
+  model.applyModel(current_state, current_input);
 }
 
 /**
@@ -77,7 +77,6 @@ TEST(PacejkaTests, testDiscreteJacobian)
     getRandomFloat(-5, 5), getRandomFloat(-5, 5), 0, getRandomFloat(0.4, 2), 0, 0
   };
   crs_models::pacejka_model::pacejka_car_input current_input = { getRandomFloat(0.3, 1), 0 };
-  crs_models::pacejka_model::pacejka_car_state output_state = { 0, 0, 0, 0, 0, 0 };
 
   Eigen::Matrix<double, 6, 6> F;
   Eigen::Matrix<double, 6, 2> D;
@@ -176,7 +175,7 @@ TEST(PacejkaTests, testContinuousJacobian)
     ss.clear();
 
     ss << "data/jacobian_B_" << run << ".csv";
-    Eigen::Matrix<double, 6, 2> B_gt = readCSV(ss.str(), 6, 2);
+    // Eigen::Matrix<double, 6, 2> B_gt = readCSV(ss.str(), 6, 2);
 
     // Check pacejka model jacobian is correct
     Eigen::Matrix<double, 6, 6> A;

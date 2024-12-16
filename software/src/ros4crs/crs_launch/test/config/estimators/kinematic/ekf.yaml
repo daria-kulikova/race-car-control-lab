@@ -19,12 +19,12 @@ P_init:
   is_diag: true
 
 sensors:
-  sensor_names: ["vicon"]
-  vicon:
+  sensor_names: ["mocap"]
+  mocap:
     R:
       value: [[0.001], [0.001], [0.001]]
       is_diag: true
-    key: vicon # optional, if not set us e name of sensor
+    key: mocap # optional, if not set us e name of sensor
 
 model:
   Q:

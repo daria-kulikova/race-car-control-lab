@@ -9,7 +9,6 @@
 
 namespace ros_lighthouse
 {
-
 void LighthouseCalibrationCollector::lighthouseCallback(const crs_msgs::lighthouse_sweep& msg)
 {
   BaseStation::base_station_id id = msg.polynomial >> 1;
@@ -55,7 +54,7 @@ void LighthouseCalibrationCollector::lighthouseCallback(const crs_msgs::lighthou
             std::cout << "tilt1: " << fp16_to_float(decoder_state.frame.tilt1) << std::endl;
             base_station.dt1 = fp16_to_float(decoder_state.frame.tilt0);
             base_station.dt2 = fp16_to_float(decoder_state.frame.tilt1);
-            state = INPUT_POINT_COUNT;
+            state = WAIT_FOR_POSITION;
           }
         }
       }
@@ -86,7 +85,7 @@ void LighthouseCalibrationCollector::lighthouseCallback(const crs_msgs::lighthou
           }
           else
           {
-            state = INPUT_COORDINATES;
+            state = WAIT_FOR_POSITION;
           }
         }
       }
@@ -125,55 +124,22 @@ void LighthouseCalibrationCollector::spinOnce()
   }
 
   auto current_point = std::get<4>(collected_data_.begin()->second);
+  current_point_post_ = current_point;
+  new_data_ = true;  /// A new point is processed, data for the old is available
+
   switch (first_state)
   {
-    case INPUT_POINT_COUNT: {
-      if (!coordinates_known_)
-      {
-        std::cout << "Enter number of points that should be used for the calibration:" << std::endl;
-        std::cin >> point_count_;
-        if (point_count_ < 6)
-        {
-          std::cout << "A minimum of 6 points is required." << std::endl;
-          break;
-        }
-      }
-      setAllStates(INPUT_COORDINATES);
-    }
-    break;
-    case INPUT_COORDINATES: {
+    case WAIT_FOR_POSITION: {
       std::cout << "Position car on point number " << current_point + 1 << " of " << point_count_ << " on track."
                 << std::endl;
-      if (!coordinates_known_)
-      {
-        double x, y;
-        std::cout << "Enter x coordinate of point:" << std::endl;
-        std::cin >> x;
-        std::cout << "Enter y coordinate of point:" << std::endl;
-        std::cin >> y;
-        fflush(stdin);
-        std::cout << "Confirm point (x = " << x << ", y = " << y
-                  << ") by entering 'y'. Enter anything else to re-enter coordinates." << std::endl;
-        std::string in;
-        std::cin >> in;
-        if (in != "y")
-        {
-          break;
-        }
-        std::cout << "Collecting data for point " << current_point + 1 << ": x = " << x << ", y = " << y << std::endl;
-        point_coordinates_.push_back(std::pair<double, double>(x, y));
-      }
-      else
-      {
-        // The coordinates are pre-specified, print them for information.
-        double x = point_coordinates_[current_point].first;
-        double y = point_coordinates_[current_point].second;
-        std::cout << "Coordinates of point " << current_point + 1 << ": x = " << x << ", y = " << y << std::endl;
-        std::cout << "Confirm start of measurement by pressing ENTER." << std::endl;
-        char c = std::cin.get();
-        std::cin.clear();
-        fflush(stdin);
-      }
+
+      double x = point_coordinates_[current_point].first;
+      double y = point_coordinates_[current_point].second;
+      std::cout << "Coordinates of point " << current_point + 1 << ": x = " << x << ", y = " << y << std::endl;
+      std::cout << "Confirm start of measurement by pressing ENTER." << std::endl;
+      char c = std::cin.get();
+      std::cin.clear();
+      fflush(stdin);
 
       for (auto& [bs, data] : collected_data_)
       {

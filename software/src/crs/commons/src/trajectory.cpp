@@ -1,6 +1,4 @@
 #include "commons/trajectory.h"
-#include <iostream>
-#include <numeric>
 
 namespace crs_controls
 {

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(custom_model_template)
 
 set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 find_package(catkin_simple REQUIRED)
 find_package(casadi)
 

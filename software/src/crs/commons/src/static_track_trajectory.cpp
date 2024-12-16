@@ -7,7 +7,7 @@ namespace crs_controls
 
 void StaticTrackTrajectory::unwrapYawAngle()
 {
-  for (int i = 0; i < tangent_angle_.size(); i++)
+  for (size_t i = 0; i < tangent_angle_.size(); i++)
   {
     tangent_angle_unwrapped_[i] = tangent_angle_[i];
     double tan_ang = tangent_angle_[i];
@@ -23,7 +23,7 @@ void StaticTrackTrajectory::unwrapYawAngle()
     }
   }
 
-  for (int i = tangent_angle_.size(); i < tangent_angle_unwrapped_.size(); i++)
+  for (size_t i = tangent_angle_.size(); i < tangent_angle_unwrapped_.size(); i++)
   {
     tangent_angle_unwrapped_[i] = tangent_angle_unwrapped_[i - tangent_angle_.size()] + 2.0 * M_PI;
   }
@@ -43,12 +43,12 @@ inline double euclidean2Dist(double x1, double y1, double x2, double y2)
   return (std::sqrt(std::pow(x1 - x2, 2.0) + std::pow(y1 - y2, 2.0)));
 }
 
-const double StaticTrackTrajectory::getLastRequestedTrackAngle() const
+double StaticTrackTrajectory::getLastRequestedTrackAngle() const
 {
   return getTrackAngle(last_query_index_);
 }
 
-const double StaticTrackTrajectory::getMeanCurvatureAlongPath(int start_idx, int distance) const
+double StaticTrackTrajectory::getMeanCurvatureAlongPath(int start_idx, int distance) const
 {
   std::vector<double> abs_curv(distance, 0.0);
   std::transform(curvature_.begin() + start_idx, curvature_.begin() + start_idx + distance, abs_curv.begin(),
@@ -62,11 +62,11 @@ std::vector<Eigen::Vector2d> StaticTrackTrajectory::getCenterLine() const
   return trajectory_coordinates_;
 }
 
-const double StaticTrackTrajectory::getCurvature(int i) const
+double StaticTrackTrajectory::getCurvature(int i) const
 {
   return curvature_[i % curvature_.size()];
 }
-const double StaticTrackTrajectory::getTrackAngle(int i) const
+double StaticTrackTrajectory::getTrackAngle(int i) const
 {
   return tangent_angle_unwrapped_[i % tangent_angle_unwrapped_.size()];
 }
@@ -96,7 +96,7 @@ track_error StaticTrackTrajectory::getTrackError(const Eigen::Vector2d& query_po
 
 void StaticTrackTrajectory::changeTangentAngle(int direction)
 {
-  for (int i = 0; i < tangent_angle_unwrapped_.size() / 2; i++)
+  for (size_t i = 0; i < tangent_angle_unwrapped_.size() / 2; i++)
   {
     tangent_angle_unwrapped_[i] = tangent_angle_unwrapped_[i + tangent_angle_unwrapped_.size() / 2];
     tangent_angle_unwrapped_[i + tangent_angle_unwrapped_.size() / 2] =

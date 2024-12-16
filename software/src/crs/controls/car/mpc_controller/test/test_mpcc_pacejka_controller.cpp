@@ -71,10 +71,10 @@ void printTrajectory(crs_controls::PacejkaMpccController& controller)
 
   myfile << "arrlist.append(np.array([" << std::endl;
 
-  for (int i = 0; i < planned_traj.size(); ++i)
+  for (size_t i = 0; i < planned_traj.size(); ++i)
   {
     myfile << "\t[";
-    for (int j = 0; j < planned_traj[i].size(); ++j)
+    for (size_t j = 0; j < planned_traj[i].size(); ++j)
     {
       myfile << planned_traj[i][j];
       if (j != planned_traj[i].size() - 1)

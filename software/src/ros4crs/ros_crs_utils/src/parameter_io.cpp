@@ -47,6 +47,21 @@ std::shared_ptr<crs_controls::StaticTrackTrajectory> loadTrackDescriptionFromPar
                                                                tangent_angle, arc_length, density);
 }
 
+std::shared_ptr<crs_controls::DynamicPointTrajectory> loadReferenceFromParams(const ros::NodeHandle& nh)
+{
+  std::cout << "LOADING REFERENCE FROM: " << nh.getNamespace() << std::endl;
+  std::vector<double> x_coords_;
+  std::vector<double> y_coords_;
+
+  if (!nh.getParam("xCoords", x_coords_))
+    ROS_WARN_STREAM("Could not load track! Did not find x_coords for namespace: " << nh.getNamespace() << ".");
+
+  if (!nh.getParam("yCoords", y_coords_))
+    ROS_WARN_STREAM("Could not load track! Did not find x_coords for namespace: " << nh.getNamespace() << ".");
+
+  return std::make_shared<crs_controls::DynamicPointTrajectory>(x_coords_, y_coords_);
+}
+
 template <>
 void getModelParams<>(const ros::NodeHandle& nh, parameter_io::empty_params& params, bool verbose /* = true*/)
 {

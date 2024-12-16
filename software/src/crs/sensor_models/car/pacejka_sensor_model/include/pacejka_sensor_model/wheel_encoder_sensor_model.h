@@ -18,7 +18,7 @@ public:
     : WheelEncoderSensorModel(wheel_radius, lf, car_width,
                               Eigen::Matrix4d::Identity())  // Measurement dimension is three
   {
-    std::cout << "[WARNING] No R Matrix specified for ViconSensorModel. Using identity Matrix! " << std::endl;
+    std::cout << "[WARNING] No R Matrix specified for WheelEncoderSensorModel. Using identity Matrix! " << std::endl;
   }
 
   // Option 2: Create an object and specify the measurement noise covariance matrix R yourself.

@@ -66,7 +66,6 @@ std::optional<std::vector<std::vector<double>>> PacejkaTrackingMpcController::ge
 
 void PacejkaTrackingMpcController::initialize(crs_models::pacejka_model::pacejka_car_state state)
 {
-  int N_ = solver_->getHorizonLength();
   auto model_dynamics = model_->getParams();
   int N_WARM_START = 10;
 
@@ -92,8 +91,6 @@ void PacejkaTrackingMpcController::initialize(crs_models::pacejka_model::pacejka
   u_init[1] = 0.5;
 
   solver_->setInitialState(x_init);
-
-  double u0[solver_->getInputDimension()] = { 0.0, last_input_.torque };
 
   // Setup parameter for initial solve
   for (int stage = 0; stage < solver_->getHorizonLength(); stage++)
@@ -142,10 +139,8 @@ void PacejkaTrackingMpcController::initialize(crs_models::pacejka_model::pacejka
  * @return crs_models::pacejka_model::pacejka_car_input
  */
 crs_models::pacejka_model::pacejka_car_input PacejkaTrackingMpcController::getControlInput(
-    crs_models::pacejka_model::pacejka_car_state state, double timestamp /* timestamp will be ignored */)
+    crs_models::pacejka_model::pacejka_car_state state, double timestamp [[maybe_unused]])
 {
-  int N_ = solver_->getHorizonLength();
-
   mpc_solvers::pacejka_tracking_solvers::tracking_costs mpc_costs = { config_.Q1, config_.Q2, config_.R1, config_.R2 };
 
   if (!is_initialized)
@@ -215,4 +210,4 @@ void PacejkaTrackingMpcController::setConfig(tracking_mpc_pacejka_config config)
 {
   config_ = config;
 }
-};  // namespace crs_controls
+}  // namespace crs_controls

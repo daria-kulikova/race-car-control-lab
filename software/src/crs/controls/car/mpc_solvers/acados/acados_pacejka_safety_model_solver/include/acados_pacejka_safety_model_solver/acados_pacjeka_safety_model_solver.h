@@ -2,16 +2,13 @@
 #define SRC_CRS_CONTROLS_MPC_SOLVERS_ACADOS_ACADOS_PACJEKA_SAFETY_MODEL_SOLVER_INCLUDE_ACADOS_PACEJKA_MPCC_SOLVER_ACADOS_PACJEKA_SAFETY_MODEL_SOLVER
 
 #include "acados/utils/math.h"
+#include "acados/utils/types.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "acados/utils/types.h"
+#include "mpc_solvers/pacejka_safety_solver.h"
+#include "pacejka_model/pacejka_params.h"
 
 #include "acados_solver_safety_dynamic_model.h"
-
-#include "mpc_solvers/pacejka_safety_solver.h"
-#include <pacejka_model/pacejka_params.h>
-
-#include <memory>
 
 namespace mpc_solvers
 {
@@ -71,9 +68,9 @@ public:
   /**
    * @brief Get the Horizon Length
    *
-   * @return const int
+   * @return int
    */
-  const int getHorizonLength() const override;
+  int getHorizonLength() const override;
 
   /**
    * @brief Set the Initial State Constraint. The provided array must have the same length as the state dimension
@@ -111,7 +108,7 @@ public:
    *
    * @param x State array or point with size N*StateDimenstion
    * @param u Input array or point with size N*Inputdimension
-   * @return const int, return code. If no error occurred, return code is zero
+   * @return int, return code. If no error occurred, return code is zero
    */
   int solve(double x[], double u[]) override;
 

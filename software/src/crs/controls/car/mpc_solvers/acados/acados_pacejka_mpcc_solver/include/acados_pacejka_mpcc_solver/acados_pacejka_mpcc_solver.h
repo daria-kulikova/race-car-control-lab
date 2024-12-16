@@ -4,12 +4,10 @@
 #include "acados/utils/math.h"
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
-#include "acados_solver_pacejka_model.h"
-
 #include "mpc_solvers/pacejka_mpcc_solver.h"
-#include <pacejka_model/pacejka_params.h>
+#include "pacejka_model/pacejka_params.h"
 
-#include <memory>
+#include "acados_solver_pacejka_model.h"
 
 namespace mpc_solvers
 {
@@ -68,7 +66,7 @@ public:
    *
    * @return const int
    */
-  const int getHorizonLength() const override;
+  int getHorizonLength() const override;
 
   /**
    * @brief Sets the Initial State Constraint. The provided array must have the same length as the state dimension

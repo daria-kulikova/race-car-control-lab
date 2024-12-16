@@ -31,7 +31,8 @@ public:
   /**
    * Dummy default outlier check function which always returns false (i.e. no outliers)
    */
-  static bool outlierCheck(const DataType a, const DataType b, double th)
+  static bool outlierCheck(const DataType a [[maybe_unused]], const DataType b [[maybe_unused]],
+                           double th [[maybe_unused]])
   {
     return false;
   }
@@ -124,7 +125,7 @@ public:
 
     int output_idx = 0;
 
-    int t_idx = 1;  // Points to the next timestamp to be used for interpolation.
+    size_t t_idx = 1;  // Points to the next timestamp to be used for interpolation.
     while (t_idx < ts_.size() && output_idx < length)
     {
       auto previous_ts = ts_[t_idx - 1];
@@ -225,7 +226,7 @@ public:
 
     int output_idx = 0;
 
-    int t_idx = 1;  // Points to the next timestamp to be used for interpolation.
+    size_t t_idx = 1;  // Points to the next timestamp to be used for interpolation.
     while (t_idx < ts_.size() && output_idx < length)
     {
       auto previous_ts = ts_[t_idx - 1];

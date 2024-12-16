@@ -172,7 +172,7 @@ void PacejkaMpccController::initialize(crs_models::pacejka_model::pacejka_car_st
       solver_->setInputInitialGuess(stage, &last_solution.inputs_[stage * solver_->getInputDimension()]);
     }
     int exit_flag = solver_->solve(&last_solution.states_[0], &last_solution.inputs_[0]);
-    if (exit_flag != 0)
+    if ((exit_flag > 0 && config_.solver_type == "ACADOS") || (exit_flag < 1 && config_.solver_type == "FORCES"))
     {
       uint64_t now_ms =
           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -191,12 +191,13 @@ void PacejkaMpccController::initialize(crs_models::pacejka_model::pacejka_car_st
  * @return crs_models::pacejka_model::pacejka_car_input
  */
 crs_models::pacejka_model::pacejka_car_input PacejkaMpccController::getControlInput(
-    crs_models::pacejka_model::pacejka_car_state state, double timestamp /* timestamp will be ignored */)
+    crs_models::pacejka_model::pacejka_car_state state, double timestamp [[maybe_unused]])
 {
   if (initializing)
+  {
     return { 0, 0 };
+  }
 
-  int N_ = solver_->getHorizonLength();
   // max_arc_length is needed to detect when a lap is done. The full track has
   // been extended by a full lap, such that the horizon can predict past the
   // start
@@ -265,7 +266,7 @@ crs_models::pacejka_model::pacejka_car_input PacejkaMpccController::getControlIn
   }
   int exit_flag = solver_->solve(&last_solution.states_[0], &last_solution.inputs_[0]);
 
-  if (exit_flag < 0)
+  if ((exit_flag > 0 && config_.solver_type == "ACADOS") || (exit_flag < 1 && config_.solver_type == "FORCES"))
     std::cerr << "[MPCC SOLVER] - Error when getting solution. Exitcode: " << exit_flag << std::endl;
 
   last_input_.torque = last_solution.states_[1 * solver_->getStateDimension() + pacejka_vars::TORQUE];
@@ -289,4 +290,4 @@ void PacejkaMpccController::setConfig(mpcc_pacejka_config config)
 {
   config_ = config;
 }
-};  // namespace crs_controls
+}  // namespace crs_controls

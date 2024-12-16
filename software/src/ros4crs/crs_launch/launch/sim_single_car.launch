@@ -23,6 +23,9 @@
     <arg name = "use_safety_filter"   default = "false"        doc = "if true, loads safety filter" />
     <arg name = "launch_planner"      default = "false"        doc = "if true, launches a trajectory planner" />
 
+    <arg name = "gt_topic"      default = "ros_simulator/gt_state"        doc = "gt topic" />
+
+    <arg name = "clock_rate"     default = "1"               doc = "Rate at which the simulated clock should run. 1 means real time, 0.5 means half speed, etc." />
 
     <!-- Optional Second Estimator -->
     <arg name = "use_second_estimator"  default = "false" />
@@ -43,7 +46,7 @@
          ================================================================= -->
 
     <arg name = "control_input_topic" default = "control_input"/>
-    <arg name = "vicon_topic"         default = "vicon"/>
+    <arg name = "mocap_topic"         default = "mocap"/>
     <arg name = "imu_topic"           default = "imu"/>
     <arg name = "imu_yaw_rate_topic"  default = "imu_yaw_rate"/>
     <arg name = "wheel_encoder_topic" default = "wheel_encoders"/>
@@ -66,6 +69,13 @@
     <arg name = "safety_filter_config"  default = "$(arg experiment_path)/safety_filter.yaml" />
     <arg name = "second_estimator_config" default = "$(arg experiment_path)/estimator_2.yaml" />
 
+    <group if = "$(eval clock_rate != 1)">
+        <param name="/use_sim_time" value="true" />
+        <include file="$(find clock_publisher)launch/clock.launch">
+            <arg name = "clock_rate"            value = "$(arg clock_rate)"/>
+        </include>
+    </group>
+
 
     <!-- =================================================================
                        Start the controlling framework
@@ -83,7 +93,7 @@
 
         <arg name = "control_state_topic"  value = "$(arg control_state_topic)"/>
         <arg name = "control_input_topic"  value = "$(arg control_input_topic)"/>
-        <arg name = "vicon_topic"          value = "$(arg vicon_topic)"/>
+        <arg name = "mocap_topic"          value = "$(arg mocap_topic)"/>
         <arg name = "imu_topic"            value = "$(arg imu_topic)"/>
         <arg name = "imu_yaw_rate_topic"   value = "$(arg imu_yaw_rate_topic)"/>
         <arg name = "wheel_encoder_topic"  value = "$(arg wheel_encoder_topic)"/>
@@ -102,6 +112,7 @@
         <arg name = "use_second_estimator" value = "$(arg use_second_estimator)"/>
         <arg name = "second_estimator_config" value = "$(arg second_estimator_config)"/>
 
+        <arg name = "gt_topic"      value = "$(arg gt_topic)"/>
     </include>
 
     <!-- =================================================================
@@ -111,7 +122,7 @@
         <include file = "$(find ros_simulator)/launch/default.launch">
             <arg name = "simulator_config"  value = "$(arg simulator_config)" />
             <arg name = "control_input"     value = "$(arg control_input_topic)"/>
-            <arg name = "vicon_topic"       value = "$(arg vicon_topic)"/>
+            <arg name = "mocap_topic"       value = "$(arg mocap_topic)"/>
             <arg name = "imu_topic"         value = "$(arg imu_topic)"/>
             <arg name = "imu_yaw_rate_topic"   value = "$(arg imu_yaw_rate_topic)"/>
             <arg name = "lighthouse_topic"  value = "$(arg lighthouse_topic)" />

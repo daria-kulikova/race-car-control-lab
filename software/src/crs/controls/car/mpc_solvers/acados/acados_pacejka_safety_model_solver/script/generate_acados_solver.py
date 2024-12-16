@@ -64,7 +64,6 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model):
 
     ocp.dims.nbu = nu
     ocp.dims.nu = nu
-    ocp.dims.N = N
     ocp.dims.nh = 2
     ocp.dims.nsh = 2
     ocp.dims.ns = ocp.dims.nsbx + ocp.dims.nsh  # total number of slacks
@@ -163,6 +162,7 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model):
     ocp.parameter_values = np.zeros(ocp.dims.np)
 
     # set QP solver and integration
+    ocp.solver_options.N_horizon = N
     ocp.solver_options.Tsim = Ts
     ocp.solver_options.tf = Ts * N
     ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
@@ -205,9 +205,16 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    rospack = rospkg.RosPack()
-    controller_path = rospack.get_path("acados_pacejka_safety_model_solver")
-    os.chdir(controller_path)
+    try:
+        rospack = rospkg.RosPack()
+        controller_path = rospack.get_path("acados_pacejka_safety_model_solver")
+        os.chdir(controller_path)
+    except:
+        print(
+            "Did not find rospackage acados_pacejka_safety_model_solver. Assuming script is called from the scripts folder."
+        )
+        os.chdir("../src")
+        controller_path = "../"
 
     with open(os.path.join(controller_path, "config", args.config)) as f:
         cfg = yaml.load(f, Loader=yaml.loader.SafeLoader)

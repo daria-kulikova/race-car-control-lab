@@ -19,7 +19,7 @@
 #include <pacejka_model/pacejka_discrete.h>
 #include <pacejka_sensor_model/imu_sensor_model.h>
 #include <pacejka_sensor_model/imu_yaw_rate_sensor_model.h>
-#include <pacejka_sensor_model/vicon_sensor_model.h>
+#include <pacejka_sensor_model/mocap_sensor_model.h>
 
 typedef crs_models::pacejka_model::pacejka_car_state pacejka_car_state;
 typedef crs_models::pacejka_model::pacejka_car_input pacejka_car_input;
@@ -30,7 +30,7 @@ typedef crs_models::pacejka_model::pacejka_car_input pacejka_car_input;
 #ifdef kinematic_model_FOUND
 #include <kinematic_model/kinematic_discrete.h>
 #include <kinematic_sensor_model/imu_sensor_model.h>
-#include <kinematic_sensor_model/vicon_sensor_model.h>
+#include <kinematic_sensor_model/mocap_sensor_model.h>
 
 typedef crs_models::kinematic_model::kinematic_car_input kinematic_car_input;
 typedef crs_models::kinematic_model::kinematic_car_state kinematic_car_state;
@@ -43,7 +43,7 @@ typedef crs_models::kinematic_model::kinematic_params KinematicParamsType;
 #include <imu_bias/imu_bias_discrete.h>
 #include <stacked_model/stacked_two_models_discrete.h>
 #include <pacejka_with_imu_bias_sensor_model/imu_with_bias_sensor_model.h>
-#include <pacejka_with_imu_bias_sensor_model/vicon_with_imu_bias_sensor_model.h>
+#include <pacejka_with_imu_bias_sensor_model/mocap_with_imu_bias_sensor_model.h>
 
 typedef crs_models::stacked_model::pacejka_imu_bias_car_state pacejka_imu_bias_car_state;
 #endif

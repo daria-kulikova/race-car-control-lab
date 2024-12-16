@@ -50,7 +50,7 @@ def build_acados_solver(
 
     for sensor in sensors:
         assert sensor in [
-            "vicon",
+            "mocap",
             "imu",
             "imu_yaw_rate",
             "wheel_encoders",
@@ -76,9 +76,9 @@ def build_acados_solver(
     ocp.model = model_ac
     model_ac.con_h_expr = None
 
-    # Vicon measurement model
-    R_vicon = np.eye(3)
-    H_vicon = np.concatenate([np.eye(3), np.zeros((3, 3))], axis=1)  # dim(H) = 3x6
+    # Mocap measurement model
+    R_mocap = np.eye(3)
+    H_mocap = np.concatenate([np.eye(3), np.zeros((3, 3))], axis=1)  # dim(H) = 3x6
 
     # IMU measurement model
     R_imu = np.eye(3)
@@ -109,9 +109,9 @@ def build_acados_solver(
     nu = u.size()[0]
 
     nz = 0
-    if "vicon" in sensors:
+    if "mocap" in sensors:
         # number of scalar measurements (observation matrix for linear measurement model)
-        nz += np.size(H_vicon, 0)
+        nz += np.size(H_mocap, 0)
     if "imu" in sensors:
         nz += 3
     if "imu_yaw_rate" in sensors:
@@ -133,7 +133,6 @@ def build_acados_solver(
     ocp.dims.nbx = nx  # number of state bounds
     ocp.dims.nbu = nu
     ocp.dims.nu = nu
-    ocp.dims.N = N
     ocp.dims.nh = 0  # number of nonlinear constraints
     ocp.dims.nsh = 0  # number of soft constraints
     ocp.dims.ns = nx + nu + 0  # num of slack vars
@@ -158,8 +157,8 @@ def build_acados_solver(
         ocp.cost.cost_type_0 = "LINEAR_LS"
         R_mat = []
         nz = 0
-        if "vicon" in sensors:
-            R_mat.append(np.linalg.inv(R_vicon))
+        if "mocap" in sensors:
+            R_mat.append(np.linalg.inv(R_mocap))
         if "imu_yaw_rate" in sensors:
             R_mat.append(np.linalg.inv(R_imu_yaw_rate))
         R = block_diag(*R_mat)
@@ -167,8 +166,8 @@ def build_acados_solver(
 
         ocp.cost.Vx_0 = np.zeros((ny_0, nx))
         ocp.cost.Vx_0[:nx, :] = np.eye(nx)
-        ocp.cost.Vx_0[(nx + nu) : (nx + nu + np.size(H_vicon, 0)), :] = H_vicon
-        ocp.cost.Vx_0[(nx + nu + np.size(H_vicon, 0)) :, :] = H_imu_yaw_rate
+        ocp.cost.Vx_0[(nx + nu) : (nx + nu + np.size(H_mocap, 0)), :] = H_mocap
+        ocp.cost.Vx_0[(nx + nu + np.size(H_mocap, 0)) :, :] = H_imu_yaw_rate
         # remember: 'u' corresponds to the process noise w!
         ocp.cost.Vu_0 = np.zeros((ny_0, nu))
         ocp.cost.Vu_0[nx : nx + nu, :] = np.eye(nu)
@@ -178,16 +177,16 @@ def build_acados_solver(
 
         ocp.cost.W = block_diag(np.linalg.inv(Q), R)
         ocp.cost.Vx = np.zeros((ny, nx))
-        ocp.cost.Vx[nu : (nu + np.size(H_vicon, 0)), :] = H_vicon
-        ocp.cost.Vx[(nu + np.size(H_vicon, 0)) :, :] = H_imu_yaw_rate
+        ocp.cost.Vx[nu : (nu + np.size(H_mocap, 0)), :] = H_mocap
+        ocp.cost.Vx[(nu + np.size(H_mocap, 0)) :, :] = H_imu_yaw_rate
         # remember: 'u' correspondsto the process noise w!
         ocp.cost.Vu = np.zeros((ny, nu))
         ocp.cost.Vu[:nu, :] = np.eye(nu)
         ocp.cost.yref = np.zeros((ny,))
-        # ocp.model.cost_y_expr = vertcat(u, mtimes(H_vicon, reshape(x, nx, 1)))
+        # ocp.model.cost_y_expr = vertcat(u, mtimes(H_mocap, reshape(x, nx, 1)))
         cost = []
-        if "vicon" in sensors:
-            cost.append(mtimes(H_vicon, reshape(x, nx, 1)))
+        if "mocap" in sensors:
+            cost.append(mtimes(H_mocap, reshape(x, nx, 1)))
         if "imu_yaw_rate" in sensors:
             cost.append(mtimes(H_imu_yaw_rate, reshape(x, nx, 1)))
 
@@ -199,8 +198,8 @@ def build_acados_solver(
         ocp.cost.cost_type_0 = "NONLINEAR_LS"
         R_mat = []
         nz = 0
-        if "vicon" in sensors:
-            R_mat.append(np.linalg.inv(R_vicon))
+        if "mocap" in sensors:
+            R_mat.append(np.linalg.inv(R_mocap))
         if "imu" in sensors:
             R_mat.append(np.linalg.inv(R_imu))
         if "imu_yaw_rate" in sensors:
@@ -215,8 +214,8 @@ def build_acados_solver(
         ocp.cost.W_0 = block_diag(np.linalg.inv(P), np.linalg.inv(Q), R)
 
         cost = []
-        if "vicon" in sensors:
-            cost.append(mtimes(H_vicon, reshape(x, nx, 1)))
+        if "mocap" in sensors:
+            cost.append(mtimes(H_mocap, reshape(x, nx, 1)))
         if "imu" in sensors:
             cost.append(f_imu)
         if "imu_yaw_rate" in sensors:
@@ -250,6 +249,12 @@ def build_acados_solver(
     ocp.cost.zu = 100 * np.ones(nu + nx + 0)
     ocp.cost.Zl = np.zeros(nu + nx + 0)
     ocp.cost.Zu = np.zeros(nu + nx + 0)
+
+    # set slacks at initial stage (only for input bounds)
+    ocp.cost.zl_0 = 100 * np.ones(nu + 0)
+    ocp.cost.zu_0 = 100 * np.ones(nu + 0)
+    ocp.cost.Zl_0 = np.zeros(nu + 0)
+    ocp.cost.Zu_0 = np.zeros(nu + 0)
 
     # set constraints
     ocp.constraints.lsh = np.zeros(ocp.dims.nsh)
@@ -317,6 +322,7 @@ def build_acados_solver(
     ocp.parameter_values = np.zeros(nparam)
 
     # set QP solver and integration
+    ocp.solver_options.N_horizon = N
     ocp.solver_options.Tsim = Ts
     ocp.solver_options.tf = Ts * N
     ocp.solver_options.qp_solver = (
@@ -356,9 +362,9 @@ def build_acados_solver(
         sensors_as_string = "{" + ", ".join([f'"{sensor}"' for sensor in sensors]) + "}"
         lines.insert(
             location,
-            f"// AUTO-GENERATED. Added sensor list for sanity check. \nstatic const char* SOLVER_MHE_SENSOR_LIST[{len(sensors)}] = {sensors_as_string};\n",
+            f"// AUTO-GENERATED. Added sensor list for sanity check. \nextern const char* SOLVER_MHE_SENSOR_LIST[{len(sensors)}];\n",
         )
-        lines.insert(location, f"const int SOLVER_MHE_NUM_SENSORS = {len(sensors)};\n")
+        lines.insert(location, f"extern const int SOLVER_MHE_NUM_SENSORS;\n")
         # Overwrite file with new content
         with open("lib/acados_solver_pacejka_model.h", "w") as f:
             f.writelines(lines)
@@ -366,6 +372,24 @@ def build_acados_solver(
         print(
             "Could not find struct definition in acados_solver_pacejka_model.h. Will not be able to add sensor list to created .h file. Did you change the acados template?"
         )
+        raise e
+
+    with open("lib/acados_solver_pacejka_model.c", "r") as f:
+        lines = f.readlines()
+
+    # Definitions of the custom variables in the source files to prevent multiple definitions error
+    try:
+        location = 81
+        lines.insert(location, f"const int SOLVER_MHE_NUM_SENSORS = {len(sensors)};\n")
+        lines.insert(
+            location + 1,
+            f"// AUTO-GENERATED. Added sensor list for sanity check. \nconst char* SOLVER_MHE_SENSOR_LIST[{len(sensors)}] = {sensors_as_string};\n",
+        )
+        # Overwrite file with new content
+        with open("lib/acados_solver_pacejka_model.c", "w") as f:
+            f.writelines(lines)
+    except ValueError as e:
+        print("Failed to add the custom definitions to the auto generated file.")
         raise e
 
 

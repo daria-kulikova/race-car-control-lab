@@ -14,6 +14,10 @@
     <arg name = "use_velocity_control" default = "false"    doc = "If true, uses the velocity control bridge to control the car."/>
     <arg name = "track_name"          default = "DEMO_TRACK"  doc = "Name of the track that should be loaded. "/>
 
+    <arg name = "gt_topic"            default = "car_state_converter/gt_state"        doc = "Topic where the ground truth state is published" />
+
+    <arg name = "bypass_estimator"    default = "true"       doc = "If true, bypasses the state estimation and directly uses the gt state of the gt_topic "/>
+
     <!-- Recording arguments  -->
     <arg name = "record_bag"          default = "true"        doc = "if true, recoard a .bag file with all topics"/>
     <arg name = "copy_config"         default = "true"        doc = "if true, backs up all .yaml configurations on execution" />
@@ -21,8 +25,8 @@
     <!-- Motion Capture System arguments -->
     <!-- Set one of the following to true. -->
     <arg name="use_vicon"             default = "false" />
-    <arg name="use_qualisys"          default = "false" />
-    <arg name="use_lighthouse"        default = "true" />
+    <arg name="use_qualisys"          default = "true" />
+    <arg name="use_lighthouse"        default = "false" />
 
     <!-- Names of the objects as defined in the Motion Capture Software. -->
     <arg name = "car_object"          default = "$(arg namespace)" />
@@ -54,16 +58,18 @@
 
     <arg name = "control_input_topic" default = "control_input"/>
 
-    <arg name = "vicon_topic"         default = "/vicon/$(arg namespace)/$(arg namespace)" if = "$(arg use_vicon)" />
-    <arg name = "vicon_topic"         default = "/mocap/$(arg namespace)" if = "$(arg use_qualisys)" />
-    <arg name = "vicon_topic"         default = "unused" if = "$(arg use_lighthouse)" />
+    <arg name = "mocap_topic"         default = "/vicon/$(arg namespace)/$(arg namespace)" if = "$(arg use_vicon)" />
+    <arg name = "mocap_topic"         default = "/mocap/$(arg namespace)" if = "$(arg use_qualisys)" />
+    <arg name = "mocap_topic"         default = "unused" if = "$(arg use_lighthouse)" />
 
     <!-- if sensor_filt the estimator uses filtered sensor measurement from python node. If sensor, then uses unfiltered measurement.-->
     <arg name = "imu_topic"           default = "imu_filt"/>
     <arg name = "imu_yaw_rate_topic"  default = "imu_filt" />
     <arg name = "wheel_encoder_topic" default = "wheel_encoders_filt"/>
     <arg name = "lighthouse_topic"    default = "lighthouse"/>
-    <arg name = "control_state_topic" default = "estimation_node/best_state"/>
+
+    <arg name = "control_state_topic"  default = "$(arg gt_topic)"    if     = "$(eval arg('bypass_estimator') == true)"/>
+    <arg name = "control_state_topic"  default = "estimation_node/best_state"   unless = "$(eval arg('bypass_estimator') == true)"/>
 
     <!-- =================================================================
                     Load the configuration files
@@ -77,6 +83,17 @@
     <arg name = "backtracker_config"    default = "$(arg experiment_path)/backtracker.yaml" />
     <arg name = "estimator_config"      default = "$(arg experiment_path)/estimator.yaml" />
 
+
+    <group ns = "$(arg namespace)">
+
+        <!-- =================================================================
+                           Start the qualisys republisher node
+             ================================================================= -->
+        <include file="$(find ros_tf_republisher)/launch/default_car_state_converter.launch">
+            <arg name = "model_name" value="$(arg namespace)" />
+        </include>
+
+    </group>
 
 
     <group ns = "$(arg namespace)">
@@ -154,7 +171,7 @@
 
         <arg name = "control_state_topic"  value = "$(arg control_state_topic)"/>
         <arg name = "control_input_topic"  value = "$(arg control_input_topic)"/>
-        <arg name = "vicon_topic"          value = "$(arg vicon_topic)"/>
+        <arg name = "mocap_topic"          value = "$(arg mocap_topic)"/>
         <arg name = "imu_topic"            value = "$(arg imu_topic)"/>
         <arg name = "wheel_encoder_topic"  value = "$(arg wheel_encoder_topic)"/>
         <arg name = "imu_yaw_rate_topic"   value = "$(arg imu_yaw_rate_topic)" />
@@ -166,5 +183,8 @@
         <arg name = "visualizer_config"    value = "$(arg visualizer_config)"/>
         <arg name = "backtracker_config"   value = "$(arg backtracker_config)"/>
         <arg name = "estimator_config"     value = "$(arg estimator_config)"/>
+
+        <arg name = "disable_estimator"    value = "$(arg bypass_estimator)" />
+        <arg name = "gt_topic"             value = "$(arg gt_topic)"/>
     </include>
 </launch>

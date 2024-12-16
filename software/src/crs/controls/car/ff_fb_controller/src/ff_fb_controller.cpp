@@ -18,7 +18,7 @@ FfFbController::FfFbController(FfFbConfig config, std::shared_ptr<crs_models::pa
   prev_pos_err_ = 0;
   prev_track_angle_ = 0;
   prev_yaw_ = 0;
-};
+}
 
 std::shared_ptr<StaticTrackTrajectory> FfFbController::getStaticTrack()
 {
@@ -52,10 +52,10 @@ void FfFbController::setConfig(FfFbConfig config)
     // Recreate filter
     u_steer_filter_ = Filter(config_.b_filter, config_.a_filter);
   }
-};
+}
 
 crs_models::pacejka_model::pacejka_car_input FfFbController::getControlInput(
-    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp /* Timestamp ignored */)
+    crs_models::pacejka_model::pacejka_car_state state_input, double timestamp [[maybe_unused]])
 {
   // absolute speed
   double v = std::sqrt(state_input.vel_x * state_input.vel_x + state_input.vel_y * state_input.vel_y);
@@ -104,18 +104,9 @@ crs_models::pacejka_model::pacejka_car_input FfFbController::getControlInput(
   // Feedback term
   double u_fb = -config_.Kp * err_look_ahead - config_.Kd * d_err_angle;
 
-  // FEEDFORWARD TERM:
-  // dynamic error cancellation:
-  double veh_slip = std::atan2(vy_w, vx_w) - yaw;
-  veh_slip = 0;
-  double side_slip_front_ff = 0;
-  double side_slip_rear_ff = veh_slip - model_->lr * state_input.yaw_rate / v;
-  if (std::isnan(side_slip_rear_ff))
-    side_slip_rear_ff = 0;
-
   // OTHER FEEDFORWARD:
   double m = model_->m;
-  double g = crs_models::pacejka_model::ContinuousPacejkaModel::GRAVITY;
+  const double g = 9.81;
   double C_f = model_->Cf;
   double C_r = model_->Cr;
 

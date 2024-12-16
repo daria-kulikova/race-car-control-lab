@@ -110,7 +110,7 @@ TEST(SensorTests, testGPSSensorModel)
       current_state.pos_x, current_state.pos_y, current_state.pos_z, I_vel[0], I_vel[1], I_vel[2]
     };
 
-    for (int i = 0; i < expected_states.size(); ++i)
+    for (size_t i = 0; i < expected_states.size(); ++i)
     {
       EXPECT_NEAR(sensor_measurement[i], expected_states[i], 0.01);
     }
