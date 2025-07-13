@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+set -e      # Exit on error. Important if git clone fails.
+
 printf "downloading acados\n"
 cd /
-git clone --branch v0.2.6 https://github.com/acados/acados.git
+git clone --branch v0.4.1 https://github.com/acados/acados.git --depth=1
 cd acados
-git submodule update --recursive --init
+git submodule update --recursive --init --depth=1
 
 printf "building acados\n"
 sudo mkdir -p build

@@ -83,7 +83,7 @@ int setupSimulator(ros::NodeHandle nh, ros::NodeHandle nh_private, const std::ve
   if (sensors_to_load.empty())
     ROS_WARN_STREAM("Provided sensor list was empty!. Running without any sensors!");
 
-  simulator = ros_simulator::resolveSimulator(nh, nh_private, state_type, input_type, sensors_to_load);
+  simulator = ros_simulator::resolveSimulator(nh, nh_private, input_type, state_type, sensors_to_load);
 
   if (!simulator)
   {

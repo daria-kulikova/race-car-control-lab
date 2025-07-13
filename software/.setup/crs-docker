@@ -4,7 +4,11 @@ set -euo pipefail
 function up() {
     option=$1
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
-        xhost +local:root || echo "Cannot connect to display. Run headless."
+        if [ -f "/etc/wsl.conf" ] || ["$WSL_DISTRO_NAME" == "Ubuntu"]; then
+            printf "WSL2 detected.\n" # If WSL2_GUI_APPS_ENABLED=1 nothing to do here.
+        else
+            xhost +local:root || echo "Cannot connect to display. Run headless."
+        fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
         : # no-op, on macOS we use the novnc container to render the simulation
     else

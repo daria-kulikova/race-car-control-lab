@@ -43,13 +43,13 @@ function clean()
     catkin clean
 
     # Clear auto-generated solver code
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/src/c_generated_code
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/include/acados_pacejka_mpcc_solver/acados_solver_pacejka_model.h
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/src/c_generated_code
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/include/acados_pacejka_safety_model_solver/acados_solver_safety_dynamic_model.h
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/src/c_generated_code
-    rm -rf src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/include/acados_pacejka_tracking_mpc_solver/acados_solver_pacejka_model_tracking_mpc.h
-
+    printf "[crs] Removing mpc solver libraries.\n"
+    rm -rf src/crs/controls/car/mpc_solvers/acados/*/lib
+    # Clear auto-generated pigpio library
+    if [ -d src/ros_io/pihat/rockpara_actuators/lib/pigpio-master ]; then
+        printf "[crs] Removing pigpio library.\n"
+        rm -rf src/ros_io/pihat/rockpara_actuators/lib/pigpio-master
+    fi
 }
 
 function generate()
@@ -57,6 +57,7 @@ function generate()
     src/crs/controls/car/mpc_solvers/acados/acados_pacejka_mpcc_solver/script/create_solver.sh
     src/crs/controls/car/mpc_solvers/acados/acados_pacejka_safety_model_solver/script/create_solver.sh
     src/crs/controls/car/mpc_solvers/acados/acados_pacejka_tracking_mpc_solver/script/create_solver.sh
+    src/crs/controls/car/mpc_solvers/acados/acados_kinematic_tracking_mpc_solver/script/create_solver.sh
 }
 
 function pwd_is_root() {

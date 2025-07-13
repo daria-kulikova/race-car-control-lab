@@ -28,7 +28,7 @@ RUN rosdep init && \
 
 WORKDIR /code
 
-# APT dependencies for the compilation of casadi/acados
+# APT dependencies for the compilation of casadi/acados + Python build dependencies
 RUN \
     --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
     --mount=type=cache,sharing=locked,target=/var/cache/apt \
@@ -37,6 +37,7 @@ RUN \
     git \
     ccache \
     python3-pip \
+    python3-dev \
     libeigen3-dev \
     # IPOPT for lighthouse_calib
     gfortran \
@@ -44,11 +45,10 @@ RUN \
     libblas-dev \
     liblapack-dev \
     pkg-config \
-    cm-super \
-    dvipng \
-    texlive-latex-extra \
-    texlive-latex-recommended \
-    python3-cffi
+    # Python build dependencies for cffi and other packages
+    libffi-dev \
+    gcc \
+    g++
 
 # Compile and install CasADi
 COPY .setup/ubuntu/install_casadi.sh .setup/ubuntu/install_casadi.sh
@@ -89,15 +89,16 @@ RUN \
     valgrind \
     tmux
 
+# Upgrade pip and install base build tools first
+RUN --mount=type=cache,sharing=locked,target=/root/.cache \
+    python3 -m pip install --upgrade pip wheel setuptools
+
 
 # Install Python requirements, caching the installation
-COPY requirements.txt requirements.txt
+COPY requirements.txt requirements.txt 
 RUN --mount=type=cache,sharing=locked,target=/root/.cache \
-    python3 -m pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt --ignore-installed
 
-# Install car plotting script
-COPY ./src/scripts/car_plotter ./src/scripts/car_plotter
-RUN pip install -e src/scripts/car_plotter
 # Install catkin
 RUN --mount=type=cache,sharing=locked,target=/root/.cache \
     pip3 install catkin_tools
@@ -115,7 +116,7 @@ COPY .setup/ubuntu/install_gtest.sh .setup/ubuntu/install_gtest.sh
 RUN sudo ./.setup/ubuntu/install_gtest.sh
 
 # Let git run pre-commit inside container
-RUN git config --system --add safe.directory .
+RUN git config --system --add safe.directory *
 
 # MANIPULATE BASHRC
 RUN echo "[[ -f /code/devel/setup.bash ]] && source /code/devel/setup.bash" >> ~/.bashrc

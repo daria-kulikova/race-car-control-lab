@@ -15,6 +15,10 @@ build/**
 # vs code
 .vscode
 
+# Python virtual environments
+venv
+.venv
+
 # Docker related
 
 # The docker-compose.yaml in the root folder is actually a simlink to one of the
@@ -1081,6 +1085,9 @@ src/crs/controls/car/mpc_solvers/forces/forces_pacejka_mpcc_solver/script/*.forc
 src/crs/controls/car/mpc_solvers/forces/forces_pacejka_mpcc_solver/include/forces_pacejka_mpcc_solver/
 
 # ACADOS
+
+# Controller and estimator solver libraries
+**/*solver/lib/
 
 # MHE
 src/crs/estimators/mhe_solvers/acados/acados_pacejka_mhe_solver/include/acados_pacejka_mhe_solver/acados_solver_pacejka_model.h
