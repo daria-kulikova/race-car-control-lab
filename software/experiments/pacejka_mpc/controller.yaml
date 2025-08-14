@@ -2,7 +2,7 @@ state_type: pacejka_car
 input_type: pacejka_car
 
 controller_type: MPCC
-max_rate: 25
+max_rate: 30
 init_delay: 0 # time to wait for estimator to converge to init. position
 
 controller_params:
@@ -14,16 +14,17 @@ controller_params:
   q: 3.5
   lag_compensation_time: 0.02
   solver_type: ACADOS
+  max_sqp_iterations: 1
 
 
   steer_limit: 0.4
 
 visualizer:
   rate: 10
-  type: last_reference
+  type: mpc
   # Visualizer specific  parameters
   frame_id: crs_frame # default
-  namespace: pid # default
+  namespace: mpc # default
 
   use_arrows: false # If true, use arrows to visualize planned and reference yaw angle. This option is a lot slower and may introduce visual lags
 

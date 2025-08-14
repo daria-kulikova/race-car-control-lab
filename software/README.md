@@ -35,12 +35,12 @@ We recommend to running CRS in a containerized environment. Instructions on how 
 
 2. Build all packages (inside the container)
 ```console
-/code# crs build && source devel/setup.bash
+crs build && source devel/setup.bash
 ```
 
 3. Run a simulation experiment with a single car using an MPCC on a Pacejka dynamic model
 ```console
-/code# roslaunch crs_launch sim_single_car.launch experiment_name:=pacejka_mpc
+roslaunch crs_launch sim_single_car.launch experiment_name:=pacejka_mpc
 ```
 
 Many more experiments are available in the [experiments](./experiments) folder! Further, many more [configuration options and arguments](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/getting_started/experiments) can be passed to the launch files.

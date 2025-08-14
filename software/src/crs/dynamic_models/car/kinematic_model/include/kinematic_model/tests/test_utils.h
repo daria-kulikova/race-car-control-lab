@@ -19,15 +19,19 @@ float getRandomFloat(float lower_limit, float upper_limit)
   return (distr(rd) * (upper_limit - lower_limit)) + lower_limit;
 }
 
-void loadRandomKinematicParams(crs_models::kinematic_model::kinematic_params& params, const std::string path)
+bool loadRandomKinematicParams(crs_models::kinematic_model::kinematic_params& params, const std::string path)
 {
-  // TODO(sabodmer) find cleaner solution
-  crs_models::kinematic_model::loadParamsFromFile(path, params);
+  bool success = crs_models::kinematic_model::loadParamsFromFile(path, params);
+  if (!success)
+  {
+    return false;
+  }
 
   float rel_diff = 0.1;  // 10 percent difference
   params.lr *= 1 + getRandomFloat(-rel_diff, rel_diff);
   params.lf *= 1 + getRandomFloat(-rel_diff, rel_diff);
   params.tau *= 1 + getRandomFloat(-rel_diff, rel_diff);
+  return true;
 }
 
 void loadRandomState(crs_models::kinematic_model::kinematic_car_state& state)

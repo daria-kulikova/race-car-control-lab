@@ -12,13 +12,12 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
-  <depend>eigen_catkin</depend>
-  <depend>safety_framework</depend>
-  <depend>pacejka_model</depend>
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+  <depend>acados_catkin</depend>
   <depend>commons</depend>
-  <depend>mpc_solvers</depend>
-  <depend>acados_pacejka_safety_model_solver</depend>
+  <depend>control_commons</depend>
+  <depend>pacejka_model</depend>
+  <depend>safety_framework</depend>
 
-  <export>
-  </export>
 </package>

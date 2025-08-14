@@ -9,10 +9,12 @@ crs_estimators::pacejka_mhe_config getConfig<crs_estimators::pacejka_mhe_config>
 {
   crs_estimators::pacejka_mhe_config params;
 
-  if (!getMatrixFromParams<6, 6>(ros::NodeHandle(nh, "P"), params.P))
+  if (!getMatrixFromParams<crs_models::pacejka_model::pacejka_car_state::NX,
+                           crs_models::pacejka_model::pacejka_car_state::NX>(ros::NodeHandle(nh, "P"), params.P))
     ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load P");
 
-  if (!getMatrixFromParams<6, 6>(ros::NodeHandle(nh, "Q"), params.Q))
+  if (!getMatrixFromParams<crs_models::pacejka_model::pacejka_car_state::NX,
+                           crs_models::pacejka_model::pacejka_car_state::NX>(ros::NodeHandle(nh, "Q"), params.Q))
     ROS_WARN_STREAM(" getConfig<crs_estimators::pacejka_mhe_config>: did not load Q");
 
   if (!getMatrixFromParams<3, 3>(ros::NodeHandle(nh, "R_mocap"), params.R_mocap))

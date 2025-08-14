@@ -28,7 +28,7 @@ RUN rosdep init && \
 
 WORKDIR /code
 
-# APT dependencies for the compilation of casadi/acados + Python build dependencies
+# APT dependencies for the compilation of casadi/acados
 RUN \
     --mount=type=cache,sharing=locked,target=/var/lib/apt/lists \
     --mount=type=cache,sharing=locked,target=/var/cache/apt \
@@ -37,7 +37,6 @@ RUN \
     git \
     ccache \
     python3-pip \
-    python3-dev \
     libeigen3-dev \
     # IPOPT for lighthouse_calib
     gfortran \
@@ -45,10 +44,14 @@ RUN \
     libblas-dev \
     liblapack-dev \
     pkg-config \
-    # Python build dependencies for cffi and other packages
-    libffi-dev \
-    gcc \
-    g++
+    cm-super \
+    dvipng \
+    texlive-latex-extra \
+    texlive-latex-recommended \
+    python3-cffi
+
+# Update setuptools version so setuptools-scm works
+RUN pip3 install "setuptools>=61"
 
 # Compile and install CasADi
 COPY .setup/ubuntu/install_casadi.sh .setup/ubuntu/install_casadi.sh
@@ -84,20 +87,24 @@ RUN \
     protobuf-compiler \
     libprotobuf-dev \
     clang-format \
+    clang-tidy \
     # GDB debugger
     gdb \
     valgrind \
     tmux
 
-# Upgrade pip and install base build tools first
-RUN --mount=type=cache,sharing=locked,target=/root/.cache \
-    python3 -m pip install --upgrade pip wheel setuptools
-
+# Install core dependencies first (dirty fix for the pyzmq issue)
+RUN pip3 install --upgrade wheel cython
+RUN pip3 install numpy==1.24.4 scipy==1.10.1 PyYAML==6.0.2
 
 # Install Python requirements, caching the installation
-COPY requirements.txt requirements.txt 
+COPY requirements.txt requirements.txt
 RUN --mount=type=cache,sharing=locked,target=/root/.cache \
-    python3 -m pip install -r requirements.txt --ignore-installed
+    python3 -m pip install -r requirements.txt
+
+# Install car plotting script
+COPY ./src/scripts/car_plotter ./src/scripts/car_plotter
+RUN pip3 install -e src/scripts/car_plotter
 
 # Install catkin
 RUN --mount=type=cache,sharing=locked,target=/root/.cache \
@@ -116,7 +123,17 @@ COPY .setup/ubuntu/install_gtest.sh .setup/ubuntu/install_gtest.sh
 RUN sudo ./.setup/ubuntu/install_gtest.sh
 
 # Let git run pre-commit inside container
-RUN git config --system --add safe.directory *
+RUN git config --system --add safe.directory .
+
+# Extend path so we can call scripts from anywhere
+ENV PATH="/code/scripts:$PATH"
 
 # MANIPULATE BASHRC
 RUN echo "[[ -f /code/devel/setup.bash ]] && source /code/devel/setup.bash" >> ~/.bashrc
+
+# Install L4acados
+COPY .setup/ubuntu/install_l4acados.sh .setup/ubuntu/install_l4acados.sh
+RUN sudo ./.setup/ubuntu/install_l4acados.sh
+
+# ROS EOL ingore warning
+ENV DISABLE_ROS1_EOL_WARNINGS=1

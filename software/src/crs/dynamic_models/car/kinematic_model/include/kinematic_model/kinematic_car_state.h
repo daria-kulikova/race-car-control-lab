@@ -2,6 +2,7 @@
 #define KINEMATIC_MODEL_KINEMATIC_CAR_STATE_H
 
 #include <iostream>
+#include <Eigen/Core>
 
 namespace crs_models
 {
@@ -33,6 +34,17 @@ inline kinematic_car_state operator+(const kinematic_car_state& a, const kinemat
   return added_struct;
 }
 
+inline kinematic_car_state operator-(const kinematic_car_state& a, const kinematic_car_state b)
+{
+  kinematic_car_state subtracted_struct;
+
+  subtracted_struct.pos_x = a.pos_x - b.pos_x;
+  subtracted_struct.pos_y = a.pos_y - b.pos_y;
+  subtracted_struct.yaw = a.yaw - b.yaw;
+  subtracted_struct.velocity = a.velocity - b.velocity;
+  return subtracted_struct;
+}
+
 inline kinematic_car_state operator*(double b, const kinematic_car_state& a)
 {
   kinematic_car_state product_struct;
@@ -51,6 +63,22 @@ inline void operator+=(kinematic_car_state& a, const kinematic_car_state& b)
   a.velocity = a.velocity + b.velocity;
 }
 
+inline void operator+=(kinematic_car_state& a, const Eigen::Matrix<double, 4, 1>& b)
+{
+  a.pos_x = a.pos_x + b(0, 0);
+  a.pos_y = a.pos_y + b(1, 0);
+  a.yaw = a.yaw + b(2, 0);
+  a.velocity = a.velocity + b(3, 0);
+}
+
+inline void operator-=(kinematic_car_state& a, const Eigen::Matrix<double, 4, 1>& b)
+{
+  a.pos_x = a.pos_x - b(0, 0);
+  a.pos_y = a.pos_y - b(1, 0);
+  a.yaw = a.yaw - b(2, 0);
+  a.velocity = a.velocity - b(3, 0);
+}
+
 inline bool operator==(const kinematic_car_state& a, const kinematic_car_state& b)
 {
   return (a.pos_x == b.pos_x) && (a.pos_y == b.pos_y) && (a.yaw == b.yaw) && (a.velocity == b.velocity);
@@ -65,6 +93,14 @@ inline std::ostream& operator<<(std::ostream& os,
   os << " Yaw: " << std::to_string(state.yaw) << std::endl;            // field of struct (state)
   os << " Velocity: " << std::to_string(state.velocity) << std::endl;  // field of struct (state)
   return os;
+}
+
+inline Eigen::Matrix<double, crs_models::kinematic_model::kinematic_car_state::NX, 1>
+toEigen(const crs_models::kinematic_model::kinematic_car_state& s)
+{
+  Eigen::Matrix<double, crs_models::kinematic_model::kinematic_car_state::NX, 1> vec;
+  vec << s.pos_x, s.pos_y, s.yaw, s.velocity;
+  return vec;
 }
 
 }  // namespace kinematic_model

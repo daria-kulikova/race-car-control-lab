@@ -13,7 +13,7 @@
   <buildtool_depend>catkin_simple</buildtool_depend>
 
   <depend>commons</depend>
-  <depend>controls</depend>
+  <depend>control_commons</depend>
 
   <depend>pacejka_model</depend>
 

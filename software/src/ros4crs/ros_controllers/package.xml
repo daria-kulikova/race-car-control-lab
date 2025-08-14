@@ -16,7 +16,7 @@
 
   <depend>crs_msgs</depend>
 
-  <depend>controls</depend>
+  <depend>control_commons</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>ros_crs_utils</depend>
 
@@ -25,7 +25,9 @@
   <depend>kinematic_model</depend>
   <depend>pid_controller</depend>
   <depend>ff_fb_controller</depend>
-  <depend>mpc_controller</depend>
+  <depend>pacejka_mpcc</depend>
+  <depend>pacejka_tracking_mpc</depend>
+  <depend>kinematic_tracking_mpc</depend>
 
   <depend>rocket_6_dof_model</depend>
   <depend>rocket_position_pid</depend>

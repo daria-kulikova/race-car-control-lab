@@ -8,43 +8,37 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-#############
+# ##############################################################################
 # Libraries #
-#############
+# ##############################################################################
 
-cs_add_library(${PROJECT_NAME}
-        src/pacejka_continuous.cpp
-        src/pacejka_discrete.cpp
-        src/utils/data_conversion.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/pacejka_continuous.cpp
+               src/pacejka_discrete.cpp src/utils/data_conversion.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
 # Generate the test files from the Python script
-execute_process(
-  COMMAND python3 ./test/generate_jacobians.py
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-)
+execute_process(COMMAND python3 ./test/generate_jacobians.py
+                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(struct_tests test/struct_tests.cpp )
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(struct_tests test/struct_tests.cpp)
   target_link_libraries(struct_tests ${catkin_LIBRARIES} ${PROJECT_NAME} casadi)
-  catkin_add_gtest(model_tests test/model_tests.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
-  target_link_libraries(model_tests ${catkin_LIBRARIES} ${PROJECT_NAME} casadi stdc++fs)
+  catkin_add_gtest(model_tests test/model_tests.cpp WORKING_DIRECTORY
+                   ${PROJECT_SOURCE_DIR}/test/)
+  target_link_libraries(model_tests ${catkin_LIBRARIES} ${PROJECT_NAME} casadi
+                        stdc++fs)
 endif()
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

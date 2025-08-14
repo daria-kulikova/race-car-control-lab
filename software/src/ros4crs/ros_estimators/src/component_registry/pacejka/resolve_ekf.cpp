@@ -43,7 +43,9 @@ std::shared_ptr<EkfType> loadCRSEstimator<EkfType>(ros::NodeHandle& nh, ros::Nod
   // Then overwrite specific parameters from local config (private nodehandle)
   parameter_io::getModelParams<crs_models::pacejka_model::pacejka_params>(
       ros::NodeHandle(nh_private, "model/model_params/"), params, false);
-  parameter_io::getMatrixFromParams<6, 6>(ros::NodeHandle(nh_private, "model/Q"), Q);
+  parameter_io::getMatrixFromParams<crs_models::pacejka_model::pacejka_car_state::NX,
+                                    crs_models::pacejka_model::pacejka_car_state::NX>(
+      ros::NodeHandle(nh_private, "model/Q"), Q);
 
   // Create Pacejka model
   std::shared_ptr<DiscretePacejkaModelType> model = std::make_shared<DiscretePacejkaModelType>(params, Q);

@@ -1,23 +1,24 @@
 #ifndef SRC_CRS_SAFETY_FRAMEWORK_COMMON_INCLUDE_SAFETY_FRAMEWORK_MPC_BASED_SAFETY_FILTER
 #define SRC_CRS_SAFETY_FRAMEWORK_COMMON_INCLUDE_SAFETY_FRAMEWORK_MPC_BASED_SAFETY_FILTER
 
-#include <mpc_solvers/mpc_solver.h>
-#include <safety_framework/model_based_safety_filter.h>
+#include "control_commons/mpc_solver.h"
+#include "safety_framework/model_based_safety_filter.h"
 
 namespace crs_safety
 {
-template <typename StateType, typename InputType, typename Model, typename MpcModel, typename MpcCost,
-          typename MpcParams>
+template <typename StateType, typename InputType, typename Model, typename MpcSolverType>
 class MpcBasedSafetyFilter : public ModelBasedSafetyFilter<StateType, InputType, Model>
 {
 protected:
-  std::shared_ptr<mpc_solvers::MpcSolver<MpcModel, MpcCost, MpcParams>> solver;
-
-  virtual std::shared_ptr<mpc_solvers::MpcSolver<MpcModel, MpcCost, MpcParams>> getSolver(std::string solver_type) = 0;
+  MpcSolverType solver_;
 
 public:
-  MpcBasedSafetyFilter(std::string solver_type [[maybe_unused]], std::shared_ptr<Model> model)
-    : ModelBasedSafetyFilter<StateType, InputType, Model>(model){};
+  using MpcSolution = typename MpcSolverType::MpcSolution;
+  using MpcInitialGuess = typename MpcSolverType::MpcInitialGuess;
+  using StateArray = typename MpcSolverType::StateArray;
+  using MpcParameters = typename MpcSolverType::MpcParameters;
+
+  MpcBasedSafetyFilter(std::shared_ptr<Model> model) : ModelBasedSafetyFilter<StateType, InputType, Model>(model){};
 
   virtual InputType getSafeControlInput(const StateType state, const InputType control_input) = 0;
 };

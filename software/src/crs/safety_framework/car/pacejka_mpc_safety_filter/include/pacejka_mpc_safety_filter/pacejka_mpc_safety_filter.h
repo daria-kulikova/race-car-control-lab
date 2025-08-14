@@ -1,28 +1,25 @@
-#ifndef SRC_CRS_SAFETY_FRAMEWORK_PACEJKA_MPC_SAFETY_FILTER_INCLUDE_PACEJKA_MPC_SAFETY_FILTER_PACEJKA_MPC_SAFETY_FILTER
-#define SRC_CRS_SAFETY_FRAMEWORK_PACEJKA_MPC_SAFETY_FILTER_INCLUDE_PACEJKA_MPC_SAFETY_FILTER_PACEJKA_MPC_SAFETY_FILTER
+#pragma once
 
-#include <safety_framework/mpc_based_safety_filter.h>
+#include <vector>
 
-#include <mpc_solvers/pacejka_safety_solver.h>
+#include "commons/trajectory.h"
+#include "commons/static_track_trajectory.h"
+#include "pacejka_model/pacejka_discrete.h"
+#include "pacejka_model/pacejka_car_input.h"
+#include "pacejka_model/pacejka_car_state.h"
+#include "pacejka_model/pacejka_params.h"
+#include "safety_framework/mpc_based_safety_filter.h"
 
-#include <pacejka_model/pacejka_discrete.h>
-#include <pacejka_model/pacejka_car_input.h>
-#include <pacejka_model/pacejka_car_state.h>
-#include <pacejka_model/pacejka_params.h>
+#include "pacejka_mpc_safety_filter/config.h"
+#include "pacejka_mpc_safety_filter/solvers/acados_pacejka_safety_model_solver.h"
 
-#include <commons/trajectory.h>
-#include <commons/static_track_trajectory.h>
-
-#include <pacejka_mpc_safety_filter/config.h>
-
-namespace crs_safety
+namespace crs_safety::pacejka_mpc_safety_filter
 {
 
 class PacejkaMpcSafetyFilter
-  : public MpcBasedSafetyFilter<
-        crs_models::pacejka_model::pacejka_car_state, crs_models::pacejka_model::pacejka_car_input,
-        crs_models::pacejka_model::DiscretePacejkaModel, crs_models::pacejka_model::pacejka_params,
-        mpc_solvers::pacejka_safety_solvers::reference_input, mpc_solvers::pacejka_safety_solvers::reference_on_track>
+  : public MpcBasedSafetyFilter<crs_models::pacejka_model::pacejka_car_state,
+                                crs_models::pacejka_model::pacejka_car_input,
+                                crs_models::pacejka_model::DiscretePacejkaModel, solvers::AcadosPacejkaSafetySolver>
 {
 public:
   PacejkaMpcSafetyFilter(pacejka_mpc_safety_config config,
@@ -51,21 +48,6 @@ public:
    *
    */
   bool input_overridden = false;
-
-protected:
-  /**
-   * @brief Get the Solver for a given solver type
-   *
-   * @param solver_type
-   * @return std::shared_ptr<mpc_solvers::MpcSolver<crs_models::pacejka_model::pacejka_params,
-   * mpc_solvers::pacejka_safety_solvers::reference_input,
-   * mpc_solvers::pacejka_safety_solvers::reference_on_track>>
-   */
-  std::shared_ptr<mpc_solvers::MpcSolver<crs_models::pacejka_model::pacejka_params,
-                                         mpc_solvers::pacejka_safety_solvers::reference_input,
-                                         mpc_solvers::pacejka_safety_solvers::reference_on_track>>
-
-  getSolver(std::string solver_type) override;
 
 private:
   /**
@@ -96,6 +78,4 @@ private:
                                const crs_models::pacejka_model::pacejka_car_input input);
 };
 
-}  // namespace crs_safety
-#endif /* SRC_CRS_SAFETY_FRAMEWORK_PACEJKA_MPC_SAFETY_FILTER_INCLUDE_PACEJKA_MPC_SAFETY_FILTER_PACEJKA_MPC_SAFETY_FILTER \
-        */
+}  // namespace crs_safety::pacejka_mpc_safety_filter

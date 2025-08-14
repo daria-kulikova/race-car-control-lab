@@ -8,26 +8,24 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-#############
+include_directories(include ${catkin_INCLUDE_DIRS})
+# ##############################################################################
 # Libraries #
-#############
+# ##############################################################################
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(ekf_test test/kalman_tests.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(ekf_test test/kalman_tests.cpp WORKING_DIRECTORY
+                   ${PROJECT_SOURCE_DIR}/test/)
   target_link_libraries(ekf_test ${catkin_LIBRARIES} casadi stdc++fs)
 endif()
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

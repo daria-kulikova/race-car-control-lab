@@ -37,7 +37,7 @@ private:
   visualization_msgs::Marker reference;
   visualization_msgs::Marker planned;
 
-  std::shared_ptr<crs_safety::PacejkaMpcSafetyFilter> safety_filter_;
+  std::shared_ptr<crs_safety::pacejka_mpc_safety_filter::PacejkaMpcSafetyFilter> safety_filter_;
 
   double visualization_rate = 10;
 
@@ -45,7 +45,8 @@ private:
   ros::Timer visualization_timer_;
 
 public:
-  MpcSafetyVisualizer(ros::NodeHandle nh_private, std::shared_ptr<crs_safety::PacejkaMpcSafetyFilter> safety_filter)
+  MpcSafetyVisualizer(ros::NodeHandle nh_private,
+                      std::shared_ptr<crs_safety::pacejka_mpc_safety_filter::PacejkaMpcSafetyFilter> safety_filter)
     : safety_filter_(safety_filter)
   {
     visualization_publisher_ = nh_private.advertise<visualization_msgs::Marker>("controller_visualization", 100);

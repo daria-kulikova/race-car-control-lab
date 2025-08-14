@@ -41,8 +41,8 @@ public:
    * @param B df/du of the discrete system
    */
   void getJacobian(const StateType& state, const InputType& control_input, double integration_time,
-                   Eigen::Matrix<double, StateType::NX, StateType::NX>& F,
-                   Eigen::Matrix<double, StateType::NX, InputType::NU>& D)
+                   Eigen::Matrix<double, StateType::NX, StateType::NX>& A,
+                   Eigen::Matrix<double, StateType::NX, InputType::NU>& B)
   {
     StateType k1 = cont_model->applyModel(state, control_input);
     StateType k2 = cont_model->applyModel(state + (integration_time / 2.0) * k1, control_input);
@@ -68,10 +68,9 @@ public:
 
     F_k4 = F_k4 * (Eigen::Matrix<double, StateType::NX, StateType::NX>::Identity() + integration_time * F_k3);
 
-    F = Eigen::Matrix<double, StateType::NX, StateType::NX>::Identity() +
+    A = Eigen::Matrix<double, StateType::NX, StateType::NX>::Identity() +
         (integration_time / 6.0) * (F_k1 + 2 * F_k2 + 2 * F_k3 + F_k4);
-    D = Eigen::Matrix<double, StateType::NX, InputType::NU>::Identity() +
-        (integration_time / 6.0) * (D_k1 + 2 * D_k1 + 2 * D_k3 + D_k4);
+    B = (integration_time / 6.0) * (D_k1 + 2 * D_k2 + 2 * D_k3 + D_k4);
   }
 };
 }  // namespace crs_models

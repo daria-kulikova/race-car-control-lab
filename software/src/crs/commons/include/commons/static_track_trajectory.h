@@ -33,7 +33,7 @@ struct track_error
 
 class StaticTrackTrajectory : public Trajectory
 {
-private:
+protected:
   /**
    * @brief the rate of change in x direction of all points on track centerline
    *

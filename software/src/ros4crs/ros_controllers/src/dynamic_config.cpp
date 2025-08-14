@@ -54,32 +54,6 @@ void DynamicFfFbConfigServer::callback(ros_controllers::ff_fbConfig& config, uin
 };
 #endif
 
-#ifdef mpc_controller_FOUND
-DynamicPacejkaMPCCConfigServer::DynamicPacejkaMPCCConfigServer(
-    const ros::NodeHandle& nh, std::shared_ptr<crs_controls::PacejkaMpccController> controller)
-  : server(nh), controller_(controller)
-{
-  f = boost::bind(&DynamicPacejkaMPCCConfigServer::callback, this, _1, _2);
-  server.setCallback(f);
-};
-
-void DynamicPacejkaMPCCConfigServer::callback(ros_controllers::pacejka_mpccConfig& config, uint32_t level)
-{
-  if (!controller_)
-    return;
-
-  crs_controls::mpcc_pacejka_config pid_cfg = controller_->getConfig();
-  pid_cfg.Q1 = config.Q1;
-  pid_cfg.Q2 = config.Q2;
-  pid_cfg.R1 = config.R1;
-  pid_cfg.R2 = config.R2;
-  pid_cfg.R3 = config.R3;
-  pid_cfg.q = config.q;
-  pid_cfg.lag_compensation_time = config.lag_compensation_time;
-  controller_->setConfig(pid_cfg);
-};
-#endif
-
 #ifdef rocket_position_pid_FOUND
 DynamicRocketPidConfigServer::DynamicRocketPidConfigServer(
     const ros::NodeHandle& nh, std::shared_ptr<crs_controls::Rocket6DofPidController> controller)

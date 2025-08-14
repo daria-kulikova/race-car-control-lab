@@ -13,6 +13,8 @@
     <arg name = "bypass_estimator"    default = "false"       doc = "If true, bypasses the state estimation and directly uses the gt state of the simulator "/>
     <arg name = "track_name"          default = "DEMO_TRACK"  doc = "Name of the track that should be loaded. "/>
 
+    <arg name = "control_package"     default = "ros_controllers"   doc = "Selected controller packaged. Chose from 'ros_controllers', 'rospy_controllers'" />
+
     <!-- Recording arguments  -->
     <arg name = "record_bag"          default = "false"       doc = "if true, recoard a .bag file with all topics"/>
     <arg name = "copy_config"         default = "false"        doc = "if true, backs up all .yaml configurations on execution" />
@@ -26,6 +28,7 @@
     <arg name = "gt_topic"      default = "ros_simulator/gt_state"        doc = "gt topic" />
 
     <arg name = "clock_rate"     default = "1"               doc = "Rate at which the simulated clock should run. 1 means real time, 0.5 means half speed, etc." />
+    <arg name = "enable_sim_time"     default = "false" />
 
     <!-- Optional Second Estimator -->
     <arg name = "use_second_estimator"  default = "false" />
@@ -113,6 +116,7 @@
         <arg name = "second_estimator_config" value = "$(arg second_estimator_config)"/>
 
         <arg name = "gt_topic"      value = "$(arg gt_topic)"/>
+        <arg name = "control_package"      value = "$(arg control_package)"/>
     </include>
 
     <!-- =================================================================

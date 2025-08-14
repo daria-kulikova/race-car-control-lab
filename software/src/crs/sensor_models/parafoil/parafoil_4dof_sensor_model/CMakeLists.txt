@@ -8,33 +8,29 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-#############
+# ##############################################################################
 # Libraries #
-#############
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+# ##############################################################################
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-cs_add_library(${PROJECT_NAME}
-        src/gps_sensor_model.cpp
-        src/imu_sensor_model.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/gps_sensor_model.cpp
+               src/imu_sensor_model.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(sensor_tests test/sensor_tests.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(sensor_tests test/sensor_tests.cpp WORKING_DIRECTORY
+                   ${PROJECT_SOURCE_DIR}/test/)
   target_link_libraries(sensor_tests ${catkin_LIBRARIES} ${PROJECT_NAME} casadi)
 endif()
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

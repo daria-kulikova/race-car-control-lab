@@ -1,7 +1,7 @@
 #ifndef ROS_CONTROLLERS_VISUALIZERS_BASE_VISUALIZER_H
 #define ROS_CONTROLLERS_VISUALIZERS_BASE_VISUALIZER_H
 
-#include <controls/base_controller.h>
+#include <control_commons/base_controller.h>
 #include <ros/ros.h>
 
 namespace ros_controllers

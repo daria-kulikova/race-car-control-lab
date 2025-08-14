@@ -67,8 +67,9 @@ resolverSafetyFilter(ros::NodeHandle& nh, ros::NodeHandle& nh_private, const std
   {
     // Create Controller
     // TODO, track generation currently static track reference
-    auto ptr = std::make_shared<crs_safety::PacejkaMpcSafetyFilter>(
-        parameter_io::getConfig<crs_safety::pacejka_mpc_safety_config>(ros::NodeHandle(nh_private, "config")),
+    auto ptr = std::make_shared<crs_safety::pacejka_mpc_safety_filter::PacejkaMpcSafetyFilter>(
+        parameter_io::getConfig<crs_safety::pacejka_mpc_safety_filter::pacejka_mpc_safety_config>(
+            ros::NodeHandle(nh_private, "config")),
         parameter_io::loadTrackDescriptionFromParams(ros::NodeHandle(nh, "track")), pacejka_model);
 
     // Downcast to BaseSafetyFilter type

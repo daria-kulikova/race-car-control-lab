@@ -9,30 +9,24 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-#############
+# ##############################################################################
 # Libraries #
-#############
+# ##############################################################################
 
-cs_add_library(${PROJECT_NAME}
-        src/custom_model_continuous.cpp
-        src/custom_model_discrete.cpp
-        src/utils/data_conversion.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/custom_model_continuous.cpp
+               src/custom_model_discrete.cpp src/utils/data_conversion.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

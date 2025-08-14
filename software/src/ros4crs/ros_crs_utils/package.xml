@@ -16,7 +16,7 @@
 
   <depend>crs_msgs</depend>
   <depend>dynamic_models</depend>
-  <depend>controls</depend>
+  <depend>control_commons</depend>
   <depend>commons</depend>
   <depend>planning</depend>
 
@@ -28,7 +28,9 @@
   <depend>kinematic_model</depend>
   <depend>pid_controller</depend>
   <depend>ff_fb_controller</depend>
-  <depend>mpc_controller</depend>
+  <depend>pacejka_mpcc</depend>
+  <depend>pacejka_tracking_mpc</depend>
+  <depend>kinematic_tracking_mpc</depend>
   <depend>pacejka_mpc_safety_filter</depend>
   <depend>mh_estimator</depend>
 

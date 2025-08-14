@@ -128,8 +128,8 @@ class SubtrajectoryOptimizer(Optimizer):
             xws = self.model.initial_estimate(y, u, self.dt)
 
         if x0 is None:
-            x0 = np.zeros((self.model.num_states, int(self.N / self.M)))
-            for i in range(int(self.N / self.M)):
+            x0 = np.zeros((self.model.num_states, int(np.ceil(self.N / self.M))))
+            for i in range(int(np.ceil(self.N / self.M))):
                 x0[:, i] = xws[:, i * self.M]
 
         if t is None:

@@ -7,7 +7,7 @@
 #include <boost/thread.hpp>
 
 #include "commons/base_trajectory.h"
-#include "controls/model_based_controller.h"
+#include "control_commons/model_based_controller.h"
 #include "rocket_6_dof_model/rocket_6_dof_state.h"
 #include "rocket_6_dof_model/rocket_6_dof_input.h"
 #include "rocket_6_dof_model/rocket_6_dof_params.h"

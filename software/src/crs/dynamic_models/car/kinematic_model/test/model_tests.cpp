@@ -25,7 +25,8 @@ TEST(kinematicTests, testContModel)
   for (int iteration_counter = 0; iteration_counter < N_ITER; iteration_counter++)
   {
     crs_models::kinematic_model::kinematic_params params;
-    loadRandomKinematicParams(params, "params/test_kinematic_params.yaml");
+    bool success = loadRandomKinematicParams(params, "params/test_kinematic_params.yaml");
+    ASSERT_TRUE(success);
     crs_models::kinematic_model::ContinuousKinematicModel model(params);
     // only has a position and forward velocity
     crs_models::kinematic_model::kinematic_car_state current_state;
@@ -52,7 +53,8 @@ TEST(kinematicTests, testDiscreteDriveForward)
   for (int iteration_counter = 0; iteration_counter < N_ITER; iteration_counter++)
   {
     crs_models::kinematic_model::kinematic_params params;
-    loadRandomKinematicParams(params, "params/test_kinematic_params.yaml");
+    bool success = loadRandomKinematicParams(params, "params/test_kinematic_params.yaml");
+    ASSERT_TRUE(success);
     crs_models::kinematic_model::DiscreteKinematicModel model(params);
     // only has a position and forward velocity
     crs_models::kinematic_model::kinematic_car_state current_state = { getRandomFloat(-5, 5), getRandomFloat(-5, 5),

@@ -11,9 +11,10 @@
 #include <ff_fb_controller/ff_fb_controller.h>
 #endif
 
-#ifdef mpc_controller_FOUND
+#ifdef PACEJKA_MPCC_FOUND
 #include "ros_controllers/pacejka_mpccConfig.h"
-#include <mpc_controller/pacejka_controller/mpcc_pacejka_controller.h>
+#include <pacejka_mpcc/mpcc_pacejka_controller.h>
+#include <pacejka_mpcc/mpcc_pacejka_config.h>
 #endif
 
 #ifdef rocket_position_pid_FOUND
@@ -76,29 +77,51 @@ public:
 };
 #endif
 
-#ifdef mpc_controller_FOUND
+#ifdef PACEJKA_MPCC_FOUND
 /**
  * @brief Class that creates a dynamic_callback parameter server and connects it with the underlying controller
  * Allows to tune a controller using a GUI interface
  *
  */
+template <typename SolverType>
 class DynamicPacejkaMPCCConfigServer
 {
 protected:
-  std::shared_ptr<crs_controls::PacejkaMpccController> controller_;
+  std::shared_ptr<crs_controls::pacejka_mpcc::PacejkaMpccController<SolverType>> controller_;
   dynamic_reconfigure::Server<pacejka_mpccConfig> server;
   dynamic_reconfigure::Server<pacejka_mpccConfig>::CallbackType f;
 
 public:
-  DynamicPacejkaMPCCConfigServer(const ros::NodeHandle& nh,
-                                 std::shared_ptr<crs_controls::PacejkaMpccController> controller);
+  DynamicPacejkaMPCCConfigServer(
+      const ros::NodeHandle& nh,
+      std::shared_ptr<crs_controls::pacejka_mpcc::PacejkaMpccController<SolverType>> controller)
+    : server(nh), controller_(controller)
+  {
+    f = boost::bind(&DynamicPacejkaMPCCConfigServer::callback, this, _1, _2);
+    server.setCallback(f);
+  };
+
   /**
    * @brief Callback that gets called from the dynamic reconfigure service
    *
    * @param config
    * @param level
    */
-  void callback(pacejka_mpccConfig& config, uint32_t level);
+  void callback(ros_controllers::pacejka_mpccConfig& config, uint32_t level)
+  {
+    if (!controller_)
+      return;
+
+    crs_controls::pacejka_mpcc::mpcc_pacejka_config pid_cfg = controller_->getConfig();
+    pid_cfg.Q1 = config.Q1;
+    pid_cfg.Q2 = config.Q2;
+    pid_cfg.R1 = config.R1;
+    pid_cfg.R2 = config.R2;
+    pid_cfg.R3 = config.R3;
+    pid_cfg.q = config.q;
+    pid_cfg.lag_compensation_time = config.lag_compensation_time;
+    controller_->setConfig(pid_cfg);
+  };
 };
 #endif
 

@@ -25,8 +25,12 @@ PacejkaSimulator::PacejkaSimulator(ros::NodeHandle nh, ros::NodeHandle nh_privat
   parameter_io::getModelParams<crs_models::pacejka_model::pacejka_params>(ros::NodeHandle(nh_, "model/model_params/"),
                                                                           params);
 
-  Eigen::Matrix<double, 6, 6> Q = Eigen::Matrix<double, 6, 6>::Identity();
-  if (!parameter_io::getMatrixFromParams<6, 6>(
+  Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                crs_models::pacejka_model::pacejka_car_state::NX>
+      Q = Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                        crs_models::pacejka_model::pacejka_car_state::NX>::Identity();
+  if (!parameter_io::getMatrixFromParams<crs_models::pacejka_model::pacejka_car_state::NX,
+                                         crs_models::pacejka_model::pacejka_car_state::NX>(
           ros::NodeHandle(nh_, "model/Q"), Q))  // Load Q from rosparameters (e.g. model_params.yaml  in pacejka_model)
   {
     ROS_WARN_STREAM("Could not load Q Matrix for provided Model. Using to Identity Matrix");

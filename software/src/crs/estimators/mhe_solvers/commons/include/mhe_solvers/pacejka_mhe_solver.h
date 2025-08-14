@@ -172,13 +172,17 @@ struct cost_values
    * @brief EKF State Covariance Matrix
    *
    */
-  Eigen::Matrix<double, 6, 6> P;
+  Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                crs_models::pacejka_model::pacejka_car_state::NX>
+      P;
 
   /**
    * @brief Process Noise Matrix
    *
    */
-  Eigen::Matrix<double, 6, 6> Q;
+  Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                crs_models::pacejka_model::pacejka_car_state::NX>
+      Q;
 
   /**
    * @brief Mocap Measurement Noise Matrix

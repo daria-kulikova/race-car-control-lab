@@ -1,5 +1,6 @@
-#include <ros_crs_utils/parameter_io.h>
-#include <pacejka_mpc_safety_filter/config.h>
+#include "ros_crs_utils/parameter_io.h"
+
+#include "pacejka_mpc_safety_filter/config.h"
 
 namespace parameter_io
 {
@@ -11,9 +12,10 @@ namespace parameter_io
  * @return crs_safety::pacejka_mpc_safety_config
  */
 template <>
-crs_safety::pacejka_mpc_safety_config getConfig<crs_safety::pacejka_mpc_safety_config>(const ros::NodeHandle& nh)
+crs_safety::pacejka_mpc_safety_filter::pacejka_mpc_safety_config
+getConfig<crs_safety::pacejka_mpc_safety_filter::pacejka_mpc_safety_config>(const ros::NodeHandle& nh)
 {
-  crs_safety::pacejka_mpc_safety_config config;
+  crs_safety::pacejka_mpc_safety_filter::pacejka_mpc_safety_config config;
   nh.getParam("dist_targ_multiplier", config.dist_targ_multiplier);
   nh.getParam("min_terminal_dist", config.min_terminal_dist);
   nh.getParam("max_terminal_dist", config.max_terminal_dist);

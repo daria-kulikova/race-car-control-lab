@@ -7,11 +7,6 @@ add_compile_options(-fPIC)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-# DEFINE CATKIN WORKSPACE DIRECTORY
-execute_process(COMMAND catkin locate
-                OUTPUT_VARIABLE CATKIN_WORKSPACE_DIR
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 # ##############################################################################
 # Libraries #
 # ##############################################################################
@@ -20,10 +15,16 @@ execute_process(COMMAND catkin locate
 # dir isn't present, the cs_export fails.
 set(SOLVER_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 file(MAKE_DIRECTORY ${SOLVER_LIB_DIR})
+
+set(SOLVER_GENERATION_DIRS "script:config")
+set(SOLVER_GENERATION_CMD
+    "python3 script/generate_acados_solver.py --config solver.yaml")
 # Run solver creation once at build generation time so we can track the solver
 # files.
-execute_process(COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+execute_process(
+  COMMAND bash create_solver_watch.sh -d "${SOLVER_GENERATION_DIRS}" -s
+          "${SOLVER_GENERATION_CMD}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
 # Define the solver source files.
 set(MODEL_NAME pacejka_model)
@@ -36,7 +37,8 @@ file(GLOB MODEL_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_model/*.c")
 
 add_custom_target(
   ${PROJECT_NAME}_c_solver_lib
-  COMMAND bash ${CATKIN_WORKSPACE_DIR}/scripts/create_solver_watch.sh ${CMAKE_CURRENT_LIST_DIR} update
+  COMMAND bash create_solver_watch.sh -d "${SOLVER_GENERATION_DIRS}" -u -s
+          "${SOLVER_GENERATION_CMD}"
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   BYPRODUCTS ${MODEL_SRC} ${OCP_SRC}
   COMMENT "Generate acados C solvers and create lib/ directory")

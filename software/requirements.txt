@@ -4,6 +4,7 @@ PyYAML==6.0.2
 oyaml==0.9
 rospkg==1.2.3
 casadi==3.6.7
+typed-argument-parser==1.10.1
 
 # Other generic scientific computation
 scipy==1.10.1
@@ -16,13 +17,13 @@ matplotlib==3.7.5
 matplotlib2tikz==0.7.6
 cffi==1.14.0
 
-# # Coat MPC packages
-torch==1.10.1
+# Coat MPC packages
 botorch==0.6.4
-#GPy==1.10.0
-gpytorch==1.6.0
+GPy==1.10.0
+gpytorch==1.13.0
 sobol-seq==0.2.0
 tikzplotlib==0.8.5
+torch==1.13
 
 # Model Unit Tests
 sympy==1.12

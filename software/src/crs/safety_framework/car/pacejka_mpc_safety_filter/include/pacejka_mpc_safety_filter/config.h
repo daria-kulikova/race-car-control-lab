@@ -1,19 +1,8 @@
-#ifndef PACEJKA_MPC_SAFETY_FILTER_CONFIG_H
-#define PACEJKA_MPC_SAFETY_FILTER_CONFIG_H
+#pragma once
 
-#include <safety_framework/mpc_based_safety_filter.h>
+#include <string>
 
-#include <mpc_solvers/pacejka_safety_solver.h>
-
-#include <pacejka_model/pacejka_discrete.h>
-#include <pacejka_model/pacejka_car_input.h>
-#include <pacejka_model/pacejka_car_state.h>
-#include <pacejka_model/pacejka_params.h>
-
-#include <commons/trajectory.h>
-#include <commons/static_track_trajectory.h>
-
-namespace crs_safety
+namespace crs_safety::pacejka_mpc_safety_filter
 {
 struct pacejka_mpc_safety_config
 {
@@ -37,5 +26,4 @@ struct pacejka_mpc_safety_config
   double cost_delta_torque;
   double cost_delta_steer;
 };
-}  // namespace crs_safety
-#endif /* PACEJKA_MPC_SAFETY_FILTER_CONFIG_H */
+}  // namespace crs_safety::pacejka_mpc_safety_filter

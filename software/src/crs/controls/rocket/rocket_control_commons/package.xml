@@ -15,7 +15,7 @@
   <depend>eigen_catkin</depend>
 
   <depend>commons</depend>
-  <depend>controls</depend>
+  <depend>control_commons</depend>
 
   <depend>dynamic_models</depend>
   <depend>rocket_6_dof_model</depend>

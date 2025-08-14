@@ -4,7 +4,7 @@
 
 #include <trajectory_msgs/JointTrajectory.h>
 
-#include <controls/base_controller.h>
+#include <control_commons/base_controller.h>
 #include <ros_crs_utils/state_message_conversion.h>
 #include <ros_crs_utils/trajectory_message_conversion.h>
 

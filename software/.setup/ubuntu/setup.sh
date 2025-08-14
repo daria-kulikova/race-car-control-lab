@@ -17,7 +17,7 @@ fi
 printf "installing crs-docker...\n"
 if [[ -f docker-compose-ubuntu.yaml ]]; then
     sudo install ../crs-docker /usr/bin/
-	ln -sf $PWD/docker-compose-ubuntu.yaml ../../docker-compose.yaml
+	ln -sf "$PWD/docker-compose-ubuntu.yaml" ../../docker-compose.yaml
 else
     printf "Cannot run the setup in this folder! Change to the correct setup sub-folder.\n"
     exit 1

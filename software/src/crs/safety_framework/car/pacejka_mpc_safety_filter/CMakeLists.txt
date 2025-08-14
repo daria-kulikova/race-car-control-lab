@@ -1,45 +1,40 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.12)
 project(pacejka_mpc_safety_filter)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(-fPIC)
+
 find_package(catkin_simple REQUIRED)
 find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
-catkin_package()
 
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-
-  $ENV{ACADOS_SOURCE_DIR}/include
-  $ENV{ACADOS_SOURCE_DIR}/include/acados
-  $ENV{ACADOS_SOURCE_DIR}/include/blasfeo/include
-  $ENV{ACADOS_SOURCE_DIR}/include/hpipm/include
-)
-
-#############
+# ##############################################################################
 # Libraries #
-#############
-#
+# ##############################################################################
 
-cs_add_library(${PROJECT_NAME}
-src/pacejka_mpc_safety_filter.cpp
-)
+cs_add_library(${PROJECT_NAME} src/pacejka_mpc_safety_filter.cpp)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-target_link_libraries(${PROJECT_NAME})
+generate_acados_solver(
+  pacejka_safety_solver
+  MODEL_NAME
+  safety_dynamic_model
+  CONFIG_PATH
+  config/solver.yaml
+  LIB_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/lib
+  OCP_MODULE_DIR
+  script
+  SOURCES
+  src/solvers/acados_pacejka_safety_model_solver.cpp)
 
-
-
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
-cs_export()
+cs_export(INCLUDE_DIRS ${${PROJECT_NAME}_SOLVER_INCLUDE_DIRS})

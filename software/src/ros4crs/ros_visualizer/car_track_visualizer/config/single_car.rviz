@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /Vehicle Marker1
         - /Vehicle Marker1/Namespaces1
+        - /Controller1
       Splitter Ratio: 0.5330926775932312
     Tree Height: 656
   - Class: rviz/Selection
@@ -58,8 +59,6 @@ Visualization Manager:
       Marker Topic: /car_visualization
       Name: Vehicle Marker
       Namespaces:
-        car_1_estimated: true
-        car_1_estimated_trajectory: true
         car_1_groundtruth: true
       Queue Size: 100
       Value: true
@@ -69,7 +68,10 @@ Visualization Manager:
       Name: Controller
       Namespaces:
         pid: true
-      Queue Size: 100
+        mpc_planned_trajectory: true
+        mpc_planned_trajectory_ell: true
+        mpc_reference_trajectory: true
+      Queue Size: 200
       Value: true
     - Class: rviz/Marker
       Enabled: false
@@ -92,7 +94,7 @@ Visualization Manager:
       Marker Topic: /car_1/estimation_node/visualizer/state_estimate_visualization
       Name: state_estimate
       Namespaces:
-        ekf_state_estimate: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -164,7 +166,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.715798854827881
+      Distance: 4.568569183349609
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -180,9 +182,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5597963333129883
+      Pitch: 1.5647963285446167
       Target Frame: <Fixed Frame>
-      Yaw: 4.713587284088135
+      Yaw: 4.713587760925293
     Saved: ~
 Window Geometry:
   Displays:

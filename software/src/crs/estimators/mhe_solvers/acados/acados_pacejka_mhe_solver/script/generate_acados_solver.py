@@ -6,6 +6,7 @@ import yaml
 from scipy.linalg import block_diag
 from casadi import SX, vertcat, mtimes, reshape, sqrt, fabs
 from typing import List
+import shutil
 
 from casadi import vertcat
 
@@ -420,6 +421,10 @@ if __name__ == "__main__":
             "Did not find rospackage acados_pacejka_mhe_solver. Assuming script is called from the scripts folder."
         )
         os.chdir("../src")
+        controller_path = "../"
+
+    if os.path.exists(os.path.join(controller_path, "lib")):
+        shutil.rmtree(os.path.join(controller_path, "lib"))
 
     with open(os.path.join(controller_path, "config", args.config)) as f:
         cfg = yaml.load(f, Loader=yaml.loader.SafeLoader)

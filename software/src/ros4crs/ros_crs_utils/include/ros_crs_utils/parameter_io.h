@@ -5,6 +5,7 @@
 #include <memory>
 #include <commons/static_track_trajectory.h>
 #include <commons/dynamic_point_trajectory.h>
+#include <commons/curvilinear_track_trajectory.h>
 
 #include <Eigen/Core>
 
@@ -23,6 +24,15 @@ struct empty_params
  */
 std::shared_ptr<crs_controls::StaticTrackTrajectory> loadTrackDescriptionFromParams(const ros::NodeHandle& nh);
 std::shared_ptr<crs_controls::DynamicPointTrajectory> loadReferenceFromParams(const ros::NodeHandle& nh);
+
+/**
+ * @brief Loads a track manager based on the track description of the ros parameter server
+ *
+ * @param nh
+ * @return std::shared_ptr<crs_controls::StaticTrackTrajectory>
+ */
+std::shared_ptr<crs_controls::CurvilinearTrackTrajectory>
+loadCurvilinearTrackDescriptionFromParams(const ros::NodeHandle& nh);
 
 /**
  * @brief Loads the parameters for a given model from the ros parameters server

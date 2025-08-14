@@ -39,11 +39,11 @@ model_bounds:
     theta_min: 0.0
     theta_max: 1000.0
 
-    ddelta_min: -2.0
-    ddelta_max: 2.0
+    ddelta_min: -4.0
+    ddelta_max: 4.0
 
-    dT_min: -15.0
-    dT_max: 15.0
+    dT_min: -1.0
+    dT_max: 1.0
 
     dtheta_min: 0.0
     dtheta_max: 3.5

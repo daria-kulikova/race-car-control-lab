@@ -236,7 +236,7 @@ void Pacejka_MHE::measurementCallback(const crs_sensor_models::measurement measu
 void Pacejka_MHE::initialize(pacejka_state state)
 {
   int N_ = solver_->getHorizonLength();
-  Eigen::Matrix<double, 6, 6> P = config_.P;
+  Eigen::Matrix<double, pacejka_state::NX, pacejka_state::NX> P = config_.P;
 
   if (config_.use_internal_estimator)
   {
@@ -629,7 +629,7 @@ pacejka_state Pacejka_MHE::solveMHE(const double timestamp)
   input_buffer.interpolateDataNonuniform(horizon_shooting_ts_.data(), ref_ts, N_, subsampled_inputs);
   states_buffer.interpolateDataNonuniform(horizon_shooting_ts_.data(), ref_ts, N_, subsampled_states);
 
-  Eigen::Matrix<double, 6, 6> P = config_.P;
+  Eigen::Matrix<double, pacejka_state::NX, pacejka_state::NX> P = config_.P;
   if (config_.use_internal_estimator)
   {
     // Try to cast internal estimator to ekf.

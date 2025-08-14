@@ -2,11 +2,11 @@
 #define SRC_ROS_ROS_CONTROLLERS_INCLUDE_ROS_CONTROLLERS_VISUALIZERS_MPC_CONTROLLER_VISUALIZER
 #include <ros/ros.h>
 
-#include <controls/base_controller.h>
+#include <control_commons/base_controller.h>
 #include <ros_crs_utils/state_message_conversion.h>
 
 #include "ros_controllers/visualizers/base_visualizer.h"
-#include <controls/mpc_controller.h>
+#include <control_commons/mpc_controller.h>
 #include <visualization_msgs/Marker.h>
 
 namespace ros_controllers

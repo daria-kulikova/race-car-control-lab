@@ -10,6 +10,8 @@
     <arg name = "view_plotjuggler"    default = "false"       doc = "If true, starts a plotjuggler node for plotting. " />
     <arg name = "use_backtracker"     default = "false"        doc = "If true, uses a backtracker as defined in the backtracker.yaml config to recover from crashes "/>
     <arg name = "use_battery_monitor" default = "true"        doc = "If true, starts a battery monitor that will issue warnings if a car's battery runs low." />
+    <arg name = "use_safety_filter"   default = "false"      doc = "if true, loads safety filter" />
+
     <arg name = "track_name"          default = "DEMO_TRACK"  doc = "Name of the track that should be loaded. "/>
 
     <!-- Recording arguments  -->
@@ -80,6 +82,7 @@
     <arg name = "backtracker_config"    default = "$(arg experiment_path)/backtracker.yaml" />
     <arg name = "estimator_config"      default = "$(arg experiment_path)/estimator_mhe.yaml" />
     <arg name = "second_estimator_config" default = "$(arg experiment_path)/estimator_mhe.yaml" />
+    <arg name = "safety_filter_config"  default = "$(arg experiment_path)/safety_filter.yaml" />
 
 
     <!-- Optional Second Estimator -->
@@ -117,6 +120,8 @@
         <arg name = "visualizer_config"    value = "$(arg visualizer_config)"/>
         <arg name = "backtracker_config"   value = "$(arg backtracker_config)"/>
         <arg name = "estimator_config"     value = "$(arg estimator_config)"/>
+        <arg name = "use_safety_filter"    value = "$(arg use_safety_filter)"/>
+        <arg name = "safety_filter_config" value = "$(arg safety_filter_config)"/>
 
         <arg name = "use_filter"            value = "$(arg use_filter)"/>
     </include>

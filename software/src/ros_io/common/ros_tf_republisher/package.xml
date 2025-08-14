@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>ros_tf_republisher</name>
-  <version>0.0.1</version>
-  <description>TODO </description>
+  <version>0.0.2</version>
+  <description>Utility node splitting /tf into multiple distinct topics.</description>
 
   <author email="vogellu@ethz.ch">Lukas Vogel</author>
   <maintainer email="vogellu@ethz.ch">Lukas Vogel</maintainer>

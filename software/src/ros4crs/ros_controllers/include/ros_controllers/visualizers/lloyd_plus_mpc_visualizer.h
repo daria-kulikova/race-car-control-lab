@@ -2,8 +2,8 @@
 #define ROS_CONTROLLERS_VISUALIZERS_LLOYD_PLUS_MPC_VISUALIZER_H
 
 #include "ros_controllers/visualizers/base_visualizer.h"
-#include <controls/base_controller.h>
-#include <controls/mpc_controller.h>
+#include <control_commons/base_controller.h>
+#include <control_commons/mpc_controller.h>
 #include <ros/ros.h>
 #include <ros_crs_utils/state_message_conversion.h>
 #include <visualization_msgs/Marker.h>

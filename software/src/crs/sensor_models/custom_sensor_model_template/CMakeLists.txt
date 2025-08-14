@@ -8,28 +8,23 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-#############
+# ##############################################################################
 # Libraries #
-#############
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+# ##############################################################################
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-cs_add_library(${PROJECT_NAME}
-        src/mocap_sensor_model.cpp
-        src/imu_sensor_model.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/mocap_sensor_model.cpp
+               src/imu_sensor_model.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

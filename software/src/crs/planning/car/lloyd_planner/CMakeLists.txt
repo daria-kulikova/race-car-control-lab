@@ -7,30 +7,23 @@ find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-include_directories(
-  include
-  thirdparty
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include thirdparty ${catkin_INCLUDE_DIRS})
 
-#############
+# ##############################################################################
 # Libraries #
-#############
+# ##############################################################################
 
-cs_add_library(${PROJECT_NAME}
-    src/multi_pacejka_lloyd_planner.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/multi_pacejka_lloyd_planner.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

@@ -2,24 +2,18 @@
 #include "pacejka_mpc_safety_filter/pacejka_mpc_safety_filter.h"
 
 #include <chrono>
-#include <vector>
+#include <cmath>
 
-#include "acados_pacejka_safety_model_solver/acados_pacjeka_safety_model_solver.h"
-
-namespace crs_safety
+namespace crs_safety::pacejka_mpc_safety_filter
 {
 
 PacejkaMpcSafetyFilter::PacejkaMpcSafetyFilter(pacejka_mpc_safety_config config,
                                                std::shared_ptr<crs_controls::StaticTrackTrajectory> trajectory,
                                                std::shared_ptr<crs_models::pacejka_model::DiscretePacejkaModel> model)
-  : MpcBasedSafetyFilter(config.solver_type, model), config_(config)
+  : MpcBasedSafetyFilter(model), trajectory_(trajectory), config_(config)
 {
-  /* Make sure to initialize solver here!! */
-  solver = getSolver(config_.solver_type);
-  trajectory_ = trajectory;
-
   // Fill reference with zeros
-  for (int i = 0; i < solver->getHorizonLength(); i++)
+  for (int i = 0; i < solver_.N; i++)
   {
     planned_trajectory.push_back({ 0, 0, 0, 0, 0, 0, 0 });
   }
@@ -37,7 +31,7 @@ PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_m
   // reference points with equal distance on track
   if (config_.reference_method == "uniform")
   {
-    double time_horizon_ = float(solver->getHorizonLength()) * solver->getSamplePeriod();
+    double time_horizon_ = float(solver_.N * solver_.getSamplePeriod());
     // Get average distance between two points on track
     // double dist_target = time_horizon_ * input.torque * config_.dist_targ_multiplier;
     double dist_target =
@@ -57,9 +51,9 @@ PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_m
     double terminal_dist = std::min(config_.max_terminal_dist, std::max(config_.min_terminal_dist, dist_target));
     // Convert distance value to index
     double terminal_idx_dist = std::floor(terminal_dist / arc_length_delta);
-    int constraint_idx_delta = std::max(1, (int)std::floor(terminal_idx_dist / solver->getHorizonLength()));
+    int constraint_idx_delta = std::max(1, (int)std::floor(terminal_idx_dist / solver_.N));
 
-    for (int stage = 0; stage < solver->getHorizonLength(); stage++)
+    for (int stage = 0; stage < solver_.N; stage++)
     {
       auto ref_pt = trajectory_->operator[](ref_idx + stage * constraint_idx_delta);
       crs_models::pacejka_model::pacejka_car_state reference;
@@ -68,7 +62,7 @@ PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_m
       reference.yaw = trajectory_->getTrackAngle(ref_idx + stage * constraint_idx_delta);
 
       // Warm start velocity
-      reference.vel_x = state.vel_x + (1 - state.vel_x) / solver->getHorizonLength() * (stage);
+      reference.vel_x = state.vel_x + (1 - state.vel_x) / solver_.N * (stage);
 
       reference.vel_y = 0;
       reference.yaw_rate = 0;
@@ -81,9 +75,9 @@ PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_m
     crs_models::pacejka_model::pacejka_car_state start_pt;
     start_pt.vel_x = state.vel_x;
 
-    for (int stage = 0; stage < solver->getHorizonLength(); stage++)
+    for (int stage = 0; stage < solver_.N; stage++)
     {
-      start_pt = model->applyModel(start_pt, input, solver->getSamplePeriod());
+      start_pt = model->applyModel(start_pt, input, solver_.getSamplePeriod());
       int idx_delta = std::ceil(start_pt.pos_x / arc_length_delta);
       auto ref_pt = trajectory_->operator[](ref_idx + idx_delta);
 
@@ -98,13 +92,8 @@ PacejkaMpcSafetyFilter::calculateReferenceTrajectory(const crs_models::pacejka_m
     std::cout << "[WARN] unknown reference method: " << config_.reference_method << std::endl;
   }
   return ref_trajectory;
-}  // namespace crs_safety
-/**
- * @brief Wraps an angle to [-pi, pi]
- *
- * @param angle the input angle
- * @return double the wrapped angle
- */
+}
+
 double wrapToPi(double angle)
 {
   double x = std::fmod(angle + M_PI, 2 * M_PI);
@@ -127,7 +116,7 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
   float track_yaw = trajectory_->getTrackAngle(closest_track_idx);
   future_state.yaw = track_yaw + wrapToPi(future_state.yaw - track_yaw);
 
-  double x_init[] = {
+  StateArray x_init = {
     future_state.pos_x,
     future_state.pos_y,
     future_state.yaw,
@@ -138,33 +127,33 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
     control_input.steer,
   };
 
-  solver->setInitialState(x_init);
-
   std::vector<std::pair<int, crs_models::pacejka_model::pacejka_car_state>> references =
       calculateReferenceTrajectory(future_state, control_input);
 
   auto terminal_reference = references[references.size() - 1].second;
 
   // Run solver
-  for (int current_stage = 0; current_stage < solver->getHorizonLength(); current_stage++)
+  MpcParameters parameters;
+  MpcInitialGuess initial_guess;
+  for (int current_stage = 0; current_stage < solver_.N; current_stage++)
   {
     auto reference_state = references[current_stage].second;
 
     // Update tracking point based on predicted distance on track
-    mpc_solvers::pacejka_safety_solvers::reference_on_track reference = {
+    solvers::ReferenceOnTrack reference = {
       reference_state.pos_x,    reference_state.pos_y,    reference_state.yaw,
       terminal_reference.pos_x, terminal_reference.pos_y, terminal_reference.yaw,
     };
 
-    solver->updateParams(current_stage,
-                         model->getParams(),  // Model Dynamics
-                         { control_input.torque, control_input.steer, config_.cost_torque, config_.cost_steer,
-                           config_.cost_delta_torque, config_.cost_delta_steer },  // Input
-                         reference                                                 // Tracking point
-    );
+    parameters[current_stage] = {
+      model->getParams(),  // Model Dynamics
+      { control_input.torque, control_input.steer, config_.cost_torque, config_.cost_steer, config_.cost_delta_torque,
+        config_.cost_delta_steer },  // Input
+      reference                      // Tracking point
+    };
 
     // Only used for visualization
-    if (current_stage != solver->getHorizonLength() - 1)
+    if (current_stage != solver_.N - 1)
     {
       planned_trajectory[current_stage][4] = reference.xp_track;
       planned_trajectory[current_stage][5] = reference.yp_track;
@@ -184,45 +173,42 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
 
     double torque_decay = 0.0;
     double u = u_l_t_warm * std::exp(-torque_decay * current_stage);
-    double x_i[8] = { reference_state.pos_x,
-                      reference_state.pos_y,
-                      reference_state.yaw,
-                      reference_state.vel_x,
-                      reference_state.vel_y,
-                      reference_state.yaw_rate,
-                      u,
-                      delta_ff };
-
-    solver->setStateInitialGuess(current_stage, x_i);
+    initial_guess.x[current_stage] = { reference_state.pos_x,
+                                       reference_state.pos_y,
+                                       reference_state.yaw,
+                                       reference_state.vel_x,
+                                       reference_state.vel_y,
+                                       reference_state.yaw_rate,
+                                       u,
+                                       delta_ff };
   }
 
-  std::vector<double> x(solver->getHorizonLength() * solver->getStateDimension());
-  std::vector<double> u(solver->getHorizonLength() * solver->getInputDimension());
+  auto mpc_solution = solver_.solve_problem(x_init, initial_guess, parameters);
 
-  if (solver->solve(x.data(), u.data()))
+  if (mpc_solution.exit_code != crs_controls::control_commons::MpcExitCode::SUCCEEDED)
   {
     return control_input;
   }
 
-  double solve_time =
-      std::dynamic_pointer_cast<mpc_solvers::pacejka_safety_solvers::AcadosPacejkaSafetySolver>(solver)->getSolveTime();
-  if (solve_time > 1 / solver->getSamplePeriod())
+  double solve_time = solver_.getSolveTime();
+  if (solve_time > 1 / solver_.getSamplePeriod())
   {
     std::cout << "[WARNING] Solve time exceeded sample time: " << solve_time << "(solve time) "
-              << 1 / solver->getSamplePeriod() << "(period)" << std::endl;
+              << 1 / solver_.getSamplePeriod() << "(period)" << std::endl;
   }
-  for (int i = 0; i < solver->getHorizonLength(); i++)
+  MpcSolution predicted_traj = mpc_solution.solution.value();
+  for (int i = 0; i < solver_.N; i++)
   {
-    planned_trajectory[i][0] = x[i * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::X];
-    planned_trajectory[i][1] = x[i * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::Y];
-    planned_trajectory[i][2] = x[i * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::VX];
-    planned_trajectory[i][3] = x[i * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::YAW];
+    planned_trajectory[i][0] = predicted_traj.x[i][solvers::vars::X];
+    planned_trajectory[i][1] = predicted_traj.x[i][solvers::vars::Y];
+    planned_trajectory[i][2] = predicted_traj.x[i][solvers::vars::VX];
+    planned_trajectory[i][3] = predicted_traj.x[i][solvers::vars::YAW];
   }
 
   // Modify input
   crs_models::pacejka_model::pacejka_car_input safe_input;
-  safe_input.steer = x[1 * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::STEER];
-  safe_input.torque = x[1 * solver->getStateDimension() + mpc_solvers::pacejka_safety_solvers::vars::TORQUE];
+  safe_input.steer = predicted_traj.x[1][solvers::vars::STEER];
+  safe_input.torque = predicted_traj.x[1][solvers::vars::TORQUE];
 
   input_overridden =
       Eigen::Vector2d(safe_input.steer - control_input.steer, safe_input.torque - control_input.torque).norm() >
@@ -230,22 +216,4 @@ PacejkaMpcSafetyFilter::getSafeControlInput(const crs_models::pacejka_model::pac
 
   return safe_input;
 }
-
-std::shared_ptr<mpc_solvers::MpcSolver<crs_models::pacejka_model::pacejka_params,
-                                       mpc_solvers::pacejka_safety_solvers::reference_input,
-                                       mpc_solvers::pacejka_safety_solvers::reference_on_track>>
-
-PacejkaMpcSafetyFilter::getSolver(std::string solver_type)
-{
-  if (solver_type == "acados")
-  {
-    return std::static_pointer_cast<mpc_solvers::MpcSolver<crs_models::pacejka_model::pacejka_params,
-                                                           mpc_solvers::pacejka_safety_solvers::reference_input,
-                                                           mpc_solvers::pacejka_safety_solvers::reference_on_track>>(
-        std::make_shared<mpc_solvers::pacejka_safety_solvers::AcadosPacejkaSafetySolver>());
-  }
-
-  return nullptr;
-}
-
-}  // namespace crs_safety
+}  // namespace crs_safety::pacejka_mpc_safety_filter

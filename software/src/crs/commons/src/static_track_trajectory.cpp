@@ -4,7 +4,6 @@
 
 namespace crs_controls
 {
-
 void StaticTrackTrajectory::unwrapYawAngle()
 {
   for (size_t i = 0; i < tangent_angle_.size(); i++)

@@ -18,6 +18,10 @@ build/**
 # Python virtual environments
 venv
 .venv
+.python-version
+
+# Python packages
+*.egg-info
 
 # Docker related
 
@@ -1087,7 +1091,7 @@ src/crs/controls/car/mpc_solvers/forces/forces_pacejka_mpcc_solver/include/force
 # ACADOS
 
 # Controller and estimator solver libraries
-**/*solver/lib/
+**/lib*/
 
 # MHE
 src/crs/estimators/mhe_solvers/acados/acados_pacejka_mhe_solver/include/acados_pacejka_mhe_solver/acados_solver_pacejka_model.h

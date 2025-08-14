@@ -8,36 +8,38 @@ find_package(casadi)
 catkin_simple(ALL_DEPS_REQUIRED)
 catkin_package()
 
-#############
+# ##############################################################################
 # Libraries #
-#############
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+# ##############################################################################
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-cs_add_library(${PROJECT_NAME}
-        src/mocap_with_imu_bias_sensor_model.cpp
-        src/imu_with_bias_sensor_model.cpp
-        )
+cs_add_library(${PROJECT_NAME} src/mocap_with_imu_bias_sensor_model.cpp
+               src/imu_with_bias_sensor_model.cpp)
 
 target_link_libraries(${PROJECT_NAME})
 
-##########
+# ##############################################################################
 # Tests #
-##########
+# ##############################################################################
 
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(imu_bias_sensor_model_test test/imu_bias_sensor_model_test.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
-  target_link_libraries(imu_bias_sensor_model_test ${PROJECT_NAME} ${catkin_LIBRARIES} casadi stdc++fs)
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(
+    imu_bias_sensor_model_test test/imu_bias_sensor_model_test.cpp
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
+  target_link_libraries(imu_bias_sensor_model_test ${PROJECT_NAME}
+                        ${catkin_LIBRARIES} casadi stdc++fs)
 
-  catkin_add_gtest(mocap_with_imu_bias_sensor_model_test test/mocap_with_imu_bias_sensor_model_test.cpp WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/)
-  target_link_libraries(mocap_with_imu_bias_sensor_model_test ${PROJECT_NAME} ${catkin_LIBRARIES} casadi stdc++fs)
+  catkin_add_gtest(
+    mocap_with_imu_bias_sensor_model_test
+    test/mocap_with_imu_bias_sensor_model_test.cpp WORKING_DIRECTORY
+    ${PROJECT_SOURCE_DIR}/test/)
+  target_link_libraries(mocap_with_imu_bias_sensor_model_test ${PROJECT_NAME}
+                        ${catkin_LIBRARIES} casadi stdc++fs)
 endif()
 
-##########
+# ##############################################################################
 # Export #
-##########
+# ##############################################################################
 
 cs_install()
 cs_export()

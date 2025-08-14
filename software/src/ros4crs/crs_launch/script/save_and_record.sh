@@ -25,6 +25,10 @@ do
         record=$argument
     fi
 done
+
+# write logging path to file for other logging utils to read
+echo $TARGET_PATH > $FILE_PATH/current_experiment_path.txt
+
 mkdir -p $TARGET_PATH
 mkdir -p $TARGET_PATH/config
 

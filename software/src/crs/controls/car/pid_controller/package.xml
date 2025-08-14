@@ -15,7 +15,7 @@
   <!-- Track Manager and Filter -->
   <depend>commons</depend>
   <!-- Base abstract control classes -->
-  <depend>controls</depend>
+  <depend>control_commons</depend>
   <!-- This dependency is used for state and input of the controller. No other model dependencies are required -->
   <depend>pacejka_model</depend>
 

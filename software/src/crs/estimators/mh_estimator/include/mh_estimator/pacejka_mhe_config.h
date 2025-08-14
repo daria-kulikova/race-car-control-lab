@@ -1,8 +1,9 @@
 #ifndef MH_ESTIMATOR_MH_ESTIMATOR_PACEJKA_MHE_CONFIG_H
 #define MH_ESTIMATOR_MH_ESTIMATOR_PACEJKA_MHE_CONFIG_H
 
-#include <string.h>
 #include <Eigen/Dense>
+
+#include "pacejka_model/pacejka_car_state.h"
 
 namespace crs_estimators
 {
@@ -12,13 +13,17 @@ struct pacejka_mhe_config
    * @brief EKF State Covariance Matrix
    *
    */
-  Eigen::Matrix<double, 6, 6> P;
+  Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                crs_models::pacejka_model::pacejka_car_state::NX>
+      P;
 
   /**
    * @brief Process Noise Matrix
    *
    */
-  Eigen::Matrix<double, 6, 6> Q;
+  Eigen::Matrix<double, crs_models::pacejka_model::pacejka_car_state::NX,
+                crs_models::pacejka_model::pacejka_car_state::NX>
+      Q;
 
   /**
    * @brief Mocap Measurement Noise Matrix

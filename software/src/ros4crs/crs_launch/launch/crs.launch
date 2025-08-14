@@ -16,6 +16,8 @@
     <arg name = "reference_name"      default = "REFERENCE"   doc = "Name of the reference that should be loaded. "/>
     <arg name = "load_reference"      default = "true"        doc = "If true, loads reference yaml file."/>
 
+    <arg name = "control_package"     default = "ros_controllers"   doc = "Selected controller package. Choose from 'ros_controllers', 'rospy_controllers'" />
+
     <!-- Recording arguments  -->
     <arg name = "copy_config"         default = "true"        doc = "if true, backs up all .yaml configurations on execution" />
     <arg name = "record_bag"          default = "false"       doc = "if true, recoard a .bag file with all topics"/>
@@ -27,7 +29,6 @@
     <arg name= "use_filter"            default = "false"       doc = "if true, loads filter nodes" />
 
     <arg name = "gt_topic"            default = "ros_simulator/gt_state"   doc = "Topic where the gt state estimate is published" />
-
 
     <!-- =================================================================
                         Remap Topics Argument
@@ -122,7 +123,7 @@
         <!-- ==============================================================
                                Controller Node
              ===============================================================     -->
-        <include file = "$(find ros_controllers)/launch/default.launch">
+        <include file = "$(find ros_controllers)/../$(arg control_package)/launch/default.launch">
             <arg name = "controller_config_file" value = "$(arg controller_config)" />
             <arg name = "car_state_topic"        value = "$(arg control_state_topic)" />
             <arg name = "visualizer_topic"       value = "/controller_visualization" />
@@ -239,7 +240,6 @@
               args="record=$(arg record_bag) type=$(arg run_type) $(arg model_config) $(arg simulator_config) $(arg controller_config) $(arg visualizer_config) $(arg backtracker_config) $(arg estimator_config) $(arg second_estimator_config)"
               output="screen" if = "$(arg copy_config)"/>
     </group>
-
 
     <node pkg = "rviz" name = "rviz" type = "rviz" args = "-d $(find car_track_visualizer)/config/single_car.rviz" if = "$(arg view_rviz)" />
     <node pkg = "plotjuggler" name = "plotjuggler" type = "plotjuggler" if = "$(arg view_plotjuggler)" />
