@@ -32,5 +32,11 @@ If you use Chronos and/or CRS please cite:
 
 > [Sabrina Bodmer, Lukas Vogel, Simon Muntwiler, Alexander Hansson, Tobias Bodewig, Jonas Wahlen, Melanie N. Zeilinger, and Andrea Carron, "Optimization-Based System Identification and Moving Horizon Estimation Using Low-Cost Sensors for a Miniature Car-Like Robot", ArXiv 2024](https://arxiv.org/pdf/2404.08362)
 
+
+## Related projects
+
+> [Amon Lahr, Joshua Näf, Kim P. Wabersich, Jonathan Frey, Pascal Siehl, Andrea Carron, Moritz Diehl and  Melanie N. Zeilinger, "L4acados: Learning-based models for acados, applied to Gaussian process-based predictive control," ArXiv 2025, pp. 1371-1378](https://arxiv.org/abs/2411.19258)
+> Code to run simulation experiments available [here](https://gitlab.ethz.ch/ics/crs/-/wikis/Ros-Controllers-Python-zoGPMPC).
+
 ---
 
