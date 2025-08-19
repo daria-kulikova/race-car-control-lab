@@ -35,7 +35,7 @@ If you use Chronos and/or CRS please cite:
 
 ## Related projects
 
-> [Amon Lahr, Joshua Näf, Kim P. Wabersich, Jonathan Frey, Pascal Siehl, Andrea Carron, Moritz Diehl and  Melanie N. Zeilinger, "L4acados: Learning-based models for acados, applied to Gaussian process-based predictive control," ArXiv 2025, pp. 1371-1378](https://arxiv.org/abs/2411.19258)
+> [Amon Lahr, Joshua Näf, Kim P. Wabersich, Jonathan Frey, Pascal Siehl, Andrea Carron, Moritz Diehl and  Melanie N. Zeilinger, "L4acados: Learning-based models for acados, applied to Gaussian process-based predictive control," ArXiv 2025](https://arxiv.org/abs/2411.19258)
 >
 > Code to run simulation experiments available [here](https://gitlab.ethz.ch/ics/crs/-/wikis/Ros-Controllers-Python-zoGPMPC).
 
