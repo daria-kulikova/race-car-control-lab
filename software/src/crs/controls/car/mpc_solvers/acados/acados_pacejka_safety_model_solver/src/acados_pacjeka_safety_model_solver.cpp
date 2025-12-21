@@ -201,7 +201,7 @@ int AcadosPacejkaSafetySolver::solve(double x[], double u[])
 double AcadosPacejkaSafetySolver::getSolveTime()
 {
   double elapsed_time;
-  ocp_nlp_get(nlp_config_.get(), nlp_solver_.get(), "time_tot", &elapsed_time);
+  ocp_nlp_get(nlp_solver_.get(), "time_tot", &elapsed_time);
   return elapsed_time;
 }
 

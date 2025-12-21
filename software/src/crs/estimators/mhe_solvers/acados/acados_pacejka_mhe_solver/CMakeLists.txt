@@ -22,7 +22,7 @@ set(SOLVER_GENERATION_CMD
 # Run solver creation once at build generation time so we can track the solver
 # files.
 execute_process(
-  COMMAND bash create_solver_watch.sh -d "${SOLVER_GENERATION_DIRS}" -s
+	COMMAND bash create_solver_watch_new.sh -d "${SOLVER_GENERATION_DIRS}" -s
           "${SOLVER_GENERATION_CMD}"
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
@@ -37,7 +37,7 @@ file(GLOB MODEL_SRC "${SOLVER_LIB_DIR}/${MODEL_NAME}_model/*.c")
 
 add_custom_target(
   ${PROJECT_NAME}_c_solver_lib
-  COMMAND bash create_solver_watch.sh -d "${SOLVER_GENERATION_DIRS}" -u -s
+  COMMAND bash create_solver_watch_new.sh -d "${SOLVER_GENERATION_DIRS}" -u -s
           "${SOLVER_GENERATION_CMD}"
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   BYPRODUCTS ${MODEL_SRC} ${OCP_SRC}

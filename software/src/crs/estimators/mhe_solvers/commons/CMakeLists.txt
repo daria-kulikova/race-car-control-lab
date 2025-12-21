@@ -22,4 +22,4 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # ##############################################################################
 
 cs_install()
-cs_export(INCLUDE_DIRS ${CATKIN_DEVEL_PREFIX}/include)
+cs_export(INCLUDE_DIRS)
