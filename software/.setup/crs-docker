@@ -48,7 +48,7 @@ function down() {
 }
 
 function run() {
-    docker compose run --service-ports crs # still needs some refining!
+    docker compose run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --service-ports crs # still needs some refining!
 }
 
 function clean() {
