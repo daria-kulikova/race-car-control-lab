@@ -24,7 +24,13 @@ CRS is built on top of the Robot Operating System (ROS) and primarily written in
 
 ## Getting Started
 
-We recommend to running CRS in a containerized environment. Instructions on how to build and run the CRS Docker image can be found in the [Install Wiki](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/getting_started/installation). After the installation, have a look at the [First Steps](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/getting_started/First-Steps) and the [rest of the documentation](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/home).
+We recommend to running CRS in a containerized environment. Instructions on how to build and run the CRS Docker image can be found in the [Install Wiki](https://gitlab.ethz.ch/ics/crs/-/wikis/getting_started/installation). After the installation, have a look at the [First Steps](https://gitlab.ethz.ch/ics/crs/-/wikis/getting_started/First-Steps) and the [rest of the documentation](https://gitlab.ethz.ch/ics/crs/-/wikis/home).
+
+```console
+# To run the setup script on Ubuntu
+[crs-2.0]$ cd ./.setup/ubuntu
+[crs-2.0]$ sudo ./setup.sh
+```
 
 ### Example Experiments
 
