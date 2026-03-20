@@ -22,8 +22,8 @@ model_params:
   # size params
   lr: 0.038
   lf: 0.052
-  m: 0.181
-  I: 0.000505
+  m: 0.201
+  I: 0.000705
 
   wheel_radius: 0.0175
   car_width: 0.12
