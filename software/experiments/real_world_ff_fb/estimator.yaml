@@ -26,7 +26,29 @@ P_init:
 
 # ============ SENSORS ============
 sensors:
-  sensor_names: ["lighthouse"]
+  sensor_names: ["lighthouse"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  imu_yaw_rate:
+    R:
+      value: [[0.1]]
+      is_diag: true
+    key: imu_yaw_rate # optional, if not set use name of sensor
+    outlier_rejection:
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 5
+      max_consecutive_outliers: 8
+
+  wheel_encoders:
+    R:
+      value: [[1], [1], [1], [1]]
+      is_diag: true
+    key: wheel_encoders # optional, if not set use name of sensor
+    outlier_rejection:
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 5
+      max_consecutive_outliers: 8
+
   lighthouse:
     sensor_pos:
       value: [[0.035, 0.020, 0.035, 0.020], [0.015, 0.015, -0.015, -0.015]]
@@ -47,7 +69,7 @@ sensors:
       outlier_rejection_type: "cov_threshold"
       outlier_threshold: 3 # threshold is set to 3*covariance
       max_consecutive_outliers: 8
-
+  
 
 # ============ VISUALIZER ============
 visualizer:

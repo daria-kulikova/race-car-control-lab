@@ -49,6 +49,11 @@ crs build && source devel/setup.bash
 roslaunch crs_launch sim_single_car.launch experiment_name:=pacejka_mpc
 ```
 
+4. In the lab with the real race car (default controller is the `pacejka_mpc`.)
+```console
+roslaunch crs_launch run_freiburg.launch
+```
+
 Many more experiments are available in the [experiments](./experiments) folder! Further, many more [configuration options and arguments](https://gitlab.ethz.ch/ics-group/projects/andrea/crs-2.0/-/wikis/getting_started/experiments) can be passed to the launch files.
 
 ### Optimization-based System Identification
