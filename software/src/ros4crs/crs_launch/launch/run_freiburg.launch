@@ -4,7 +4,7 @@
     ================================================================= -->
 
     <arg name = "namespace"           default = "VOGEL"     doc = "Namespace of all the nodes. Use this to launch different cars. "/>
-    <arg name = "experiment_name"     default = "pacejka_mpc" doc = "Name of the experiment folder that contains all .yaml configurations of the components "/>
+    <arg name = "experiment_name"     default = "real_world_mpc" doc = "Name of the experiment folder that contains all .yaml configurations of the components "/>
 
     <arg name = "view_rviz"           default = "true"        doc = "If true, starts an rviz node for visualization "/>
     <arg name = "view_plotjuggler"    default = "false"       doc = "If true, starts a plotjuggler node for plotting. " />
