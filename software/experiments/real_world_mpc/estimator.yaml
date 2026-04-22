@@ -15,19 +15,30 @@ initial_input:
 
 # initial P (state covariance matrix)
 P_init:
-  [
-    [1, 0, 0, 0, 0, 0],
-    [0, 1, 0, 0, 0, 0],
-    [0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 1, 0],
-    [0, 0, 0, 0, 0, 1],
-  ]
-
+  value: [
+      [0.1, 0, 0, 0, 0, 0],
+      [0, 0.1, 0, 0, 0, 0],
+      [0, 0, 0.1, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0.1],
+    ]
+  is_diag: false
 
 # ============ SENSORS ============
 sensors:
-  sensor_names: ["mocap"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  sensor_names: ["lighthouse"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  mocap:
+    R:
+      value: [[0.001],[0.001],[0.001]]
+      is_diag: true
+    key: mocap # optional, if not set use name of sensor
+    outlier_rejection:
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 3
+      max_consecutive_outliers: 5
+
   imu_yaw_rate:
     R:
       value: [[0.1]]
@@ -70,7 +81,6 @@ sensors:
       outlier_rejection_type: "cov_threshold"
       outlier_threshold: 3 # threshold is set to 3*covariance
       max_consecutive_outliers: 8
-  
 
 # ============ VISUALIZER ============
 visualizer:
@@ -120,12 +130,12 @@ model:
         [0.01, 0, 0, 0, 0, 0],
         [0, 0.01, 0, 0, 0, 0],
         [0, 0, 0.01, 0, 0, 0],
-        [0, 0, 0, 0.0001, 0, 0],
-        [0, 0, 0, 0, 0.0001, 0],
-        [0, 0, 0, 0, 0, 0.0001],
+        [0, 0, 0, 0.001, 0, 0],
+        [0, 0, 0, 0, 0.001, 0],
+        [0, 0, 0, 0, 0, 0.001],
       ]
     is_diag: false
 
-  model_params: # only change size and inertia of model
-    m: 0.250
-    # I: 0.000805
+#  model_params: # only change size and inertia of model
+#    m: 0.200
+#    I: 0.000605

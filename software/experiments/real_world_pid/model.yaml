@@ -9,19 +9,19 @@ type: "pacejka_discrete"
 Q:
   value:
     [
-      [0.01, 0, 0, 0, 0, 0],
-      [0, 0.01, 0, 0, 0, 0],
-      [0, 0, 0.01, 0, 0, 0],
-      [0, 0, 0, 0.1, 0, 0],
-      [0, 0, 0, 0, 0.1, 0],
-      [0, 0, 0, 0, 0, 0.1],
+      [0.001, 0, 0, 0, 0, 0],
+      [0, 0.001, 0, 0, 0, 0],
+      [0, 0, 0.001, 0, 0, 0],
+      [0, 0, 0, 0.01, 0, 0],
+      [0, 0, 0, 0, 0.01, 0],
+      [0, 0, 0, 0, 0, 0.001],
     ]
   is_diag: false
 
 model_params:
   # size params
-  lr: 0.054
-  lf: 0.066
+  lr: 0.038
+  lf: 0.052
   m: 0.201
   I: 0.000705
 
@@ -39,9 +39,12 @@ model_params:
   # longitudinal force params
   Cm1: 0.98028992
   Cm2: 0.01814131
-  Cd: 0.02750696
-  Croll: 0.08518052
+
+  # friction force params
+  Cd0: 0.08518052
+  Cd1: 0.01
+  Cd2: 0.02750696
 
   tau: 0.1 # to make this compatible with kinematic model
-  eps: 0.2
+  eps: 0.2 # determines at what velocity we switch from atan to the polynomial approximation of arctan(w/x)
   gamma: 0.5

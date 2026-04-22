@@ -13,12 +13,12 @@ controller_params:
   b_filter: [0.0985,0.2956,0.2956,0.0985]
   a_filter: [1.0000,-0.5772,0.4218,-0.0563]
   Kd: 2.0
-  Kp: 1.0
+  Kp: 5.0
   Ki: 0
   # crs uses a torque between 0 and 1. The kinematic model uses a different torque range internally.
   # the conversion is done with the linear function torque_km = a * torque_crs + b
   a_torque:  6.44026018
-  b_torque:   0.13732343
+  b_torque:  0.13732343
 
   steer_limit: 0.4
 

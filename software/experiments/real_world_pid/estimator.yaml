@@ -7,7 +7,7 @@ log_diagnostic_data: true
 # initial state
 initial_state:
   type: "pacejka_car"
-  value: [0.37, -1, 0, 0.2, 0, 0]
+  value: [4.0, 0.5, 3, 0.1, 0.1, 0]
 
 initial_input:
   type: "pacejka_car"
@@ -15,69 +15,69 @@ initial_input:
 
 # initial P (state covariance matrix)
 P_init:
-  [
-    [0.1, 0, 0, 0, 0, 0],
-    [0, 0.1, 0, 0, 0, 0],
-    [0, 0, 0.1, 0, 0, 0],
-    [0, 0, 0, 0.1, 0, 0],
-    [0, 0, 0, 0, 0.1, 0],
-    [0, 0, 0, 0, 0, 0.1],
-  ]
+  value: [
+      [0.1, 0, 0, 0, 0, 0],
+      [0, 0.1, 0, 0, 0, 0],
+      [0, 0, 0.1, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0.1],
+    ]
+  is_diag: false
 
 # ============ SENSORS ============
 sensors:
-  sensor_names: ["mocap", "imu_yaw_rate", "wheel_encoders"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoders", "lighthouse"]
-
+  sensor_names: ["lighthouse"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
   mocap:
     R:
-      value: [[0.0001], [0.0001], [0.0001]] # std of 1cm -> cov of 0.01 * 0.01 = 0.0001
+      value: [[0.001],[0.001],[0.001]]
       is_diag: true
     key: mocap # optional, if not set use name of sensor
     outlier_rejection:
-        use_outlier_rejection: true
-        outlier_rejection_type: "cov_threshold"
-        outlier_threshold: 3
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 3
+      max_consecutive_outliers: 5
 
   imu_yaw_rate:
     R:
-      value: [[0.01]] # std of 0.1 rad/s² -> cov of 0.1 * 0.1 = 0.01
+      value: [[0.1]]
       is_diag: true
     key: imu_yaw_rate # optional, if not set use name of sensor
     outlier_rejection:
-        use_outlier_rejection: true
-        outlier_rejection_type: "cov_threshold"
-        outlier_threshold: 3
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 5
+      max_consecutive_outliers: 8
 
   wheel_encoders:
     R:
-      value: [[2], [2], [2], [2]] # std of 0.1 rad/s -> cov of 0.1 * 0.1 = 0.01
+      value: [[1], [1], [1], [1]]
       is_diag: true
-    key: wheel_encoders # optional, if not set us e name of sensor
+    key: wheel_encoders # optional, if not set use name of sensor
     outlier_rejection:
-        use_outlier_rejection: true
-        outlier_rejection_type: "cov_threshold"
-        outlier_threshold: 3
+      use_outlier_rejection: true
+      outlier_rejection_type: "cov_threshold"
+      outlier_threshold: 5
+      max_consecutive_outliers: 8
 
   lighthouse:
     sensor_pos:
-      value: [[-0.045, -0.06, -0.045, -0.06], [0.015, 0.015, -0.015, -0.015]]
+      value: [[0.035, 0.020, 0.035, 0.020], [0.015, 0.015, -0.015, -0.015]]
     key: lighthouse
     base_stations: ["bs0"]
     bs0:
       bs_ID: 0
       R:
-        value: [[0.000101, 0.0001, 0.0001, 0.0001],
-                [0.0001, 0.000101, 0.0001, 0.0001],
-                [0.0001, 0.0001, 0.000101, 0.0001],
-                [0.0001, 0.0001, 0.0001, 0.000101]]
+        value: [[0.00010001, 0.0001, 0.0001, 0.0001], [0.0001, 0.00010001, 0.0001, 0.0001], [0.0001, 0.0001, 0.00010001, 0.0001], [0.0001, 0.0001, 0.0001, 0.00010001]]
       P_bs:
-        value: [[0.0761983], [0.188159], [1.9964]]
+        value: [[2.5984], [1.7327], [2.8326]]
       R_bs:
-        value: [[0.00075044, 0.999971, 0.00763827], [-0.216839, 0.00761926, -0.976178], [-0.976207, -0.000923712, 0.216838]]
-      dt1: -0.0508728
-      dt2: 0.0464478
+        value: [[-0.0046, 0.9997, 0.0250], [-0.0156, 0.0250, -0.9996], [-0.9999, -0.0050, 0.0155]]
+      dt1: -0.0509
+      dt2: 0.0435
     outlier_rejection:
-      use_outlier_rejection: true
+      use_outlier_rejection: false
       outlier_rejection_type: "cov_threshold"
       outlier_threshold: 3 # threshold is set to 3*covariance
       max_consecutive_outliers: 8
@@ -114,3 +114,28 @@ visualizer:
   cov_a: 0.3
 
   cov_scale: 100 # scales covariance ellipsoid by 100
+
+# ============ THIS IS ENTIRELY OPTIONAL ============
+# If this is not defiend, then the default model which is loaded, is from the ros paramaters located at /model
+# This means that e.g. the EKF uses the same Q as the simulation -> EKF has perfect model and Q
+
+model:
+  # type describes what type of model we want to use / should be loaded
+  type: "pacejka_discrete"
+
+  # Q (process noise covariance matrix)
+  Q:
+    value:
+      [
+        [0.01, 0, 0, 0, 0, 0],
+        [0, 0.01, 0, 0, 0, 0],
+        [0, 0, 0.01, 0, 0, 0],
+        [0, 0, 0, 0.001, 0, 0],
+        [0, 0, 0, 0, 0.001, 0],
+        [0, 0, 0, 0, 0, 0.001],
+      ]
+    is_diag: false
+
+#  model_params: # only change size and inertia of model
+#    m: 0.200
+#    I: 0.000605
