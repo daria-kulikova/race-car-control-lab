@@ -4,7 +4,7 @@ set -e # Exit on error. Important if git clone fails.
 
 printf "downloading acados\n"
 cd /
-git clone --branch v0.4.4 https://github.com/acados/acados.git --depth=1
+git clone --branch v0.5.3 https://github.com/acados/acados.git --depth=1
 cd acados
 git submodule update --recursive --init --depth=1
 
