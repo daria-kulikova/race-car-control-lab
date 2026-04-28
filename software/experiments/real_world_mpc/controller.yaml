@@ -2,7 +2,7 @@ state_type: pacejka_car
 input_type: pacejka_car
 
 controller_type: MPCC
-max_rate: 30 # ETH setting: 30
+max_rate: 50 # ETH setting: 30
 init_delay: 0.0 # time to wait for estimator to converge to init. position
 
 controller_params:
@@ -17,7 +17,7 @@ controller_params:
   max_sqp_iterations: 1
   warmstart_iterations: 50
 
-  steer_limit: 0.4
+  steer_limit: 0.3
 
 visualizer:
   rate: 10

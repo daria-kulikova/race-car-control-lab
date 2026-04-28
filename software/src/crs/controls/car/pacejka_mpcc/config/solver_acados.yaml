@@ -2,7 +2,7 @@
 
 solver_creation:
   N: 40 # Time Horizon
-  Ts: 0.033 # 30 Hz
+  Ts: 0.020 # 50 Hz
 
 track:
   track_width: 0.46
@@ -30,8 +30,8 @@ model_bounds:
     dyaw_max: 4.0
 
 
-    delta_min: -0.4
-    delta_max: 0.4
+    delta_min: -0.3
+    delta_max: 0.3
 
     T_min: 0.0
     T_max: 1.0
@@ -39,11 +39,11 @@ model_bounds:
     theta_min: 0.0
     theta_max: 1000.0
 
-    ddelta_min: -4.0
-    ddelta_max: 4.0
+    ddelta_min: -2.0
+    ddelta_max: 2.0
 
-    dT_min: -1.0
-    dT_max: 1.0
+    dT_min: -0.5
+    dT_max: 0.5
 
     dtheta_min: 0.0
     dtheta_max: 3.5
