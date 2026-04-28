@@ -7,7 +7,7 @@ log_diagnostic_data: true
 # initial state
 initial_state:
   type: "pacejka_car"
-  value: [4.0, 0.5, 3, 0.1, 0.1, 0]
+  value: [1.5, 3.0, 0.0, 0.4, 0.02, 0]
 
 initial_input:
   type: "pacejka_car"
@@ -27,7 +27,7 @@ P_init:
 
 # ============ SENSORS ============
 sensors:
-  sensor_names: ["lighthouse"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
+  sensor_names: ["lighthouse", "imu", "imu_yaw_rate"] # options: ["mocap", "imu_yaw_rate", "imu", "wheel_encoder", "lighthouse"]
   mocap:
     R:
       value: [[0.001],[0.001],[0.001]]
@@ -49,6 +49,18 @@ sensors:
       outlier_rejection_type: "cov_threshold"
       outlier_threshold: 5
       max_consecutive_outliers: 8
+
+  imu:
+    R:
+      value: [[0.001], [0.001], [0.001]]
+      is_diag: true
+    frequency: 50 #Hz
+    key: imu # optional, if not set us e name of sensor
+    measurement_noise:
+      type: multivariate_gaussian
+      seed: 1
+      mean:
+        value: [[0], [0], [0]]
 
   wheel_encoders:
     R:
