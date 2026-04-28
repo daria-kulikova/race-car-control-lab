@@ -14,7 +14,7 @@ namespace pacejka_solvers
  */
 void AcadosPacejkaMpccSolver::setOutputInitialGuess(int stage, std::string type, double constraint[])
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, type.c_str(), constraint);
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, type.c_str(), constraint);
 }
 /**
  * @brief Sets an input bound constraint.
@@ -26,7 +26,7 @@ void AcadosPacejkaMpccSolver::setOutputInitialGuess(int stage, std::string type,
  */
 void AcadosPacejkaMpccSolver::setInputBoundConstraint(int stage, std::string type, double constraint[])
 {
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), stage, type.c_str(), constraint);
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), stage, type.c_str(), constraint);
 }
 /**
  * @brief Get the Last Solution and stores it in x and u

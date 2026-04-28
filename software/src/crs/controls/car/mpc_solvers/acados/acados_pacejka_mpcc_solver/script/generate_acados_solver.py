@@ -77,7 +77,7 @@ def build_acados_solver(N: int, Ts: float, acados_source_path: str, model, confi
     ocp.model.cost_expr_ext_cost_e = 0
 
     ocp.constraints.lh = np.array([0.0])
-    car_width = model.params.car_width
+    car_width = 0.12 # FIXME!
     track_width = config["track"]["track_width"]
     safety_margin = config["track"]["safety_margin"]
     w = 0.5 * (track_width - car_width) - safety_margin

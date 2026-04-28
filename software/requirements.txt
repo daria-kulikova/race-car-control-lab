@@ -3,7 +3,7 @@ numpy==1.24.4
 PyYAML==6.0.2
 oyaml==0.9
 rospkg==1.2.3
-casadi==3.6.7
+casadi==3.7.2
 typed-argument-parser==1.10.1
 
 # Other generic scientific computation

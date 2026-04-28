@@ -25,8 +25,8 @@ AcadosPacejkaCurvilinearMpccSolver::AcadosPacejkaCurvilinearMpccSolver()
  */
 void AcadosPacejkaCurvilinearMpccSolver::setInitialState(AcadosPacejkaCurvilinearMpccSolver::StateArray& initial_state)
 {
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "lbx", initial_state.data());
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "ubx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "lbx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "ubx", initial_state.data());
 }
 
 /**
@@ -38,7 +38,7 @@ void AcadosPacejkaCurvilinearMpccSolver::setInitialState(AcadosPacejkaCurvilinea
 void AcadosPacejkaCurvilinearMpccSolver::setStateInitialGuess(
     int stage, AcadosPacejkaCurvilinearMpccSolver::StateArray& initial_guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "x", initial_guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "x", initial_guess.data());
 }
 
 /**
@@ -50,7 +50,7 @@ void AcadosPacejkaCurvilinearMpccSolver::setStateInitialGuess(
 void AcadosPacejkaCurvilinearMpccSolver::setInputInitialGuess(
     int stage, AcadosPacejkaCurvilinearMpccSolver::InputArray& initial_guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "u", initial_guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "u", initial_guess.data());
 }
 
 /**

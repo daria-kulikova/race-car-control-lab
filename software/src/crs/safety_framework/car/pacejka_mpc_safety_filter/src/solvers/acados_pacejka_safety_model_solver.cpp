@@ -20,18 +20,18 @@ AcadosPacejkaSafetySolver::AcadosPacejkaSafetySolver()
 
 void AcadosPacejkaSafetySolver::setInitialState(AcadosPacejkaSafetySolver::StateArray& initial_state)
 {
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "lbx", initial_state.data());
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "ubx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "lbx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "ubx", initial_state.data());
 }
 
 void AcadosPacejkaSafetySolver::setStateInitialGuess(int stage, AcadosPacejkaSafetySolver::StateArray& initial_guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "x", initial_guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "x", initial_guess.data());
 }
 
 void AcadosPacejkaSafetySolver::setInputInitialGuess(int stage, AcadosPacejkaSafetySolver::InputArray& initial_guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "u", initial_guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "u", initial_guess.data());
 }
 
 void AcadosPacejkaSafetySolver::updateParams(int stage, AcadosPacejkaSafetySolver::MpcStageParameters& parameters)

@@ -17,20 +17,20 @@ AcadosKinematicTrackingMpcSolver::AcadosKinematicTrackingMpcSolver()
 
 void AcadosKinematicTrackingMpcSolver::setInitialState(AcadosKinematicTrackingMpcSolver::StateArray& initial_state)
 {
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "lbx", initial_state.data());
-  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), 0, "ubx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "lbx", initial_state.data());
+  ocp_nlp_constraints_model_set(nlp_config_.get(), nlp_dims_.get(), nlp_in_.get(), nlp_out_.get(), 0, "ubx", initial_state.data());
 }
 
 void AcadosKinematicTrackingMpcSolver::setStateInitialGuess(int stage,
                                                             AcadosKinematicTrackingMpcSolver::StateArray& guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "x", guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "x", guess.data());
 }
 
 void AcadosKinematicTrackingMpcSolver::setInputInitialGuess(int stage,
                                                             AcadosKinematicTrackingMpcSolver::InputArray& guess)
 {
-  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), stage, "u", guess.data());
+  ocp_nlp_out_set(nlp_config_.get(), nlp_dims_.get(), nlp_out_.get(), nlp_in_.get(), stage, "u", guess.data());
 }
 
 void AcadosKinematicTrackingMpcSolver::updateParams(
