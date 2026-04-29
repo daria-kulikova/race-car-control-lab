@@ -48,4 +48,4 @@ model_params:
 
   tau: 0.1 # to make this compatible with kinematic model
   eps: 0.2
-  gamma: 0.5
+  gamma: 1.0
