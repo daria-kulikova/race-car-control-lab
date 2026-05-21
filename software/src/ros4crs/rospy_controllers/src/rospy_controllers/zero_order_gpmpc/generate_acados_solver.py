@@ -388,10 +388,13 @@ if __name__ == "__main__":
         def loadModel():
             return pacejka_model_acados_gpzoro(cfg["model_bounds"])
 
-        build_acados_solver(
+        # Changed name 
+        #build_acados_solver(
+        generate_acados_ocp(
             cfg["solver_creation"]["N"],
             cfg["solver_creation"]["Ts"],
             args.acados_source,
-            cfg,
             loadModel,
+            cfg,
+            cfg["controller_params"],
         )

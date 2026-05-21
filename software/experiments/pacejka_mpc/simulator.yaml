@@ -54,7 +54,7 @@ sensors:
         value: [[0], [0], [0], [0]]
     delay: 0.0
 
-initial_state: [0.15, -1.05, 0, 0.5, 0, 0]
+initial_state: [0.15, -1.05, 0, 0, 0, 0]
 initial_input: [0.0, 0.2]
 
 frequency: 300 #Hz, speed of simulator

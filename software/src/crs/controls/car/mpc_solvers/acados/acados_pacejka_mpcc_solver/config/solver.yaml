@@ -21,7 +21,7 @@ model_bounds:
     yaw_max: 1000.0
 
     vx_min: 0.0
-    vx_max: 3.2
+    vx_max: 3.2 # decreased from 3.2
 
     vy_min: -2.0
     vy_max: 2.0
@@ -34,7 +34,7 @@ model_bounds:
     delta_max: 0.4
 
     T_min: 0.0
-    T_max: 1.0
+    T_max: 1.0 # decreasae
 
     theta_min: 0.0
     theta_max: 1000.0

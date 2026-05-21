@@ -18,6 +18,7 @@ solver_creation:
     Zu_e: 1.0e+2
   solver_opts:
     tol: 1.0e-4
+    levenberg_marquardt: 1.0e-1
     levenberg_marquardt_sqp: 1.0e-1 # LM Hessian regularization used for SQP (if num_rti_iter > 1)
     levenberg_marquardt_rti: 1.0e-1 # LM Hessian regularization used for SQP-RTI (if num_rti_iter = 1)
 
@@ -31,7 +32,8 @@ solver_creation:
 
 track:
   track_width: 0.46
-  safety_margin: 0.01
+  # safety_margin: 0.01
+  safety_margin: 0.04
 
 # State Bounds
 model_bounds:
@@ -45,7 +47,7 @@ model_bounds:
     yaw_max: 1000.0
 
     vx_min: 0.0
-    vx_max: 3.2 
+    vx_max: 3.2 # decreased 3.2
 
     vy_min: -2.0
     vy_max: 2.0
@@ -53,20 +55,41 @@ model_bounds:
     dyaw_min: -4.0
     dyaw_max: 4.0
 
-    delta_min: -0.3
-    delta_max: 0.3
+    # delta_min: -0.3
+    # delta_max: 0.3    
+    delta_min: -0.4
+    delta_max: 0.4
 
     T_min: 0.0
-    T_max: 1.0  # change it accer
+    T_max: 1.0  # decreased from 1.0
 
     theta_min: 0.0
     theta_max: 1000.0
 
-    ddelta_min: -4.0
-    ddelta_max: 4.0
+    # ddelta_min: -4.0
+    # ddelta_max: 4.0
+    ddelta_min: -2.0
+    ddelta_max: 2.0
 
-    dT_min: -0.7
-    dT_max: 0.7
+    # dT_min: -0.7
+    # dT_max: 0.7
+    dT_min: -15.0
+    dT_max: 15.0
 
     dtheta_min: 0.0
-    dtheta_max: 10.0
+    # dtheta_max: 10.0
+    dtheta_max: 3.5
+    
+controller_params:
+  # Q1: 1.0 # 50.0
+  # Q2: 200
+  # R1: 0.1
+  # R2: 0.3
+  # R3: 0.2
+  # q: 2.5 # 2.5
+  Q1: 180.0
+  Q2: 160.0
+  R1: 0.2
+  R2: 0.3
+  R3: 0.2
+  q: 3.5

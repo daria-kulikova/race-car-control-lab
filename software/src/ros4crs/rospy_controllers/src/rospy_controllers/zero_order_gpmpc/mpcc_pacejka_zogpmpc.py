@@ -700,7 +700,7 @@ class MPCCCPacejkaControllerZOGPMPC(RosPyController):
         return status_fdbk
 
     def get_input_init(self):
-        # self.x_init[self.idx_vxb] = np.clip(self.x_init[self.idx_vxb], 0.5, np.Inf)
+        self.x_init[self.idx_vxb] = np.clip(self.x_init[self.idx_vxb], 0.5, np.Inf)
         rospy.loginfo(f"Controller starting from inital state {self.x_init}")
         # set initial guess
         v_init = 0.5
@@ -760,8 +760,8 @@ class MPCCCPacejkaControllerZOGPMPC(RosPyController):
                 state.x,
                 state.y,
                 state.yaw,
-                state.vx_b,
-                # np.clip(state.vx_b, 0.1, np.Inf),
+                # state.vx_b,
+                np.clip(state.vx_b, 0.1, np.Inf),
                 state.vy_b,
                 state.dyaw,
                 self.last_input["torque"],

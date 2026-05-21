@@ -86,6 +86,17 @@ class ControllerNode:
         self.current_state = msg
 
     def controller_cb(self, timer_event):
+        print("controller_cb")
+
+        if self.current_state is None:
+            print("Current state is None")
+
+        if self.terminate_after_n_solves is not None:
+            print("terminate_after_n_solves is not None")
+
+        if self.num_solves >= self.terminate_after_n_solves:
+            print("self.num_solves >= self.terminate_after_n_solves")
+
         if self.current_state is None or (
             self.terminate_after_n_solves is not None
             and self.num_solves >= self.terminate_after_n_solves
