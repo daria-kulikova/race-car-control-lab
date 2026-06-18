@@ -31,8 +31,8 @@ model_bounds:
   dyaw_min: -4.0
   dyaw_max:  4.0
 
-  delta_min: -0.3
-  delta_max:  0.3
+  delta_min: -0.4
+  delta_max:  0.4
 
   T_min: 0.0
   T_max: 1.0
@@ -43,8 +43,8 @@ model_bounds:
   ddelta_min: -2.0
   ddelta_max:  2.0
 
-  dT_min: -0.5
-  dT_max:  0.5
+  dT_min: -15.0
+  dT_max:  15.0
 
   dtheta_min: 0.0
   dtheta_max: 3.5
