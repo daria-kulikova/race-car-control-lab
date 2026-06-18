@@ -64,7 +64,7 @@ class ControllerNode:
             buffer_size = self.terminate_after_n_solves
 
         self.data_streamers = {}
-        self.log_properties = rospy.get_param("~log_controller_node_properties")
+        self.log_properties = rospy.get_param("~log_controller_node_properties", None)
         if self.log_properties is not None:
             log_path = get_log_path()
             os.makedirs(log_path, exist_ok=True)
@@ -120,7 +120,7 @@ class ControllerNode:
                 f"Total solve time: {avg_total_time:.3f} ms\tfeeback: {avg_feedback_time:.3f} ms\tprep: {avg_preparation_time:.3f}",
             )
 
-        for node_prop_name, node_prop_dict in self.log_properties.items():
+        for node_prop_name, node_prop_dict in (self.log_properties or {}).items():
             node_prop = getattr(self, node_prop_name)
             for log_name, node_prop_props in node_prop_dict.items():
                 # for log_name, data_streamer in self.data_streamers.items():

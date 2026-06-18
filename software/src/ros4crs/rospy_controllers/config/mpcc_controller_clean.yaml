@@ -12,8 +12,7 @@ controller_type: MPCC_PYTHON
 max_rate: 30              # Hz  (lower than C++ 50 Hz to give Python more budget)
 
 experiment_name: mpcc_python
-terminate_after_n_solves: ~   # null = run forever
-log_controller_node_properties: ~  # null = skip logging entirely
+terminate_after_n_solves: 999999
 
 controller_params:
   Q1: 180.0   # contouring cost     (same as real_world_mpc/controller.yaml)

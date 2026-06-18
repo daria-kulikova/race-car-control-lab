@@ -40,12 +40,14 @@ def create_ocp(config: dict) -> AcadosOcp:
     np_ = model.p.size()[0]  # 31
 
     # ── Dimensions ────────────────────────────────────────────────────────────
-    ocp.dims.nx  = nx
-    ocp.dims.nu  = nu
-    ocp.dims.np  = np_
-    ocp.dims.nbx = nx
-    ocp.dims.nbu = nu
-    ocp.dims.N   = N
+    ocp.dims.nx   = nx
+    ocp.dims.nu   = nu
+    ocp.dims.np   = np_
+    ocp.dims.ny   = 0
+    ocp.dims.ny_e = 0
+    ocp.dims.nbx  = nx
+    ocp.dims.nbu  = nu
+    ocp.dims.N    = N
 
     # soft track constraint
     ocp.dims.nh  = 1
@@ -99,9 +101,11 @@ def create_ocp(config: dict) -> AcadosOcp:
     safety_margin = config["track"]["safety_margin"]
     w = 0.5 * (track_width - car_width) - safety_margin
     lh, uh = constraint.bound_generator(w)
-    ocp.constraints.lh     = np.array([lh])
-    ocp.constraints.uh     = np.array([uh])
-    ocp.constraints.idxsh  = np.array([0])
+    ocp.constraints.lh    = np.array([lh])
+    ocp.constraints.uh    = np.array([uh])
+    ocp.constraints.lsh   = np.zeros(1)
+    ocp.constraints.ush   = np.zeros(1)
+    ocp.constraints.idxsh = np.array([0])
 
     # ── Initial condition (hard equality, soft only on inputs) ────────────────
     ocp.constraints.x0       = np.zeros(nx)

@@ -13,7 +13,7 @@ from rospy_controllers.utils import unwrap_yaw_angle, get_closest_track_point_id
 from .generate_solver import build_solver
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_WORKDIR  = os.path.abspath(os.path.join(_THIS_DIR, "../../../../"))  # rospy_controllers root
+_WORKDIR  = os.path.abspath(os.path.join(_THIS_DIR, "../../../"))  # rospy_controllers root
 
 
 class MPCCPacejkaController(RosPyController):
@@ -139,20 +139,22 @@ class MPCCPacejkaController(RosPyController):
         self._f6_fn = ca.Function("f6dof", [x6, T_s, d_s, p], [f6])
 
     def _setup_solver(self):
-        cfg_path = os.path.join(_THIS_DIR, "..", "..", "..", "..", "config", "solver_mpcc_clean.yaml")
+        cfg_path = os.path.join(_THIS_DIR, "..", "..", "..", "config", "solver_mpcc_clean.yaml")
         with open(cfg_path) as f:
             self._cfg = yaml.safe_load(f)
 
         self.N  = self._cfg["solver_creation"]["N"]
         self._Ts = self._cfg["solver_creation"]["Ts"]
 
+        hash_file = os.path.join(_WORKDIR, "data", "mpcc_clean_build_hash.md5")
+        os.makedirs(os.path.dirname(hash_file), exist_ok=True)
         needs_rebuild = check_file_changes(
             [
                 os.path.join(_THIS_DIR, "pacejka_model.py"),
                 os.path.join(_THIS_DIR, "generate_solver.py"),
                 cfg_path,
             ],
-            os.path.join(_WORKDIR, "data", "mpcc_clean_build_hash.md5"),
+            hash_file,
         )
         rospy.loginfo(f"[MPCC_PYTHON] rebuild={needs_rebuild}")
 
@@ -250,7 +252,8 @@ class MPCCPacejkaController(RosPyController):
             for i in range(self.N):
                 self._last_u[i] = self._solver.get(i, "u")
         else:
-            rospy.logwarn_throttle(1.0, f"[MPCC_PYTHON] solver status={status}")
+            rospy.logwarn_throttle(0.5, f"[MPCC_PYTHON] solver status={status}")
+        rospy.loginfo_throttle(1.0, f"[MPCC_PYTHON] steer={self._last_x[1,self.IDELTA]:.4f} torque={self._last_x[1,self.IT]:.4f} theta={self._last_x[1,self.ITHETA]:.3f} status={status}")
 
     # ── Warmstart ──────────────────────────────────────────────────────────────
 
@@ -260,16 +263,16 @@ class MPCCPacejkaController(RosPyController):
         Builds initial guess along horizon then runs warmstart_iters solver iterations.
         """
         idx = get_closest_track_point_idx(
-            state.pos_x, state.pos_y, self._track_x, self._track_y
+            state.x, state.y, self._track_x, self._track_y
         )
         self._theta = float(self._track_arc[idx])
         self._last_torque = 0.5
         self._last_steer  = 0.0
 
-        vx0 = max(0.01, state.vel_x)
+        vx0 = max(0.01, state.vx_b)
         x0 = np.array([
-            state.pos_x, state.pos_y, state.yaw,
-            vx0, state.vel_y, state.yaw_rate,
+            state.x, state.y, state.yaw,
+            vx0, state.vy_b, state.dyaw,
             self._last_torque, self._last_steer, self._theta,
         ])
 
@@ -279,6 +282,7 @@ class MPCCPacejkaController(RosPyController):
             vel = (1.5 - vx0) * i / (self.N + 1) + vx0
             driven += self._Ts * vel
             self._last_x[i] = self._gen_init_state(driven, vel)
+            self._last_x[i, self.IT] = self._last_torque  # consistent with x0 (avoids T=0 discontinuity)
 
         rospy.loginfo(f"[MPCC_PYTHON] warmstarting ({self._warmstart_iters} iter) …")
         for _ in range(self._warmstart_iters):
@@ -299,8 +303,8 @@ class MPCCPacejkaController(RosPyController):
 
         # Build 9D state from ROS message + internal theta/last actuation
         x_curr = np.array([
-            state.pos_x, state.pos_y, state.yaw,
-            state.vel_x, state.vel_y, state.yaw_rate,
+            state.x, state.y, state.yaw,
+            state.vx_b, state.vy_b, state.dyaw,
             self._last_torque, self._last_steer, self._theta,
         ])
 
