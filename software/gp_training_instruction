@@ -27,6 +27,10 @@ USE BLACK CAR
 	control_package:=rospy_controllers \
 	controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml \
 	bypass_estimator:=true 
+
+	2.1) Run command for simulation Clean Python Controller:
+		roslaunch crs_launch sim_single_car.launch experiment_name:=pacejka_mpc control_package:=rospy_controllers controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_clean.yaml
+
 	
 3) Run the car in real world
 
@@ -37,6 +41,10 @@ USE BLACK CAR
 	track_name:=FREIBURG_FULL_TRACK \
 	control_package:=rospy_controllers \
 	controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml 
+
+	3.1) Run car for Clean Python Controller: 
+			roslaunch crs_launch run_freiburg.launch experiment_name:=real_world_mpc track_name:=FREIBURG_FULL_TRACK control_package:=rospy_controllers controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_clean.yaml 
+
 	
 	project:
 compare real worlk simulation
