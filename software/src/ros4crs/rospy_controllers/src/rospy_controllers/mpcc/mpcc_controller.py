@@ -382,3 +382,29 @@ class MPCCPacejkaController(RosPyController):
 
         self._vis_pub.publish(planned)
         self._vis_pub.publish(reference)
+
+        # Sphere at track point for current theta (where controller thinks car is)
+        from std_msgs.msg import ColorRGBA
+        theta_now = self._track_ref(self._theta)
+        theta_end = self._track_ref(float(self._last_x[self.N, self.ITHETA]))
+
+        for label, ref, color in [
+            ("theta_now",  theta_now, ColorRGBA(r=0.0, g=1.0, b=0.0, a=1.0)),  # green = current theta
+            ("theta_end",  theta_end, ColorRGBA(r=1.0, g=0.5, b=0.0, a=1.0)),  # orange = horizon-end theta
+        ]:
+            m = Marker()
+            m.header.frame_id = frame_id
+            m.header.stamp    = now
+            m.ns     = ns + "_" + label
+            m.id     = 0
+            m.type   = Marker.SPHERE
+            m.action = Marker.ADD
+            m.pose.position.x = ref["x"]
+            m.pose.position.y = ref["y"]
+            m.pose.position.z = 0.05
+            m.pose.orientation.w = 1.0
+            m.scale.x = 0.08
+            m.scale.y = 0.08
+            m.scale.z = 0.08
+            m.color  = color
+            self._vis_pub.publish(m)
