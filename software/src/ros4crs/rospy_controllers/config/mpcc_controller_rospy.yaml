@@ -11,6 +11,7 @@ load_data: false
 cautious_gp: false
 inducing_gp: false
 data_processing_mode: none # none, record, learn
+train_gp_params: none #added by us  
 num_rti_iter: 1
 experiment_name: no_mm
 

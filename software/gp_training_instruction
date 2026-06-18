@@ -1,0 +1,54 @@
+
+===============INSTRUCTION FOR GP TRAINING=================================================================
+USE BLACK CAR
+
+
+1) Run generate acados:
+	cd /code/src/ros4crs/rospy_controllers/src/ && python3 -m rospy_controllers.zero_order_gpmpc.generate_acados_solver
+
+2) Check in mpcc_controller_rospy.yaml:
+	load_gp: false
+	load_data: false
+	cautious_gp: false
+	inducing_gp: false
+	data_processing_mode: record # none, record, learn
+	train_gp_params: none 
+	num_rti_iter: 1
+	experiment_name: no_mm
+	
+2) Run the command for simulation: 
+
+	roslaunch crs_launch sim_single_car.launch experiment_name:=pacejka_mpc track_name:=DEMO_TRACK control_package:=rospy_controllers controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml bypass_estimator:=true 
+
+
+	roslaunch crs_launch sim_single_car.launch \
+	experiment_name:=pacejka_mpc \
+	track_name:=DEMO_TRACK \
+	control_package:=rospy_controllers \
+	controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml \
+	bypass_estimator:=true 
+	
+3) Run the car in real world
+
+	roslaunch crs_launch run_freiburg.launch experiment_name:=real_world_mpc track_name:=FREIBURG_FULL_TRACK control_package:=rospy_controllers controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml 
+
+	roslaunch crs_launch run_freiburg.launch \
+	experiment_name:=real_world_mpc \
+	track_name:=FREIBURG_FULL_TRACK \
+	control_package:=rospy_controllers \
+	controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_rospy.yaml 
+	
+	project:
+compare real worlk simulation
+collect and it on reald data
+compare normal and gaussian controller to performance: lap time, drifting, 
+zoro ocp 
+
+change accerlation in solver.yaml 
+
+
+
+##########====
+1) Delete C-generated file: 
+	sudo rm -rd src/ros4crs/rospy_controllers/src/rospy_controllers/zero_order_gpmpc/c_generated_code
+	rm src/ros4crs/rospy_controllers/data/build_c_code_hash.md5

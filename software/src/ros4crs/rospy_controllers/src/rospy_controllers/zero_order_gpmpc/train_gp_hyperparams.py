@@ -9,7 +9,7 @@ def train_gp(gp_model, likelihood, train_x, train_y):
 
     max_iter = 100
     optimizer = torch.optim.Adam(
-        list(model.parameters()) + list(likelihood.parameters()), lr=0.1
+        list(model.parameters()) + list(likelihood.parameters()), lr=0.05
     )
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
     for _ in range(max_iter):
@@ -41,8 +41,8 @@ def train_gp_model(
     )  # Includes GaussianLikelihood parameters
 
     # "Loss" for GPs - the marginal log likelihood
-    # mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, gp_model)
-    mll = gpytorch.mlls.VariationalELBO(likelihood, gp_model, num_data=train_y.shape[0])
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, gp_model)
+    #mll = gpytorch.mlls.VariationalELBO(likelihood, gp_model, num_data=train_y.shape[0])
     print(f"Shape train_y : {train_y.shape}")
 
     prev_loss = np.inf
@@ -50,8 +50,10 @@ def train_gp_model(
 
     for i in range(training_iterations):
         optimizer.zero_grad()
-        output = likelihood(gp_model(train_x))
-        loss = torch.sum(-mll(output, train_y))
+        #output = likelihood(gp_model(train_x))
+        #loss = torch.sum(-mll(output, train_y))
+        output = gp_model(train_x)
+        loss = -mll(output, train_y)
 
         if i % 20 == 0:
             print("Iter %d/%d - Loss: %.3f" % (i + 1, training_iterations, loss.item()))
