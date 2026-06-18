@@ -253,7 +253,17 @@ class MPCCPacejkaController(RosPyController):
                 self._last_u[i] = self._solver.get(i, "u")
         else:
             rospy.logwarn_throttle(0.5, f"[MPCC_PYTHON] solver status={status}")
-        rospy.loginfo_throttle(1.0, f"[MPCC_PYTHON] steer={self._last_x[1,self.IDELTA]:.4f} torque={self._last_x[1,self.IT]:.4f} theta={self._last_x[1,self.ITHETA]:.3f} status={status}")
+
+        # Diagnostic: planned vx and T trajectory to distinguish constraint-failure vs model-mismatch
+        planned_vx = [self._last_x[i, self.IVX] for i in range(min(6, self.N + 1))]
+        planned_T  = [self._last_x[i, self.IT]  for i in range(min(6, self.N + 1))]
+        rospy.loginfo_throttle(1.0,
+            f"[MPCC_PYTHON] status={status} "
+            f"vx_plan={[f'{v:.2f}' for v in planned_vx]} "
+            f"T_plan={[f'{t:.2f}' for t in planned_T]} "
+            f"steer={self._last_x[1,self.IDELTA]:.3f} "
+            f"theta={self._last_x[1,self.ITHETA]:.2f}"
+        )
 
     # ── Warmstart ──────────────────────────────────────────────────────────────
 
