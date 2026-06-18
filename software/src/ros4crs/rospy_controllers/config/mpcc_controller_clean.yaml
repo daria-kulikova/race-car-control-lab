@@ -1,0 +1,35 @@
+# Controller config for the clean Python MPCC (no GP, no ZORO).
+# Launch with:
+#   roslaunch crs_launch run_freiburg.launch \
+#     experiment_name:=real_world_mpc \
+#     control_package:=rospy_controllers \
+#     controller_config:=$(rospack find rospy_controllers)/config/mpcc_controller_clean.yaml
+
+state_type: pacejka_car
+input_type: pacejka_car
+
+controller_type: MPCC_PYTHON
+max_rate: 30              # Hz  (lower than C++ 50 Hz to give Python more budget)
+
+experiment_name: mpcc_python
+terminate_after_n_solves: ~   # null = run forever
+log_controller_node_properties: ~  # null = skip logging entirely
+
+controller_params:
+  Q1: 180.0   # contouring cost     (same as real_world_mpc/controller.yaml)
+  Q2: 160.0   # lag cost
+  R1: 0.2     # dT cost
+  R2: 0.3     # dsteer cost
+  R3: 0.2     # darclength cost
+  q:  3.5     # arclength progress reward
+
+  lag_compensation_time: 0.02    # seconds
+  warmstart_iterations:  50
+  max_sqp_iterations:    1
+
+# Visualization
+visualizer:
+  type: mpc
+  rate: 10
+  frame_id: crs_frame
+  namespace: mpc

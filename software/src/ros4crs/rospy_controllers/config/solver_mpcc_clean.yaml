@@ -1,0 +1,50 @@
+# Acados solver config for the clean Python MPCC controller.
+# Mirrors pacejka_mpcc/config/solver_acados.yaml from the C++ package.
+
+solver_creation:
+  N: 40       # horizon length
+  Ts: 0.033333  # 30 Hz  (must match max_rate in mpcc_controller_clean.yaml)
+  slack_penalty_linear:    100.0
+  slack_penalty_quadratic: 0.0
+
+track:
+  track_width: 0.46
+  safety_margin: 0.04
+
+# State / input bounds  (same as C++ solver_acados.yaml)
+model_bounds:
+  x_min: -10.0
+  x_max:  10.0
+
+  y_min: -10.0
+  y_max:  10.0
+
+  yaw_min: -1000.0
+  yaw_max:  1000.0
+
+  vx_min: 0.0
+  vx_max: 3.2
+
+  vy_min: -2.0
+  vy_max:  2.0
+
+  dyaw_min: -4.0
+  dyaw_max:  4.0
+
+  delta_min: -0.3
+  delta_max:  0.3
+
+  T_min: 0.0
+  T_max: 1.0
+
+  theta_min:    0.0
+  theta_max: 1000.0
+
+  ddelta_min: -2.0
+  ddelta_max:  2.0
+
+  dT_min: -0.5
+  dT_max:  0.5
+
+  dtheta_min: 0.0
+  dtheta_max: 3.5
