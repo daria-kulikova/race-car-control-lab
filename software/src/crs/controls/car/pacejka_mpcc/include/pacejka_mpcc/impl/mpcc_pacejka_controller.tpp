@@ -119,7 +119,7 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   {
     log_stream_.open(config_.data_log_path);
     log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega\n";
-    ROS_INFO_STREAM("[MPCC] GP data logging → " << config_.data_log_path);
+    std::cout << "[MPCC] GP data logging → " << config_.data_log_path << std::endl;
   }
 
   // Run solver
