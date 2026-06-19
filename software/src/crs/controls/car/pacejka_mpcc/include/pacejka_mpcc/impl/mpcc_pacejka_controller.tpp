@@ -1,7 +1,7 @@
 #pragma once
 
+#include <chrono>
 #include <iomanip>
-#include <ros/time.h>
 
 /**
  * Implementations of the template PacejkaMpccController class.
@@ -161,7 +161,8 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   // GP data logging: record residual = actual_state - model_prediction
   if (!config_.data_log_path.empty())
   {
-    double t_now = ros::Time::now().toSec();
+    double t_now = std::chrono::duration<double>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
     if (log_has_prev_)
     {
       double dt = t_now - log_t_prev_;
