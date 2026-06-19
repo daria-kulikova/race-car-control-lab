@@ -20,7 +20,7 @@ controller_params:
   steer_limit: 0.3
 
   # Uncomment to collect GP training data. Records model residuals to CSV.
-  # data_log_path: "/tmp/mpcc_residuals.csv"
+  data_log_path: "/tmp/mpcc_residuals.csv"
 
 visualizer:
   rate: 10

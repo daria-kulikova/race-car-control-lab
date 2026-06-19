@@ -115,6 +115,7 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     // Set initial input (nothing to do, its zero)
   }
 
+  std::cout << "[MPCC] data_log_path='" << config_.data_log_path << "'" << std::endl;
   if (!config_.data_log_path.empty())
   {
     log_stream_.open(config_.data_log_path);
