@@ -331,6 +331,21 @@ class MPCCPacejkaController(RosPyController):
         if self._theta > (self._laps + 1) * self._track_max_arc:
             self._laps += 1
 
+        # Theta drift check BEFORE solving: if solver theta has drifted far ahead of the
+        # car's actual arc position, snap both theta and the warm-start trajectory back.
+        # This recovers from stuck states where the optimizer has detached from physical reality.
+        closest_idx  = get_closest_track_point_idx(state.x, state.y, self._track_x, self._track_y)
+        theta_actual = float(self._track_arc[closest_idx]) + self._laps * self._track_max_arc
+        theta_drift  = self._theta - theta_actual
+        if theta_drift > 1.0:
+            rospy.logwarn(
+                f"[MPCC_PYTHON] theta_drift={theta_drift:+.3f}m > 1.0m — snapping solver theta to arc"
+            )
+            correction = theta_actual - self._theta
+            self._theta = theta_actual
+            x_curr[self.ITHETA] += correction
+            self._last_x[:, self.ITHETA] += correction  # shift entire warm-start trajectory
+
         # Shift warm-start by one step
         self._last_x[:-1] = self._last_x[1:]
         self._last_u[:-1] = self._last_u[1:]
@@ -339,17 +354,14 @@ class MPCCPacejkaController(RosPyController):
         for _ in range(self._max_sqp_iter):
             self._solve_step(x_curr)
 
-        # Extract output (from stage 1, same as C++)
-        self._last_torque = float(self._last_x[1, self.IT])
+        # Extract output (from stage 1, same as C++).
+        # Clamp torque to [0, 1]: the motor cannot produce negative torque, so T<0 from the
+        # solver (soft-bound violation) must not be sent to the car. Also used as warm-start
+        # for the next step to prevent T<0 from propagating into the trajectory.
+        self._last_torque = float(np.clip(self._last_x[1, self.IT], 0.0, 1.0))
         self._last_steer  = float(self._last_x[1, self.IDELTA])
         self._theta       = float(self._last_x[1, self.ITHETA])
 
-        # Theta drift diagnostic: compare solver theta with closest physical arc position.
-        # If theta_drift >> 0, the solver's virtual progress is ahead of the car's real position
-        # and reference track points are ahead of where the car actually is.
-        closest_idx  = get_closest_track_point_idx(state.x, state.y, self._track_x, self._track_y)
-        theta_actual = float(self._track_arc[closest_idx]) + self._laps * self._track_max_arc
-        theta_drift  = self._theta - theta_actual
         rospy.loginfo_throttle(1.0,
             f"[MPCC_PYTHON] theta_solver={self._theta:.3f} theta_arc={theta_actual:.3f} "
             f"drift={theta_drift:+.3f}m  T={self._last_torque:.3f} steer={self._last_steer:.3f}"
