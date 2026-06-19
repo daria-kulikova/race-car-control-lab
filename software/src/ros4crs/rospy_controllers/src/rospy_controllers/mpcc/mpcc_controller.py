@@ -289,13 +289,15 @@ class MPCCPacejkaController(RosPyController):
             self._last_torque, self._last_steer, self._theta,
         ])
 
-        # Build initial guess: ramp velocity from vx0 to 1.5 m/s along horizon
+        # Build initial guess: ramp velocity from vx0 to 1.5 m/s along horizon.
+        # T=0.0 in warm-start states (matching C++ generateInitialization); applied
+        # torque (self._last_torque=0.5) is pinned at stage 0 via lbx/ubx in _solve_step.
         driven = self._theta
         for i in range(self.N + 1):
             vel = (1.5 - vx0) * i / (self.N + 1) + vx0
             driven += self._Ts * vel
             self._last_x[i] = self._gen_init_state(driven, vel)
-            self._last_x[i, self.IT] = self._last_torque  # consistent with x0 (avoids T=0 discontinuity)
+            self._last_x[i, self.IT] = 0.0
 
         rospy.loginfo(f"[MPCC_PYTHON] warmstarting ({self._warmstart_iters} iter) …")
         for _ in range(self._warmstart_iters):

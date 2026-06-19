@@ -4,7 +4,7 @@
 solver_creation:
   N: 40       # horizon length
   Ts: 0.033333  # 30 Hz  (must match max_rate in mpcc_controller_clean.yaml)
-  slack_penalty_linear:    100.0
+  slack_penalty_linear:    2000.0
   slack_penalty_quadratic: 0.0
 
 track:
