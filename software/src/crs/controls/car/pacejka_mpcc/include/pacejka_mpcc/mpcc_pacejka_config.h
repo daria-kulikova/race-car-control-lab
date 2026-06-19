@@ -56,5 +56,11 @@ struct mpcc_pacejka_config
    * @brief How many iterations of SQP should be run
    */
   unsigned int max_sqp_iterations = 1;
+
+  /**
+   * @brief Path for GP training data CSV. Empty string disables logging.
+   *        CSV columns: vx, vy, omega, delta, T, eps_vx, eps_vy, eps_omega
+   */
+  std::string data_log_path = "";
 };
 }  // namespace crs_controls::pacejka_mpcc

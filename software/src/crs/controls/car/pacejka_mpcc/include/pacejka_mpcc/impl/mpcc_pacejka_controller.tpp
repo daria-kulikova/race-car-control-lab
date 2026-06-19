@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iomanip>
+#include <ros/time.h>
+
 /**
  * Implementations of the template PacejkaMpccController class.
  */
@@ -112,6 +115,13 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     // Set initial input (nothing to do, its zero)
   }
 
+  if (!config_.data_log_path.empty())
+  {
+    log_stream_.open(config_.data_log_path);
+    log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega\n";
+    ROS_INFO_STREAM("[MPCC] GP data logging → " << config_.data_log_path);
+  }
+
   // Run solver
   // TODO(@naefjo): reduce cognitive complexity of this code
   for (int run = 0; run < config_.warmstart_iterations; run++)
@@ -146,6 +156,31 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   {
     initialize(state);
     is_initialized_ = true;
+  }
+
+  // GP data logging: record residual = actual_state - model_prediction
+  if (!config_.data_log_path.empty())
+  {
+    double t_now = ros::Time::now().toSec();
+    if (log_has_prev_)
+    {
+      double dt = t_now - log_t_prev_;
+      if (dt > 0.005 && dt < 0.2)
+      {
+        // last_input_ here still holds the command sent to hardware at the previous tick
+        auto predicted = model_->applyModel(log_state_prev_, last_input_, dt);
+        log_stream_ << std::fixed << std::setprecision(6)
+                    << log_state_prev_.vel_x    << "," << log_state_prev_.vel_y    << ","
+                    << log_state_prev_.yaw_rate << "," << last_input_.steer        << ","
+                    << last_input_.torque       << ","
+                    << (state.vel_x    - predicted.vel_x)    << ","
+                    << (state.vel_y    - predicted.vel_y)    << ","
+                    << (state.yaw_rate - predicted.yaw_rate) << "\n";
+      }
+    }
+    log_state_prev_ = state;
+    log_t_prev_     = t_now;
+    log_has_prev_   = true;
   }
 
   // initialize state to virtually advanced vehicle states and inputs

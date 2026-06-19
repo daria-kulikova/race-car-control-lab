@@ -33,6 +33,7 @@ getConfig<crs_controls::pacejka_mpcc::mpcc_pacejka_config>(const ros::NodeHandle
   params.max_sqp_iterations = static_cast<unsigned int>(max_sqp_iter);
 
   nh.getParam("warmstart_iterations", params.warmstart_iterations);  // Optional Param. No warning raised if not set.
+  nh.getParam("data_log_path", params.data_log_path);               // Optional. Empty = logging disabled.
 
   return params;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <memory>
 
 #include "commons/static_track_trajectory.h"
@@ -162,6 +163,12 @@ private:
   double theta_ = 0.0;
 
   bool is_initialized_ = false;
+
+  // GP data logging
+  bool log_has_prev_ = false;
+  crs_models::pacejka_model::pacejka_car_state log_state_prev_;
+  double log_t_prev_ = 0.0;
+  std::ofstream log_stream_;
 };
 }  // namespace crs_controls::pacejka_mpcc
 
