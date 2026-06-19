@@ -254,15 +254,18 @@ class MPCCPacejkaController(RosPyController):
         else:
             rospy.logwarn_throttle(0.5, f"[MPCC_PYTHON] solver status={status}")
 
-        # Diagnostic: planned vx and T trajectory to distinguish constraint-failure vs model-mismatch
-        planned_vx = [self._last_x[i, self.IVX] for i in range(min(6, self.N + 1))]
-        planned_T  = [self._last_x[i, self.IT]  for i in range(min(6, self.N + 1))]
+        # Full planned T trajectory — find stage where T first drops to near-zero
+        T_plan = [self._last_x[i, self.IT] for i in range(self.N + 1)]
+        T_zero_stage = next((i for i, t in enumerate(T_plan) if t < 0.05), None)
+        dtheta_plan = [self._last_u[i, self.IDTHETA] for i in range(min(6, self.N))]
+        vx_plan     = [self._last_x[i, self.IVX]    for i in range(min(6, self.N + 1))]
         rospy.loginfo_throttle(1.0,
             f"[MPCC_PYTHON] status={status} "
-            f"vx_plan={[f'{v:.2f}' for v in planned_vx]} "
-            f"T_plan={[f'{t:.2f}' for t in planned_T]} "
-            f"steer={self._last_x[1,self.IDELTA]:.3f} "
-            f"theta={self._last_x[1,self.ITHETA]:.2f}"
+            f"vx={vx_plan[0]:.2f} theta={self._last_x[1,self.ITHETA]:.2f} "
+            f"T_zero_at_stage={T_zero_stage} "
+            f"T_plan={[f'{t:.2f}' for t in T_plan[:8]]} "
+            f"dtheta={[f'{d:.2f}' for d in dtheta_plan]} "
+            f"steer={self._last_x[1,self.IDELTA]:.3f}"
         )
 
     # ── Warmstart ──────────────────────────────────────────────────────────────
@@ -338,6 +341,17 @@ class MPCCPacejkaController(RosPyController):
         self._last_torque = float(self._last_x[1, self.IT])
         self._last_steer  = float(self._last_x[1, self.IDELTA])
         self._theta       = float(self._last_x[1, self.ITHETA])
+
+        # Theta drift diagnostic: compare solver theta with closest physical arc position.
+        # If theta_drift >> 0, the solver's virtual progress is ahead of the car's real position
+        # and reference track points are ahead of where the car actually is.
+        closest_idx  = get_closest_track_point_idx(state.x, state.y, self._track_x, self._track_y)
+        theta_actual = float(self._track_arc[closest_idx]) + self._laps * self._track_max_arc
+        theta_drift  = self._theta - theta_actual
+        rospy.loginfo_throttle(1.0,
+            f"[MPCC_PYTHON] theta_solver={self._theta:.3f} theta_arc={theta_actual:.3f} "
+            f"drift={theta_drift:+.3f}m  T={self._last_torque:.3f} steer={self._last_steer:.3f}"
+        )
 
         msg = car_input()
         msg.torque = self._last_torque
