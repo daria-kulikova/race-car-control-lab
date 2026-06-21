@@ -23,7 +23,8 @@ from sklearn.preprocessing import StandardScaler
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", required=True, help="Path to mpcc_residuals.csv")
+parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv",
+                    help="Path to mpcc_residuals.csv")
 parser.add_argument("--out",  default=str(Path(__file__).parent / "gp_model.npz"),
                     help="Output .npz path (default: gp_model.npz next to this script)")
 parser.add_argument("--max-points", type=int, default=2000,
@@ -101,7 +102,13 @@ print(f"  noise_level:   {noise_level:.6f}")
 alpha = gp.alpha_        # shape (n_train, n_outputs) — sklearn stores this
 X_train = gp.X_train_   # scaled training inputs
 
+# y normalisation params (needed to unnormalise predictions in C++)
+y_mean = gp._y_train_mean   # (n_outputs,)
+y_std  = getattr(gp, "_y_train_std", np.ones_like(y_mean))  # (n_outputs,)
+
 print(f"  alpha shape: {alpha.shape}")
+print(f"  y_mean:  {y_mean}")
+print(f"  y_std:   {y_std}")
 
 
 # ── Save ──────────────────────────────────────────────────────────────────────
@@ -114,6 +121,8 @@ np.savez(args.out,
          noise_level  = np.array([noise_level]),
          scaler_mean  = scaler.mean_,     # (5,) for standardisation in C++
          scaler_std   = scaler.scale_,    # (5,)
+         y_mean       = y_mean,           # (3,) output mean  (for unnormalising)
+         y_std        = y_std,            # (3,) output std
 )
 
 print(f"\nSaved → {args.out}")
@@ -124,5 +133,6 @@ print("Columns in alpha: [eps_vx, eps_vy, eps_omega]")
 
 y_pred, y_std = gp.predict(X_scaled[:10], return_std=True)
 print("\nSanity check (first 10 points):")
-print(f"  mean pred eps_vx:   {y_pred[:,0]}")
-print(f"  actual   eps_vx:    {Y[:10,0]}")
+for i, name in enumerate(["eps_vx", "eps_vy", "eps_omega"]):
+    print(f"  pred  {name}: {y_pred[:, i]}")
+    print(f"  actual {name}: {Y[:10, i]}")
