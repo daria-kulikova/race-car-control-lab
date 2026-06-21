@@ -5,7 +5,7 @@ Splits data 80/20, trains GP on 80%, evaluates on held-out 20%.
 This gives an honest estimate of GP generalisation quality.
 
 Usage:
-    python3 evaluate_gp.py --data /code/src/data/mpcc_residuals.csv
+    python3 /code/src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py
 """
 
 import argparse
