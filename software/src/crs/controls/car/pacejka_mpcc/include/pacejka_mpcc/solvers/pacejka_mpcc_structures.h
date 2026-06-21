@@ -68,7 +68,10 @@ enum class params : std::uint8_t
   GAMMA,
   EPS,
   CAR_WIDTH,
-  WHEEL_RADIUS
+  WHEEL_RADIUS,
+  D_VX,
+  D_VY,
+  D_OMEGA
 };
 
 enum class params_curvilinear : std::uint8_t

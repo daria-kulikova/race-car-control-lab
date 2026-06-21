@@ -200,13 +200,20 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   // initialize state to virtually advanced vehicle states and inputs
   auto virtual_state = model_->applyModel(state, last_input_, config_.lag_compensation_time);
 
-  // Zero-order GP correction: integrate constant residual over lag window
+  // Zero-order GP-MPC: evaluate GP once at current state.
+  // 1. Correct lag-compensated initial condition.
+  // 2. Apply same d as constant disturbance over the full horizon via solver params.
   if (gp_.isLoaded())
   {
     auto d = gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
     virtual_state.vel_x    += d.d_vx    * config_.lag_compensation_time;
     virtual_state.vel_y    += d.d_vy    * config_.lag_compensation_time;
     virtual_state.yaw_rate += d.d_omega * config_.lag_compensation_time;
+    solver_.setGPResidual(d.d_vx, d.d_vy, d.d_omega);
+  }
+  else
+  {
+    solver_.setGPResidual(0.0, 0.0, 0.0);
   }
 
   // theta also needs to be adjusted to account for the forward simulation. This is exact since dTheta is

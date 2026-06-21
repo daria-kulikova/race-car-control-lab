@@ -70,6 +70,17 @@ public:
    * @param tracking_point tracking point
    */
   void updateParams(int stage, AcadosPacejkaMpccSolver::MpcStageParameters& params);
+
+  /**
+   * @brief Set the GP residual [d_vx, d_vy, d_omega] to apply as a constant
+   * disturbance over the entire horizon. Call once per control step before solve().
+   */
+  void setGPResidual(double d_vx, double d_vy, double d_omega)
+  {
+    gp_d_vx_    = d_vx;
+    gp_d_vy_    = d_vy;
+    gp_d_omega_ = d_omega;
+  }
   /**
    * @brief Solves the optimization problems and stores the solution in x and u.
    *
@@ -82,6 +93,10 @@ public:
   double getSamplePeriod();
 
 private:
+  double gp_d_vx_    = 0.0;
+  double gp_d_vy_    = 0.0;
+  double gp_d_omega_ = 0.0;
+
   std::unique_ptr<pacejka_model_solver_capsule> acados_ocp_capsule_;
   std::unique_ptr<ocp_nlp_config> nlp_config_;
   std::unique_ptr<ocp_nlp_dims> nlp_dims_;

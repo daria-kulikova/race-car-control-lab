@@ -103,6 +103,11 @@ def pacejka_model(
     car_width = SX.sym("car_width")
     wheel_radius = SX.sym("wheel_radius")
 
+    # GP residual parameters (zero-order correction, constant over horizon)
+    d_vx = SX.sym("d_vx")
+    d_vy = SX.sym("d_vy")
+    d_omega = SX.sym("d_omega")
+
     # parameters
     p = vertcat(
         xd,
@@ -136,6 +141,9 @@ def pacejka_model(
         eps,
         car_width,
         wheel_radius,
+        d_vx,
+        d_vy,
+        d_omega,
     )
 
     #   Slip Angles
@@ -186,9 +194,9 @@ def pacejka_model(
         vx * cos(yaw) - vy * sin(yaw),
         vx * sin(yaw) + vy * cos(yaw),
         omega,
-        Fx / m,
-        Fy / m,
-        Mz / I,
+        Fx / m + d_vx,
+        Fy / m + d_vy,
+        Mz / I + d_omega,
         dT,
         ddelta,
         dtheta,
