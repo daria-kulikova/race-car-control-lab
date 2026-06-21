@@ -5,7 +5,7 @@ Saves one figure per feature (vx, vy, omega, delta, T) showing how each
 residual depends on that feature, plus a histogram figure.
 
 Usage:
-    python3 plot_residuals.py --data /code/src/data/mpcc_residuals.csv
+    python3 /code/src/crs/controls/car/pacejka_mpcc/script/plot_residuals.py
 """
 
 import argparse
