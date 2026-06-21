@@ -11,6 +11,7 @@
 #include "control_commons/mpc_controller.h"
 
 #include "pacejka_mpcc/mpcc_pacejka_config.h"
+#include "pacejka_mpcc/gp_residual.h"
 #include "pacejka_mpcc/solvers/pacejka_mpcc_structures.h"
 #ifdef BUILD_ACADOS_SOLVER
 #include "pacejka_mpcc/solvers/acados_pacejka_mpcc_solver.h"
@@ -169,6 +170,9 @@ private:
   crs_models::pacejka_model::pacejka_car_state log_state_prev_;
   double log_t_prev_ = 0.0;
   std::ofstream log_stream_;
+
+  // GP residual model for lag compensation correction
+  GPResidual gp_;
 };
 }  // namespace crs_controls::pacejka_mpcc
 

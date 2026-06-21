@@ -62,5 +62,11 @@ struct mpcc_pacejka_config
    *        CSV columns: vx, vy, omega, delta, T, eps_vx, eps_vy, eps_omega
    */
   std::string data_log_path = "";
+
+  /**
+   * @brief Path to the GP residual model binary (gp_model.bin from train_gp.py).
+   *        Empty string disables GP correction.
+   */
+  std::string gp_model_path = "";
 };
 }  // namespace crs_controls::pacejka_mpcc

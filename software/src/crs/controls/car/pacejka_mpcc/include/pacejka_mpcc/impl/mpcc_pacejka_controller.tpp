@@ -115,6 +115,9 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     // Set initial input (nothing to do, its zero)
   }
 
+  if (!config_.gp_model_path.empty())
+    gp_.load(config_.gp_model_path);
+
   std::cout << "[MPCC] data_log_path='" << config_.data_log_path << "'" << std::endl;
   if (!config_.data_log_path.empty())
   {
@@ -196,6 +199,15 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
 
   // initialize state to virtually advanced vehicle states and inputs
   auto virtual_state = model_->applyModel(state, last_input_, config_.lag_compensation_time);
+
+  // Zero-order GP correction: integrate constant residual over lag window
+  if (gp_.isLoaded())
+  {
+    auto d = gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
+    virtual_state.vel_x    += d.d_vx    * config_.lag_compensation_time;
+    virtual_state.vel_y    += d.d_vy    * config_.lag_compensation_time;
+    virtual_state.yaw_rate += d.d_omega * config_.lag_compensation_time;
+  }
 
   // theta also needs to be adjusted to account for the forward simulation. This is exact since dTheta is
   // piecewise constant.

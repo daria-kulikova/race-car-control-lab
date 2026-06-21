@@ -22,6 +22,9 @@ controller_params:
   # Uncomment to collect GP training data. Records model residuals to CSV.
   data_log_path: /code/src/data/mpcc_residuals.csv
 
+  # GP residual correction in lag compensation.
+  gp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/gp_model.bin
+
 visualizer:
   rate: 10
   type: mpc
