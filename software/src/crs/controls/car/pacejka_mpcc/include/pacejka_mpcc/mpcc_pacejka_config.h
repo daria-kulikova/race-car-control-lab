@@ -68,5 +68,11 @@ struct mpcc_pacejka_config
    *        Empty string disables GP correction.
    */
   std::string gp_model_path = "";
+
+  /**
+   * @brief Path for tracking quality CSV. Empty string disables logging.
+   *        CSV columns: t, eC, eL, pos_x, pos_y, ref_x, ref_y
+   */
+  std::string tracking_log_path = "";
 };
 }  // namespace crs_controls::pacejka_mpcc

@@ -25,6 +25,10 @@ controller_params:
   # GP residual correction in lag compensation.
   gp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/gp_model.bin
 
+  # Tracking quality log: eC, eL at each control step.
+  # Run once WITH GP and once WITHOUT (comment gp_model_path) to compare.
+  tracking_log_path: /code/src/data/tracking.csv
+
 visualizer:
   rate: 10
   type: mpc

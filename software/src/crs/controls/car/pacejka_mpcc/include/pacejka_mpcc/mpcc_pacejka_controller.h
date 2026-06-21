@@ -174,6 +174,9 @@ private:
   // GP residual model for lag compensation correction
   GPResidual gp_;
   unsigned int gp_log_counter_ = 0;
+
+  // Tracking quality logging
+  std::ofstream tracking_log_stream_;
 };
 }  // namespace crs_controls::pacejka_mpcc
 

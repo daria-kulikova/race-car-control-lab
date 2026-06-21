@@ -118,6 +118,19 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 
+  if (!config_.tracking_log_path.empty())
+  {
+    tracking_log_stream_.open(config_.tracking_log_path);
+    if (tracking_log_stream_.is_open())
+    {
+      tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y\n";
+      tracking_log_stream_.flush();
+      std::cout << "[MPCC] tracking log → " << config_.tracking_log_path << std::endl;
+    }
+    else
+      std::cout << "[MPCC] ERROR: could not open tracking log: " << config_.tracking_log_path << std::endl;
+  }
+
   std::cout << "[MPCC] data_log_path='" << config_.data_log_path << "'" << std::endl;
   if (!config_.data_log_path.empty())
   {
@@ -255,6 +268,25 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   last_input_.torque = last_solution_.x[1][static_cast<int>(pacejka_vars::TORQUE)];
   last_input_.steer = last_solution_.x[1][static_cast<int>(pacejka_vars::STEER)];
   theta_ = last_solution_.x[1][static_cast<int>(pacejka_vars::THETA)];
+
+  if (tracking_log_stream_.is_open())
+  {
+    // Contouring and lag errors at the current state vs closest track reference
+    const double ref_x   = last_reference_on_track_[0].x;
+    const double ref_y   = last_reference_on_track_[0].y;
+    const double phi     = last_reference_on_track_[0].yaw;
+    const double dx      = state.pos_x - ref_x;
+    const double dy      = state.pos_y - ref_y;
+    const double eC      =  std::sin(phi) * dx - std::cos(phi) * dy;
+    const double eL      = -std::cos(phi) * dx - std::sin(phi) * dy;
+    double t_log = std::chrono::duration<double>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    tracking_log_stream_ << std::fixed << std::setprecision(6)
+                         << t_log << "," << eC << "," << eL << ","
+                         << state.pos_x << "," << state.pos_y << ","
+                         << ref_x << "," << ref_y << "\n";
+    tracking_log_stream_.flush();
+  }
 
   return last_input_;
 }
