@@ -3,7 +3,7 @@ Compare tracking quality (contouring error eC) between two runs:
 one with GP correction and one without.
 
 Usage:
-    python3 plot_tracking.py \
+    python3 /code/software/src/crs/controls/car/pacejka_mpcc/script/plot_tracking.py
         --with-gp    /code/src/data/tracking_gp.csv \
         --without-gp /code/src/data/tracking_no_gp.csv
 """
