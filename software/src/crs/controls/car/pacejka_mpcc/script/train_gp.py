@@ -129,6 +129,26 @@ print(f"\nSaved → {args.out}")
 print("Columns in alpha: [eps_vx, eps_vy, eps_omega]")
 
 
+# ── Export binary for C++ inference ──────────────────────────────────────────
+
+bin_path = str(args.out).replace(".npz", ".bin")
+n_train, n_features = X_train.shape
+n_outputs = alpha.shape[1]
+
+with open(bin_path, "wb") as f:
+    np.array([n_train, n_features, n_outputs], dtype=np.int32).tofile(f)
+    X_train.astype(np.float64).tofile(f)
+    alpha.astype(np.float64).tofile(f)
+    length_scale.astype(np.float64).tofile(f)
+    np.array([amplitude], dtype=np.float64).tofile(f)
+    scaler.mean_.astype(np.float64).tofile(f)
+    scaler.scale_.astype(np.float64).tofile(f)
+    y_mean.astype(np.float64).tofile(f)
+    y_std.astype(np.float64).tofile(f)
+
+print(f"Saved → {bin_path}  (for C++ inference)")
+
+
 # ── Quick sanity check ────────────────────────────────────────────────────────
 
 y_pred, y_std = gp.predict(X_scaled[:10], return_std=True)
