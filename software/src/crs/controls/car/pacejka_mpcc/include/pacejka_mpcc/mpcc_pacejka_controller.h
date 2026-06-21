@@ -173,6 +173,7 @@ private:
 
   // GP residual model for lag compensation correction
   GPResidual gp_;
+  unsigned int gp_log_counter_ = 0;
 };
 }  // namespace crs_controls::pacejka_mpcc
 

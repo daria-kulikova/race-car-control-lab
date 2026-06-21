@@ -210,6 +210,8 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
     virtual_state.vel_y    += d.d_vy    * config_.lag_compensation_time;
     virtual_state.yaw_rate += d.d_omega * config_.lag_compensation_time;
     solver_.setGPResidual(d.d_vx, d.d_vy, d.d_omega);
+    if (gp_log_counter_++ % 50 == 0)
+      std::cout << "[GP] d_vx=" << d.d_vx << " d_vy=" << d.d_vy << " d_omega=" << d.d_omega << std::endl;
   }
   else
   {
