@@ -62,15 +62,16 @@ print(f"Kernel: {gp.kernel_}")
 # ── Predict on test set ───────────────────────────────────────────────────────
 Y_pred = gp.predict(X_test_sc)
 
-# ── RMSE baseline (predict mean of training set) vs GP ───────────────────────
-baseline = np.mean(Y_train, axis=0)   # constant prediction = training mean
+# ── RMSE: baseline = predict 0 (= Pacejka with no correction) vs GP ──────────
+# Without GP the controller assumes residual = 0, so its prediction error = std(eps).
+# GP is useful if its RMSE < std(eps), i.e. it explains some of the variance.
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
 
-print("\n── RMSE comparison ───────────────────────────────")
-print(f"{'Output':<12} {'Baseline':>12} {'GP':>12} {'Improvement':>14}")
+print("\n── RMSE comparison (baseline = predict 0, i.e. no GP correction) ────────")
+print(f"{'Output':<12} {'No GP (=0)':>12} {'With GP':>12} {'Improvement':>14}")
 for i, name in enumerate(OUTPUT_NAMES):
-    rmse_base = np.sqrt(np.mean((Y_test[:, i] - baseline[i]) ** 2))
+    rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))                        # predict 0
     rmse_gp   = np.sqrt(np.mean((Y_test[:, i] - Y_pred[:, i]) ** 2))
     improvement = (rmse_base - rmse_gp) / rmse_base * 100
     print(f"{name:<12} {rmse_base:>12.6f} {rmse_gp:>12.6f} {improvement:>13.1f}%")
@@ -94,9 +95,9 @@ for i, (name, col) in enumerate(zip(OUTPUT_NAMES, COLORS)):
     ax.set_xlabel(f"actual {name}")
     ax.set_ylabel(f"predicted {name}")
 
-    rmse_base = np.sqrt(np.mean((actual - baseline[i]) ** 2))
+    rmse_base = np.sqrt(np.mean(actual ** 2))
     rmse_gp   = np.sqrt(np.mean((actual - pred) ** 2))
-    ax.set_title(f"{name}\nRMSE baseline={rmse_base:.5f}  GP={rmse_gp:.5f}")
+    ax.set_title(f"{name}\nRMSE no-GP={rmse_base:.5f}  GP={rmse_gp:.5f}")
     ax.legend(fontsize=8)
     ax.set_aspect("equal")
 
