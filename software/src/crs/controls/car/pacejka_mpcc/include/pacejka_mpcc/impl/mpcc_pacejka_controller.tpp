@@ -119,8 +119,16 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   if (!config_.data_log_path.empty())
   {
     log_stream_.open(config_.data_log_path);
-    log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega\n";
-    std::cout << "[MPCC] GP data logging → " << config_.data_log_path << std::endl;
+    if (!log_stream_.is_open())
+    {
+      std::cout << "[MPCC] ERROR: could not open log file: " << config_.data_log_path << std::endl;
+    }
+    else
+    {
+      log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega\n";
+      log_stream_.flush();
+      std::cout << "[MPCC] GP data logging → " << config_.data_log_path << std::endl;
+    }
   }
 
   // Run solver
@@ -178,6 +186,7 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
                     << (state.vel_x    - predicted.vel_x)    << ","
                     << (state.vel_y    - predicted.vel_y)    << ","
                     << (state.yaw_rate - predicted.yaw_rate) << "\n";
+        log_stream_.flush();
       }
     }
     log_state_prev_ = state;
