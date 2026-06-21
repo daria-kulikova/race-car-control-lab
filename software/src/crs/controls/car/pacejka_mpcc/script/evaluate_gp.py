@@ -1,11 +1,11 @@
 """
-Evaluate GP residual model: predictions vs actuals, RMSE with/without GP.
+Evaluate and compare GP residual models: sklearn vs gpytorch.
 
-Splits data 80/20, trains GP on 80%, evaluates on held-out 20%.
-This gives an honest estimate of GP generalisation quality.
+Splits data 80/20, trains both GPs on 80%, evaluates on held-out 20%.
 
 Usage:
-    python3 /code/src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py
+    python3 evaluate_gp.py
+    python3 evaluate_gp.py --no-gpytorch   # skip gpytorch if not installed
 """
 
 import argparse
@@ -24,7 +24,11 @@ parser.add_argument("--vx-min", type=float, default=0.5)
 parser.add_argument("--max-points", type=int, default=2000)
 parser.add_argument("--test-fraction", type=float, default=0.2)
 parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
 args = parser.parse_args()
+
+OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
+COLORS = ["steelblue", "darkorange", "forestgreen"]
 
 # ── Load & filter ─────────────────────────────────────────────────────────────
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
@@ -49,57 +53,115 @@ X_test,  Y_test  = X[test_idx],  Y[test_idx]
 
 print(f"Train: {len(X_train)}  Test: {len(X_test)}")
 
-# ── Train GP ──────────────────────────────────────────────────────────────────
+# ── sklearn GP ────────────────────────────────────────────────────────────────
+print("\nTraining sklearn GP ...")
 scaler = StandardScaler()
 X_train_sc = scaler.fit_transform(X_train)
 X_test_sc  = scaler.transform(X_test)
 
 kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
-gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
-gp.fit(X_train_sc, Y_train)
-print(f"Kernel: {gp.kernel_}")
+gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
+gp_sklearn.fit(X_train_sc, Y_train)
+Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
+print(f"  Kernel: {gp_sklearn.kernel_}")
 
-# ── Predict on test set ───────────────────────────────────────────────────────
-Y_pred = gp.predict(X_test_sc)
+# ── gpytorch GP ───────────────────────────────────────────────────────────────
+Y_pred_gpytorch = None
+if not args.no_gpytorch:
+    try:
+        import torch
+        import gpytorch
 
-# ── RMSE: baseline = predict 0 (= Pacejka with no correction) vs GP ──────────
-# Without GP the controller assumes residual = 0, so its prediction error = std(eps).
-# GP is useful if its RMSE < std(eps), i.e. it explains some of the variance.
+        class SingleOutputGP(gpytorch.models.ExactGP):
+            def __init__(self, train_x, train_y, likelihood):
+                super().__init__(train_x, train_y, likelihood)
+                self.mean_module  = gpytorch.means.ZeroMean()
+                self.covar_module = gpytorch.kernels.ScaleKernel(
+                    gpytorch.kernels.RBFKernel(ard_num_dims=5)
+                )
+            def forward(self, x):
+                return gpytorch.distributions.MultivariateNormal(
+                    self.mean_module(x), self.covar_module(x)
+                )
 
-OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
+        print("\nTraining gpytorch GP (3 independent models) ...")
+        tx = torch.tensor(X_train_sc, dtype=torch.float32)
+        test_x = torch.tensor(X_test_sc, dtype=torch.float32)
 
-print("\n── RMSE comparison (baseline = predict 0, i.e. no GP correction) ────────")
-print(f"{'Output':<12} {'No GP (=0)':>12} {'With GP':>12} {'Improvement':>14}")
+        preds_list = []
+        for out_i, name in enumerate(OUTPUT_NAMES):
+            ty_i = torch.tensor(Y_train[:, out_i], dtype=torch.float32)
+            likelihood_i = gpytorch.likelihoods.GaussianLikelihood()
+            model_i = SingleOutputGP(tx, ty_i, likelihood_i)
+
+            model_i.train(); likelihood_i.train()
+            optimizer = torch.optim.Adam(model_i.parameters(), lr=0.1)
+            mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_i, model_i)
+
+            for it in range(200):
+                optimizer.zero_grad()
+                loss = -mll(model_i(tx), ty_i)
+                loss.backward()
+                optimizer.step()
+
+            model_i.eval(); likelihood_i.eval()
+            with torch.no_grad():
+                pred = likelihood_i(model_i(test_x)).mean.numpy()
+            preds_list.append(pred)
+            print(f"  {name} done")
+
+        Y_pred_gpytorch = np.column_stack(preds_list)
+        print("  gpytorch GP done.")
+
+    except ImportError:
+        print("  gpytorch not installed — skipping. Run: pip install gpytorch")
+
+# ── RMSE comparison ───────────────────────────────────────────────────────────
+print("\n── RMSE comparison (baseline = predict 0 = no GP correction) ────────────")
+header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8}"
+if Y_pred_gpytorch is not None:
+    header += f" {'gpytorch GP':>13} {'Improv':>8}"
+print(header)
+
 for i, name in enumerate(OUTPUT_NAMES):
-    rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))                        # predict 0
-    rmse_gp   = np.sqrt(np.mean((Y_test[:, i] - Y_pred[:, i]) ** 2))
-    improvement = (rmse_base - rmse_gp) / rmse_base * 100
-    print(f"{name:<12} {rmse_base:>12.6f} {rmse_gp:>12.6f} {improvement:>13.1f}%")
+    rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))
+    rmse_sk   = np.sqrt(np.mean((Y_test[:, i] - Y_pred_sklearn[:, i]) ** 2))
+    imp_sk    = (rmse_base - rmse_sk) / rmse_base * 100
+    row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}%"
+    if Y_pred_gpytorch is not None:
+        rmse_gpt = np.sqrt(np.mean((Y_test[:, i] - Y_pred_gpytorch[:, i]) ** 2))
+        imp_gpt  = (rmse_base - rmse_gpt) / rmse_base * 100
+        row += f" {rmse_gpt:>13.6f} {imp_gpt:>7.1f}%"
+    print(row)
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
-fig, axes = plt.subplots(1, 3, figsize=(14, 5))
+n_models = 2 if Y_pred_gpytorch is not None else 1
+fig, axes = plt.subplots(n_models, 3, figsize=(14, 5 * n_models))
+if n_models == 1:
+    axes = axes[np.newaxis, :]
+
 fig.suptitle("GP prediction vs actual residual (held-out 20% test set)", fontsize=12)
 
-COLORS = ["steelblue", "darkorange", "forestgreen"]
+for col_i, (name, color) in enumerate(zip(OUTPUT_NAMES, COLORS)):
+    for row_i, (label, Y_pred) in enumerate(
+        [("sklearn GP", Y_pred_sklearn)]
+        + ([("gpytorch GP", Y_pred_gpytorch)] if Y_pred_gpytorch is not None else [])
+    ):
+        ax = axes[row_i, col_i]
+        actual = Y_test[:, col_i]
+        pred   = Y_pred[:, col_i]
 
-for i, (name, col) in enumerate(zip(OUTPUT_NAMES, COLORS)):
-    ax = axes[i]
-    actual = Y_test[:, i]
-    pred   = Y_pred[:, i]
-
-    lim = max(np.abs(actual).max(), np.abs(pred).max()) * 1.1
-    ax.scatter(actual, pred, s=8, alpha=0.4, color=col)
-    ax.plot([-lim, lim], [-lim, lim], "k--", linewidth=1, label="perfect")
-    ax.set_xlim(-lim, lim)
-    ax.set_ylim(-lim, lim)
-    ax.set_xlabel(f"actual {name}")
-    ax.set_ylabel(f"predicted {name}")
-
-    rmse_base = np.sqrt(np.mean(actual ** 2))
-    rmse_gp   = np.sqrt(np.mean((actual - pred) ** 2))
-    ax.set_title(f"{name}\nRMSE no-GP={rmse_base:.5f}  GP={rmse_gp:.5f}")
-    ax.legend(fontsize=8)
-    ax.set_aspect("equal")
+        lim = max(np.abs(actual).max(), np.abs(pred).max()) * 1.1
+        ax.scatter(actual, pred, s=8, alpha=0.4, color=color)
+        ax.plot([-lim, lim], [-lim, lim], "k--", linewidth=1, label="perfect")
+        ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+        ax.set_xlabel(f"actual {name}")
+        ax.set_ylabel(f"predicted {name}")
+        rmse_base = np.sqrt(np.mean(actual ** 2))
+        rmse      = np.sqrt(np.mean((actual - pred) ** 2))
+        ax.set_title(f"{label} — {name}\nno-GP={rmse_base:.5f}  {label}={rmse:.5f}")
+        ax.legend(fontsize=8)
+        ax.set_aspect("equal")
 
 plt.tight_layout()
 plt.savefig(args.out, dpi=150)
