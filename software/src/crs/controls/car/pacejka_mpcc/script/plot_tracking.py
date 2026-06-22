@@ -4,8 +4,10 @@ one with GP correction and one without.
 
 Usage:
     python3 /code/src/crs/controls/car/pacejka_mpcc/script/plot_tracking.py \
-        --with-gp    /code/src/data/tracking_gp.csv \
-        --without-gp /code/src/data/tracking_no_gp.csv
+        --with-gp    /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_gp.csv \
+        --without-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_no_gp.csv \
+        --residuals-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_gp.csv \
+        --residuals-no-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_no_gp.csv
 """
 
 import argparse

@@ -20,15 +20,17 @@ controller_params:
   steer_limit: 0.3
 
   # Uncomment to collect GP training data. Records model residuals to CSV.
-  data_log_path: /code/src/data/mpcc_residuals.csv
+  #data_log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_no_gp_faster_q4_0.csv
+  data_log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_no_mlp_CIRCLE_TRACK.csv
 
   # GP residual correction in lag compensation.
-  gp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/gp_model.bin
+  #gp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/gp_model.bin
   sample_period: 0.02  # Must match Ts in solver_acados.yaml (50Hz)
 
   # Tracking quality log: eC, eL at each control step.
   # Run once WITH GP and once WITHOUT (comment gp_model_path) to compare.
-  tracking_log_path: /code/src/data/tracking.csv
+  #tracking_log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_no_gp_faster_q4_0.csv
+  tracking_log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_no_mlp_CIRCLE_TRACK.csv
 
 visualizer:
   rate: 10

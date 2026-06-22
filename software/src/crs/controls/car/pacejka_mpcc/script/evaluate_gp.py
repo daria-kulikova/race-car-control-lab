@@ -4,8 +4,8 @@ Evaluate and compare GP residual models: sklearn vs gpytorch.
 Splits data 80/20, trains both GPs on 80%, evaluates on held-out 20%.
 
 Usage:
-    python3 evaluate_gp.py
-    python3 evaluate_gp.py --no-gpytorch   # skip gpytorch if not installed
+    python3 src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py
+    python3 src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py --no-gpytorch   # skip gpytorch if not installed,
 """
 
 import argparse
@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv")
+parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/combined_data.csv")
 parser.add_argument("--out", default=str(Path(__file__).parent / "gp_evaluation.png"))
 parser.add_argument("--vx-min", type=float, default=0.5)
 parser.add_argument("--gp-max-points", type=int, default=2000, help="max training points for GP (MLP uses all)")
