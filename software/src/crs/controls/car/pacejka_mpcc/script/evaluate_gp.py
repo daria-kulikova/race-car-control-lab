@@ -25,6 +25,7 @@ parser.add_argument("--vx-min", type=float, default=0.5)
 parser.add_argument("--gp-max-points", type=int, default=2000, help="max training points for GP (MLP uses all)")
 parser.add_argument("--test-fraction", type=float, default=0.2)
 parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--no-gp",      action="store_true", help="skip sklearn GP")
 parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
 args = parser.parse_args()
 
@@ -56,19 +57,22 @@ else:
 
 print(f"Train total: {len(X_train)}  GP train: {len(X_train_gp)}  Test: {len(X_test)}")
 
-# ── sklearn GP ────────────────────────────────────────────────────────────────
-print("\nTraining sklearn GP ...")
+# ── shared scaler (always needed for MLP) ─────────────────────────────────────
 scaler = StandardScaler()
 scaler.fit(X_train_gp)
 X_train_gp_sc = scaler.transform(X_train_gp)
-X_train_sc    = scaler.transform(X_train)   # for MLP
+X_train_sc    = scaler.transform(X_train)
 X_test_sc     = scaler.transform(X_test)
 
-kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
-gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
-gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
-Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
-print(f"  Kernel: {gp_sklearn.kernel_}")
+# ── sklearn GP ────────────────────────────────────────────────────────────────
+Y_pred_sklearn = None
+if not args.no_gp:
+    print("\nTraining sklearn GP ...")
+    kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
+    gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
+    gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
+    Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
+    print(f"  Kernel: {gp_sklearn.kernel_}")
 
 # ── MLP ───────────────────────────────────────────────────────────────────────
 print("\nTraining MLP ...")
@@ -139,18 +143,23 @@ if not args.no_gpytorch:
 
 # ── RMSE comparison ───────────────────────────────────────────────────────────
 print("\n── RMSE comparison (baseline = predict 0 = no GP correction) ────────────")
-header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
+header = f"{'Output':<12} {'No GP':>10} {'MLP':>10} {'Improv':>8}"
+if Y_pred_sklearn is not None:
+    header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
 if Y_pred_gpytorch is not None:
     header += f" {'gpytorch GP':>13} {'Improv':>8}"
 print(header)
 
 for i, name in enumerate(OUTPUT_NAMES):
     rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))
-    rmse_sk   = np.sqrt(np.mean((Y_test[:, i] - Y_pred_sklearn[:, i]) ** 2))
     rmse_mlp  = np.sqrt(np.mean((Y_test[:, i] - Y_pred_mlp[:, i]) ** 2))
-    imp_sk    = (rmse_base - rmse_sk)  / rmse_base * 100
     imp_mlp   = (rmse_base - rmse_mlp) / rmse_base * 100
-    row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}% {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
+    if Y_pred_sklearn is not None:
+        rmse_sk = np.sqrt(np.mean((Y_test[:, i] - Y_pred_sklearn[:, i]) ** 2))
+        imp_sk  = (rmse_base - rmse_sk) / rmse_base * 100
+        row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}% {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
+    else:
+        row = f"{name:<12} {rmse_base:>10.6f} {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
     if Y_pred_gpytorch is not None:
         rmse_gpt = np.sqrt(np.mean((Y_test[:, i] - Y_pred_gpytorch[:, i]) ** 2))
         imp_gpt  = (rmse_base - rmse_gpt) / rmse_base * 100
@@ -158,7 +167,9 @@ for i, name in enumerate(OUTPUT_NAMES):
     print(row)
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
-all_models = [("sklearn GP", Y_pred_sklearn), ("MLP", Y_pred_mlp)]
+all_models = [("MLP", Y_pred_mlp)]
+if Y_pred_sklearn is not None:
+    all_models.insert(0, ("sklearn GP", Y_pred_sklearn))
 if Y_pred_gpytorch is not None:
     all_models.append(("gpytorch GP", Y_pred_gpytorch))
 
