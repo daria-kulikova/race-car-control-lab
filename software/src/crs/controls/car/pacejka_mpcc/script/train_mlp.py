@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/combined_data.csv")
 parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model.npz"))
 parser.add_argument("--vx-min",    type=float, default=0.5)
-parser.add_argument("--hidden",    type=int,   nargs="+", default=[64, 64])
+parser.add_argument("--hidden",    type=int,   nargs="+", default=[64, 64, 32])
 parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
 args = parser.parse_args()
@@ -42,7 +42,7 @@ Y_sc = y_scaler.fit_transform(Y)
 # ── Train ─────────────────────────────────────────────────────────────────────
 print(f"Training MLP {args.hidden} ...")
 mlp = MLPRegressor(hidden_layer_sizes=tuple(args.hidden), activation='tanh',
-                   solver='lbfgs', max_iter=2000,
+                   solver='adam', max_iter=5000, early_stopping=True,
                    alpha=args.alpha_reg, random_state=args.seed)
 mlp.fit(X_sc, Y_sc)
 print(f"  converged in {mlp.n_iter_} iterations")
@@ -56,50 +56,51 @@ for name, rb, rm in zip(["eps_vx", "eps_vy", "eps_omega"], rmse_base, rmse_mlp):
     print(f"  {name}: no-model={rb:.6f}  mlp={rm:.6f}  improv={100*(rb-rm)/rb:.1f}%")
 
 # ── Save .npz (for pacejka_model.py) ─────────────────────────────────────────
-# sklearn coefs_[i] shape: (n_in, n_out)  → forward pass: X @ W + b
-# We want column-vector convention: W @ x + b  → transpose weight matrices
+# sklearn coefs_[i] shape: (n_in_i, n_out_i) → transpose to get W @ x + b convention
+# Keys: W0/b0, W1/b1, ..., W{n}/b{n}  where n = len(hidden)  (last = output layer)
 layers = mlp.coefs_
 biases = mlp.intercepts_
 
+n_in  = X.shape[1]   # 5
+n_out = Y.shape[1]   # 3
+sizes = [n_in] + args.hidden + [n_out]  # e.g. [5, 64, 64, 32, 3]
+
+npz_dict = dict(
+    x_mean=x_scaler.mean_,  x_std=x_scaler.scale_,
+    y_mean=y_scaler.mean_,  y_std=y_scaler.scale_,
+    hidden=np.array(args.hidden, dtype=np.int32),
+)
+for i, (W, b) in enumerate(zip(layers, biases)):
+    npz_dict[f"W{i}"] = W.T   # (out, in) convention
+    npz_dict[f"b{i}"] = b
+
 npz_path = args.out
-np.savez(npz_path,
-         W1=layers[0].T,    b1=biases[0],    # (h1, n_in),  (h1,)
-         W2=layers[1].T,    b2=biases[1],    # (h2, h1),    (h2,)
-         Wout=layers[2].T,  bout=biases[2],  # (n_out, h2), (n_out,)
-         x_mean=x_scaler.mean_,  x_std=x_scaler.scale_,
-         y_mean=y_scaler.mean_,  y_std=y_scaler.scale_,
-         hidden=np.array(args.hidden, dtype=np.int32))
-print(f"Saved → {npz_path}")
+np.savez(npz_path, **npz_dict)
+print(f"Saved → {npz_path}  (arch {sizes})")
 
 # ── Save .bin (for C++ inference) ─────────────────────────────────────────────
-# Layout:
-#   int32[4]: n_in, h1, h2, n_out
-#   float64[n_in]: x_mean
-#   float64[n_in]: x_std
-#   float64[n_out]: y_mean
-#   float64[n_out]: y_std
-#   float64[h1 * n_in]: W1  (row major)
-#   float64[h1]:        b1
-#   float64[h2 * h1]:   W2  (row major)
-#   float64[h2]:        b2
-#   float64[n_out * h2]: Wout (row major)
-#   float64[n_out]:      bout
-n_in   = X.shape[1]        # 5
-h1, h2 = args.hidden       # 64, 64
-n_out  = Y.shape[1]        # 3
+# Layout (generic, any depth):
+#   int32[1]:          n_layers  (= len(hidden) + 1, i.e. number of weight matrices)
+#   int32[n_layers+1]: sizes     [n_in, h1, ..., hk, n_out]
+#   float64[n_in]:     x_mean
+#   float64[n_in]:     x_std
+#   float64[n_out]:    y_mean
+#   float64[n_out]:    y_std
+#   for each layer i in 0..n_layers-1:
+#     float64[sizes[i+1] * sizes[i]]:  W[i]  (row major, W@x convention)
+#     float64[sizes[i+1]]:             b[i]
+n_layers = len(layers)
 
 bin_path = str(npz_path).replace(".npz", ".bin")
 with open(bin_path, "wb") as f:
-    np.array([n_in, h1, h2, n_out], dtype=np.int32).tofile(f)
+    np.array([n_layers], dtype=np.int32).tofile(f)
+    np.array(sizes, dtype=np.int32).tofile(f)
     x_scaler.mean_.astype(np.float64).tofile(f)
     x_scaler.scale_.astype(np.float64).tofile(f)
     y_scaler.mean_.astype(np.float64).tofile(f)
     y_scaler.scale_.astype(np.float64).tofile(f)
-    layers[0].T.astype(np.float64).tofile(f)   # W1 row major
-    biases[0].astype(np.float64).tofile(f)
-    layers[1].T.astype(np.float64).tofile(f)   # W2 row major
-    biases[1].astype(np.float64).tofile(f)
-    layers[2].T.astype(np.float64).tofile(f)   # Wout row major
-    biases[2].astype(np.float64).tofile(f)
+    for W, b in zip(layers, biases):
+        W.T.astype(np.float64).tofile(f)   # row major, W@x convention
+        b.astype(np.float64).tofile(f)
 
 print(f"Saved → {bin_path}  (for C++ lag compensation)")

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -13,24 +12,21 @@ namespace crs_controls::pacejka_mpcc
 /**
  * MLP residual model for Pacejka dynamics (lag compensation).
  *
- * Architecture: tanh(W2 @ tanh(W1 @ x + b1) + b2) → Wout @ h2 + bout
+ * Generic depth: supports any number of hidden layers.
+ * Architecture: tanh hidden layers → linear output layer.
  * Predicts velocity residuals [eps_vx, eps_vy, eps_omega] in m/s.
  * Divide by sample_period to get acceleration corrections for the ODE.
  *
- * Model file (mlp_model.bin) produced by train_mlp.py.
- *
- * Binary layout:
- *   int32[4]:          n_in, h1, h2, n_out
+ * Binary format (produced by train_mlp.py):
+ *   int32[1]:          n_layers  (= n_hidden + 1)
+ *   int32[n_layers+1]: sizes     [n_in, h1, ..., hk, n_out]
  *   float64[n_in]:     x_mean
  *   float64[n_in]:     x_std
  *   float64[n_out]:    y_mean
  *   float64[n_out]:    y_std
- *   float64[h1*n_in]:  W1  (row major)
- *   float64[h1]:       b1
- *   float64[h2*h1]:    W2  (row major)
- *   float64[h2]:       b2
- *   float64[n_out*h2]: Wout (row major)
- *   float64[n_out]:    bout
+ *   for each layer i:
+ *     float64[sizes[i+1]*sizes[i]]:  W[i]  row-major  (W @ x + b convention)
+ *     float64[sizes[i+1]]:           b[i]
  */
 class MLPResidual
 {
@@ -56,37 +52,41 @@ public:
       return false;
     }
 
-    int32_t header[4];
-    f.read(reinterpret_cast<char*>(header), sizeof(header));
-    int n_in = header[0], h1 = header[1], h2 = header[2], n_out = header[3];
+    int32_t n_layers;
+    f.read(reinterpret_cast<char*>(&n_layers), sizeof(int32_t));
 
-    if (n_in != N_FEATURES || n_out != N_OUTPUTS)
+    sizes_.resize(n_layers + 1);
+    f.read(reinterpret_cast<char*>(sizes_.data()), (n_layers + 1) * sizeof(int32_t));
+
+    if (sizes_.front() != N_FEATURES || sizes_.back() != N_OUTPUTS)
     {
-      std::cout << "[MLPResidual] unexpected dimensions: n_in=" << n_in
-                << " n_out=" << n_out << std::endl;
+      std::cout << "[MLPResidual] unexpected dimensions: n_in=" << sizes_.front()
+                << " n_out=" << sizes_.back() << std::endl;
       return false;
     }
-    h1_ = h1; h2_ = h2;
 
     auto read_vec = [&](std::vector<double>& v, int n) {
       v.resize(n);
       f.read(reinterpret_cast<char*>(v.data()), n * sizeof(double));
     };
 
-    read_vec(x_mean_, n_in);
-    read_vec(x_std_,  n_in);
-    read_vec(y_mean_, n_out);
-    read_vec(y_std_,  n_out);
-    read_vec(W1_,     h1 * n_in);
-    read_vec(b1_,     h1);
-    read_vec(W2_,     h2 * h1);
-    read_vec(b2_,     h2);
-    read_vec(Wout_,   n_out * h2);
-    read_vec(bout_,   n_out);
+    read_vec(x_mean_, N_FEATURES);
+    read_vec(x_std_,  N_FEATURES);
+    read_vec(y_mean_, N_OUTPUTS);
+    read_vec(y_std_,  N_OUTPUTS);
+
+    W_.resize(n_layers);
+    b_.resize(n_layers);
+    for (int i = 0; i < n_layers; ++i)
+    {
+      read_vec(W_[i], sizes_[i + 1] * sizes_[i]);
+      read_vec(b_[i], sizes_[i + 1]);
+    }
 
     loaded_ = true;
-    std::cout << "[MLPResidual] loaded " << path
-              << "  (arch=" << n_in << "-" << h1 << "-" << h2 << "-" << n_out << ")" << std::endl;
+    std::cout << "[MLPResidual] loaded " << path << "  (arch:";
+    for (int s : sizes_) std::cout << " " << s;
+    std::cout << ")" << std::endl;
     return true;
   }
 
@@ -98,58 +98,42 @@ public:
       return {};
 
     // Normalize input
-    const double x_raw[N_FEATURES] = { vx, vy, omega, delta, T };
-    double x_norm[N_FEATURES];
+    std::vector<double> act = { vx, vy, omega, delta, T };
     for (int j = 0; j < N_FEATURES; ++j)
-      x_norm[j] = (x_raw[j] - x_mean_[j]) / x_std_[j];
+      act[j] = (act[j] - x_mean_[j]) / x_std_[j];
 
-    // Layer 1: h1 = tanh(W1 @ x_norm + b1)
-    std::vector<double> h1(h1_);
-    for (int i = 0; i < h1_; ++i)
+    // Forward pass: tanh for all layers except the last (linear output)
+    const int n_layers = static_cast<int>(W_.size());
+    for (int i = 0; i < n_layers; ++i)
     {
-      double s = b1_[i];
-      for (int j = 0; j < N_FEATURES; ++j)
-        s += W1_[i * N_FEATURES + j] * x_norm[j];
-      h1[i] = std::tanh(s);
+      const int out_size = sizes_[i + 1];
+      const int in_size  = sizes_[i];
+      std::vector<double> next(out_size);
+      for (int r = 0; r < out_size; ++r)
+      {
+        double s = b_[i][r];
+        for (int c = 0; c < in_size; ++c)
+          s += W_[i][r * in_size + c] * act[c];
+        next[r] = (i < n_layers - 1) ? std::tanh(s) : s;  // last layer: linear
+      }
+      act = std::move(next);
     }
 
-    // Layer 2: h2 = tanh(W2 @ h1 + b2)
-    std::vector<double> h2(h2_);
-    for (int i = 0; i < h2_; ++i)
-    {
-      double s = b2_[i];
-      for (int j = 0; j < h1_; ++j)
-        s += W2_[i * h1_ + j] * h1[j];
-      h2[i] = std::tanh(s);
-    }
-
-    // Output: out_norm = Wout @ h2 + bout
-    double out_norm[N_OUTPUTS];
-    for (int i = 0; i < N_OUTPUTS; ++i)
-    {
-      double s = bout_[i];
-      for (int j = 0; j < h2_; ++j)
-        s += Wout_[i * h2_ + j] * h2[j];
-      out_norm[i] = s;
-    }
-
-    // Unnormalize: result = out_norm * y_std + y_mean
+    // Unnormalize output
     return {
-      out_norm[0] * y_std_[0] + y_mean_[0],
-      out_norm[1] * y_std_[1] + y_mean_[1],
-      out_norm[2] * y_std_[2] + y_mean_[2],
+      act[0] * y_std_[0] + y_mean_[0],
+      act[1] * y_std_[1] + y_mean_[1],
+      act[2] * y_std_[2] + y_mean_[2],
     };
   }
 
 private:
   bool loaded_ = false;
-  int  h1_ = 0, h2_ = 0;
 
-  std::vector<double> x_mean_, x_std_;
-  std::vector<double> y_mean_, y_std_;
-  std::vector<double> W1_, b1_;
-  std::vector<double> W2_, b2_;
-  std::vector<double> Wout_, bout_;
+  std::vector<int32_t>              sizes_;    // [n_in, h1, ..., hk, n_out]
+  std::vector<double>               x_mean_, x_std_;
+  std::vector<double>               y_mean_, y_std_;
+  std::vector<std::vector<double>>  W_, b_;   // one entry per layer
 };
 
 }  // namespace crs_controls::pacejka_mpcc
