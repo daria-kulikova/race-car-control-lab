@@ -14,10 +14,18 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--with-gp",    required=True, help="tracking CSV from run WITH GP")
-parser.add_argument("--without-gp", required=True, help="tracking CSV from run WITHOUT GP")
+parser.add_argument("--with-gp",        required=True, help="tracking CSV from run WITH GP")
+parser.add_argument("--without-gp",     required=True, help="tracking CSV from run WITHOUT GP")
+parser.add_argument("--residuals-gp",   default=None,  help="residuals CSV from run WITH GP (for eps_omega map)")
+parser.add_argument("--residuals-no-gp",default=None,  help="residuals CSV from run WITHOUT GP")
 parser.add_argument("--out", default=str(Path(__file__).parent / "tracking_comparison.png"))
 args = parser.parse_args()
+
+
+def load_residuals(path):
+    """Load residuals CSV: vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta"""
+    data = np.loadtxt(path, delimiter=",", skiprows=1)
+    return data[:, 8], data[:, 9], data[:, 7]   # pos_x, pos_y, eps_omega
 
 
 def load(path):
@@ -35,7 +43,9 @@ def load(path):
 t_gp,    eC_gp,    eL_gp,    px_gp,    py_gp,    rx_gp,    ry_gp    = load(args.with_gp)
 t_nogp,  eC_nogp,  eL_nogp,  px_nogp,  py_nogp,  rx_nogp,  ry_nogp  = load(args.without_gp)
 
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+has_residuals = args.residuals_gp is not None and args.residuals_no_gp is not None
+n_rows = 3 if has_residuals else 2
+fig, axes = plt.subplots(n_rows, 2, figsize=(14, 5 * n_rows))
 fig.suptitle("Tracking quality: with GP vs without GP", fontsize=13)
 
 # ── eC over time ──────────────────────────────────────────────────────────────
@@ -91,6 +101,28 @@ metrics = [
 for name, v_nogp, v_gp in metrics:
     change = (v_gp - v_nogp) / v_nogp * 100
     print(f"{name:<30} {v_nogp:>12.5f} {v_gp:>12.5f} {change:>+9.1f}%")
+
+if has_residuals:
+    rx_gp,   ry_gp,   eps_omega_gp    = load_residuals(args.residuals_gp)
+    rx_nogp, ry_nogp, eps_omega_nogp  = load_residuals(args.residuals_no_gp)
+
+    vmax = max(np.abs(eps_omega_gp).max(), np.abs(eps_omega_nogp).max())
+
+    ax = axes[2, 0]
+    sc = ax.scatter(rx_nogp, ry_nogp, c=eps_omega_nogp, cmap="RdBu_r",
+                    vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
+    plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
+    ax.set_title("eps_omega on track — WITHOUT GP")
+    ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
+    ax.set_aspect("equal")
+
+    ax = axes[2, 1]
+    sc = ax.scatter(rx_gp, ry_gp, c=eps_omega_gp, cmap="RdBu_r",
+                    vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
+    plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
+    ax.set_title("eps_omega on track — WITH GP")
+    ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
+    ax.set_aspect("equal")
 
 plt.tight_layout()
 plt.savefig(args.out, dpi=150)
