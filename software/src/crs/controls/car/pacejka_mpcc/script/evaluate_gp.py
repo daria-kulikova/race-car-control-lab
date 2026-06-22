@@ -15,6 +15,7 @@ from pathlib import Path
 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
@@ -64,6 +65,19 @@ gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, nor
 gp_sklearn.fit(X_train_sc, Y_train)
 Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
 print(f"  Kernel: {gp_sklearn.kernel_}")
+
+# ── MLP ───────────────────────────────────────────────────────────────────────
+print("\nTraining MLP ...")
+y_scaler = StandardScaler()
+Y_train_sc = y_scaler.fit_transform(Y_train)
+
+mlp = MLPRegressor(hidden_layer_sizes=(64, 64), activation='tanh',
+                   max_iter=5000, learning_rate_init=1e-3,
+                   alpha=0.01,
+                   random_state=args.seed)
+mlp.fit(X_train_sc, Y_train_sc)
+Y_pred_mlp = y_scaler.inverse_transform(mlp.predict(X_test_sc))
+print(f"  hidden layers: {mlp.hidden_layer_sizes}  iters: {mlp.n_iter_}")
 
 # ── gpytorch GP ───────────────────────────────────────────────────────────────
 Y_pred_gpytorch = None
@@ -118,7 +132,7 @@ if not args.no_gpytorch:
 
 # ── RMSE comparison ───────────────────────────────────────────────────────────
 print("\n── RMSE comparison (baseline = predict 0 = no GP correction) ────────────")
-header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8}"
+header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
 if Y_pred_gpytorch is not None:
     header += f" {'gpytorch GP':>13} {'Improv':>8}"
 print(header)
@@ -126,8 +140,10 @@ print(header)
 for i, name in enumerate(OUTPUT_NAMES):
     rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))
     rmse_sk   = np.sqrt(np.mean((Y_test[:, i] - Y_pred_sklearn[:, i]) ** 2))
-    imp_sk    = (rmse_base - rmse_sk) / rmse_base * 100
-    row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}%"
+    rmse_mlp  = np.sqrt(np.mean((Y_test[:, i] - Y_pred_mlp[:, i]) ** 2))
+    imp_sk    = (rmse_base - rmse_sk)  / rmse_base * 100
+    imp_mlp   = (rmse_base - rmse_mlp) / rmse_base * 100
+    row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}% {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
     if Y_pred_gpytorch is not None:
         rmse_gpt = np.sqrt(np.mean((Y_test[:, i] - Y_pred_gpytorch[:, i]) ** 2))
         imp_gpt  = (rmse_base - rmse_gpt) / rmse_base * 100
@@ -135,18 +151,19 @@ for i, name in enumerate(OUTPUT_NAMES):
     print(row)
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
-n_models = 2 if Y_pred_gpytorch is not None else 1
+all_models = [("sklearn GP", Y_pred_sklearn), ("MLP", Y_pred_mlp)]
+if Y_pred_gpytorch is not None:
+    all_models.append(("gpytorch GP", Y_pred_gpytorch))
+
+n_models = len(all_models)
 fig, axes = plt.subplots(n_models, 3, figsize=(14, 5 * n_models))
 if n_models == 1:
     axes = axes[np.newaxis, :]
 
-fig.suptitle("GP prediction vs actual residual (held-out 20% test set)", fontsize=12)
+fig.suptitle("Model comparison: predicted vs actual residual (held-out 20%)", fontsize=12)
 
 for col_i, (name, color) in enumerate(zip(OUTPUT_NAMES, COLORS)):
-    for row_i, (label, Y_pred) in enumerate(
-        [("sklearn GP", Y_pred_sklearn)]
-        + ([("gpytorch GP", Y_pred_gpytorch)] if Y_pred_gpytorch is not None else [])
-    ):
+    for row_i, (label, Y_pred) in enumerate(all_models):
         ax = axes[row_i, col_i]
         actual = Y_test[:, col_i]
         pred   = Y_pred[:, col_i]
