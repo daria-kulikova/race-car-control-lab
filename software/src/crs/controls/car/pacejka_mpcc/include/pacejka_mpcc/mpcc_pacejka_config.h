@@ -41,6 +41,12 @@ struct mpcc_pacejka_config
    *
    */
   double lag_compensation_time;
+
+  /**
+   * @brief Solver integration timestep [s]. Must match Ts in solver_acados.yaml.
+   *        Used to convert GP velocity residuals (m/s) to acceleration corrections (m/s²).
+   */
+  double sample_period = 0.02;
   /**
    * @brief Number of iterations to warmstart solver
    *

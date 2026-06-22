@@ -141,7 +141,7 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     }
     else
     {
-      log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega\n";
+      log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta\n";
       log_stream_.flush();
       std::cout << "[MPCC] GP data logging → " << config_.data_log_path << std::endl;
     }
@@ -201,7 +201,8 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
                     << last_input_.torque       << ","
                     << (state.vel_x    - predicted.vel_x)    << ","
                     << (state.vel_y    - predicted.vel_y)    << ","
-                    << (state.yaw_rate - predicted.yaw_rate) << "\n";
+                    << (state.yaw_rate - predicted.yaw_rate) << ","
+                    << state.pos_x << "," << state.pos_y << "," << theta_ << "\n";
         log_stream_.flush();
       }
     }
@@ -219,12 +220,19 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   if (gp_.isLoaded())
   {
     auto d = gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
-    virtual_state.vel_x    += d.d_vx    * config_.lag_compensation_time;
-    virtual_state.vel_y    += d.d_vy    * config_.lag_compensation_time;
-    virtual_state.yaw_rate += d.d_omega * config_.lag_compensation_time;
-    solver_.setGPResidual(d.d_vx, d.d_vy, d.d_omega);
+    // GP predicts velocity residual [m/s]; acados dynamics expect acceleration [m/s²].
+    // Convert: a = eps_v / Ts.  Lag correction: a * lag_time = delta_v [m/s].
+    const double Ts = config_.sample_period;
+    const double a_vx    = d.d_vx    / Ts;
+    const double a_vy    = d.d_vy    / Ts;
+    const double a_omega = d.d_omega / Ts;
+    virtual_state.vel_x    += a_vx    * config_.lag_compensation_time;
+    virtual_state.vel_y    += a_vy    * config_.lag_compensation_time;
+    virtual_state.yaw_rate += a_omega * config_.lag_compensation_time;
+    solver_.setGPResidual(a_vx, a_vy, a_omega);
     if (gp_log_counter_++ % 50 == 0)
-      std::cout << "[GP] d_vx=" << d.d_vx << " d_vy=" << d.d_vy << " d_omega=" << d.d_omega << std::endl;
+      std::cout << "[GP] eps_vx=" << d.d_vx << " eps_vy=" << d.d_vy << " eps_omega=" << d.d_omega
+                << "  →  a_vx=" << a_vx << " a_vy=" << a_vy << " a_omega=" << a_omega << std::endl;
   }
   else
   {
