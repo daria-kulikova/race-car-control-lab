@@ -1,0 +1,16 @@
+ 
+ 1) GP Training
+ 
+ Train total: 6356  GP train: 1000  Test: 1589
+
+Training sklearn GP ...
+  Kernel: 1.6**2 * RBF(length_scale=[1.06, 1.28, 0.989, 1.06, 1.49]) + WhiteKernel(noise_level=0.283)
+
+ 
+hidden layers: (64, 64)  iters: 2000
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP   sklearn GP   Improv        MLP   Improv
+eps_vx         0.005682     0.002545    55.2%   0.002237    60.6%
+eps_vy         0.007647     0.002772    63.8%   0.002722    64.4%
+eps_omega      0.240300     0.077997    67.5%   0.077763    67.6%
