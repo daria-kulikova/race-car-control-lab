@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv")
 parser.add_argument("--out", default=str(Path(__file__).parent / "gp_evaluation.png"))
 parser.add_argument("--vx-min", type=float, default=0.5)
-parser.add_argument("--max-points", type=int, default=2000)
+parser.add_argument("--gp-max-points", type=int, default=2000, help="max training points for GP (MLP uses all)")
 parser.add_argument("--test-fraction", type=float, default=0.2)
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
@@ -35,15 +35,10 @@ COLORS = ["steelblue", "darkorange", "forestgreen"]
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
 data = data[data[:, 0] >= args.vx_min]
 
-# if len(data) > args.max_points:
-#     rng = np.random.default_rng(args.seed)
-#     idx = rng.choice(len(data), args.max_points, replace=False)
-#     data = data[idx]
-
 X = data[:, :5]   # [vx, vy, omega, delta, T]
 Y = data[:, 5:]   # [eps_vx, eps_vy, eps_omega]
 
-# ── Train/test split ──────────────────────────────────────────────────────────
+# ── Train/test split (full data) ──────────────────────────────────────────────
 rng = np.random.default_rng(args.seed)
 n_test = int(len(data) * args.test_fraction)
 test_idx = rng.choice(len(data), n_test, replace=False)
@@ -52,17 +47,26 @@ train_idx = np.setdiff1d(np.arange(len(data)), test_idx)
 X_train, Y_train = X[train_idx], Y[train_idx]
 X_test,  Y_test  = X[test_idx],  Y[test_idx]
 
-print(f"Train: {len(X_train)}  Test: {len(X_test)}")
+# ── GP subsample (GP doesn't scale to large datasets) ─────────────────────────
+if len(X_train) > args.gp_max_points:
+    gp_idx = rng.choice(len(X_train), args.gp_max_points, replace=False)
+    X_train_gp, Y_train_gp = X_train[gp_idx], Y_train[gp_idx]
+else:
+    X_train_gp, Y_train_gp = X_train, Y_train
+
+print(f"Train total: {len(X_train)}  GP train: {len(X_train_gp)}  Test: {len(X_test)}")
 
 # ── sklearn GP ────────────────────────────────────────────────────────────────
 print("\nTraining sklearn GP ...")
 scaler = StandardScaler()
-X_train_sc = scaler.fit_transform(X_train)
-X_test_sc  = scaler.transform(X_test)
+scaler.fit(X_train_gp)
+X_train_gp_sc = scaler.transform(X_train_gp)
+X_train_sc    = scaler.transform(X_train)   # for MLP
+X_test_sc     = scaler.transform(X_test)
 
 kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
 gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
-gp_sklearn.fit(X_train_sc, Y_train)
+gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
 Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
 print(f"  Kernel: {gp_sklearn.kernel_}")
 
@@ -99,14 +103,14 @@ if not args.no_gpytorch:
                 )
 
         print("\nTraining gpytorch GP (3 independent models) ...")
-        tx = torch.tensor(X_train_sc, dtype=torch.float32)
-        test_x = torch.tensor(X_test_sc, dtype=torch.float32)
+        tx     = torch.tensor(X_train_gp_sc, dtype=torch.float32)
+        test_x = torch.tensor(X_test_sc,     dtype=torch.float32)
 
         preds_list = []
         for out_i, name in enumerate(OUTPUT_NAMES):
-            y_mean = Y_train[:, out_i].mean()
-            y_std  = Y_train[:, out_i].std() + 1e-8
-            ty_i = torch.tensor((Y_train[:, out_i] - y_mean) / y_std, dtype=torch.float32)
+            y_mean = Y_train_gp[:, out_i].mean()
+            y_std  = Y_train_gp[:, out_i].std() + 1e-8
+            ty_i = torch.tensor((Y_train_gp[:, out_i] - y_mean) / y_std, dtype=torch.float32)
 
             likelihood_i = gpytorch.likelihoods.GaussianLikelihood()
             model_i = SingleOutputGP(tx, ty_i, likelihood_i)
