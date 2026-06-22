@@ -82,6 +82,13 @@ struct mpcc_pacejka_config
   std::string mlp_model_path = "";
 
   /**
+   * @brief Scaling factor in [0, 1] applied to all residual corrections (GP and MLP).
+   *        Applied to both lag compensation and the zero-order solver correction.
+   *        Use to tune aggressiveness; set to 0 to disable correction without removing model path.
+   */
+  double residual_scale = 1.0;
+
+  /**
    * @brief Path for tracking quality CSV. Empty string disables logging.
    *        CSV columns: t, eC, eL, pos_x, pos_y, ref_x, ref_y
    */

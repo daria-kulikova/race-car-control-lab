@@ -219,36 +219,33 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   // Residual correction for lag compensation and zero-order solver disturbance.
   // MLP takes priority over GP when both model paths are configured.
   // Both predict velocity residuals [m/s]; divide by Ts to get acceleration [m/s²] for acados.
-  if (mlp_.isLoaded())
-  {
-    auto d = mlp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
-    const double Ts = config_.sample_period;
-    const double a_vx    = d.d_vx    / Ts;
-    const double a_vy    = d.d_vy    / Ts;
-    const double a_omega = d.d_omega / Ts;
+  // residual_scale ∈ [0,1] controls aggressiveness of the correction.
+  const double Ts    = config_.sample_period;
+  const double alpha = config_.residual_scale;
+
+  auto apply_residual = [&](double eps_vx, double eps_vy, double eps_omega, const char* tag, unsigned int& counter) {
+    const double a_vx    = alpha * eps_vx    / Ts;
+    const double a_vy    = alpha * eps_vy    / Ts;
+    const double a_omega = alpha * eps_omega / Ts;
     virtual_state.vel_x    += a_vx    * config_.lag_compensation_time;
     virtual_state.vel_y    += a_vy    * config_.lag_compensation_time;
     virtual_state.yaw_rate += a_omega * config_.lag_compensation_time;
     solver_.setGPResidual(a_vx, a_vy, a_omega);
-    if (mlp_log_counter_++ % 50 == 0)
-      std::cout << "[MLP] eps_vx=" << d.d_vx << " eps_vy=" << d.d_vy << " eps_omega=" << d.d_omega
-                << "  →  a_vx=" << a_vx << " a_vy=" << a_vy << " a_omega=" << a_omega << std::endl;
+    if (counter++ % 50 == 0)
+      std::cout << "[" << tag << "] eps=(" << eps_vx << ", " << eps_vy << ", " << eps_omega
+                << ")  scale=" << alpha
+                << "  a=(" << a_vx << ", " << a_vy << ", " << a_omega << ")" << std::endl;
+  };
+
+  if (mlp_.isLoaded())
+  {
+    auto d = mlp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
+    apply_residual(d.d_vx, d.d_vy, d.d_omega, "MLP", mlp_log_counter_);
   }
   else if (gp_.isLoaded())
   {
     auto d = gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
-    // GP predicts velocity residual [m/s]; acados dynamics expect acceleration [m/s²].
-    const double Ts = config_.sample_period;
-    const double a_vx    = d.d_vx    / Ts;
-    const double a_vy    = d.d_vy    / Ts;
-    const double a_omega = d.d_omega / Ts;
-    virtual_state.vel_x    += a_vx    * config_.lag_compensation_time;
-    virtual_state.vel_y    += a_vy    * config_.lag_compensation_time;
-    virtual_state.yaw_rate += a_omega * config_.lag_compensation_time;
-    solver_.setGPResidual(a_vx, a_vy, a_omega);
-    if (gp_log_counter_++ % 50 == 0)
-      std::cout << "[GP] eps_vx=" << d.d_vx << " eps_vy=" << d.d_vy << " eps_omega=" << d.d_omega
-                << "  →  a_vx=" << a_vx << " a_vy=" << a_vy << " a_omega=" << a_omega << std::endl;
+    apply_residual(d.d_vx, d.d_vy, d.d_omega, "GP", gp_log_counter_);
   }
   else
   {

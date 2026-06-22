@@ -10,6 +10,7 @@ def pacejka_model(
     use_linear_track_constraint: bool = False,
     mlp_weights_path: Optional[str] = None,
     Ts: float = 0.02,
+    residual_scale: float = 1.0,
 ):
     # define structs
     model = types.SimpleNamespace()
@@ -213,14 +214,15 @@ def pacejka_model(
             pre  = DM(W_np) @ act + DM(b_np)
             act  = tanh(pre) if i < n_layers - 1 else pre
 
-        # Unnormalize and convert velocity residual [m/s] → acceleration [m/s²]
+        # Unnormalize, scale, and convert velocity residual [m/s] → acceleration [m/s²]
         out = act * DM(y_std_np) + DM(y_mean_np)
-        d_vx_eff    = out[0] / Ts
-        d_vy_eff    = out[1] / Ts
-        d_omega_eff = out[2] / Ts
-        print(f"[pacejka_model] MLP embedded (arch [5]+{hidden}+[3]): {mlp_weights_path}")
+        d_vx_eff    = residual_scale * out[0] / Ts
+        d_vy_eff    = residual_scale * out[1] / Ts
+        d_omega_eff = residual_scale * out[2] / Ts
+        print(f"[pacejka_model] MLP embedded (arch [5]+{hidden}+[3], scale={residual_scale}): {mlp_weights_path}")
     else:
         # Parametric fallback: d_vx/d_vy/d_omega set at runtime via setGPResidual()
+        # Scaling is applied in C++ controller before calling setGPResidual()
         d_vx_eff    = d_vx
         d_vy_eff    = d_vy
         d_omega_eff = d_omega
