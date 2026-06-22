@@ -35,10 +35,10 @@ COLORS = ["steelblue", "darkorange", "forestgreen"]
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
 data = data[data[:, 0] >= args.vx_min]
 
-if len(data) > args.max_points:
-    rng = np.random.default_rng(args.seed)
-    idx = rng.choice(len(data), args.max_points, replace=False)
-    data = data[idx]
+# if len(data) > args.max_points:
+#     rng = np.random.default_rng(args.seed)
+#     idx = rng.choice(len(data), args.max_points, replace=False)
+#     data = data[idx]
 
 X = data[:, :5]   # [vx, vy, omega, delta, T]
 Y = data[:, 5:]   # [eps_vx, eps_vy, eps_omega]
@@ -72,7 +72,7 @@ y_scaler = StandardScaler()
 Y_train_sc = y_scaler.fit_transform(Y_train)
 
 mlp = MLPRegressor(hidden_layer_sizes=(64, 64), activation='tanh',
-                   max_iter=5000, learning_rate_init=1e-3,
+                   solver='lbfgs', max_iter=2000,
                    alpha=0.01,
                    random_state=args.seed)
 mlp.fit(X_train_sc, Y_train_sc)
@@ -104,7 +104,10 @@ if not args.no_gpytorch:
 
         preds_list = []
         for out_i, name in enumerate(OUTPUT_NAMES):
-            ty_i = torch.tensor(Y_train[:, out_i], dtype=torch.float32)
+            y_mean = Y_train[:, out_i].mean()
+            y_std  = Y_train[:, out_i].std() + 1e-8
+            ty_i = torch.tensor((Y_train[:, out_i] - y_mean) / y_std, dtype=torch.float32)
+
             likelihood_i = gpytorch.likelihoods.GaussianLikelihood()
             model_i = SingleOutputGP(tx, ty_i, likelihood_i)
 
@@ -112,7 +115,7 @@ if not args.no_gpytorch:
             optimizer = torch.optim.Adam(model_i.parameters(), lr=0.1)
             mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood_i, model_i)
 
-            for it in range(200):
+            for it in range(1000):
                 optimizer.zero_grad()
                 loss = -mll(model_i(tx), ty_i)
                 loss.backward()
@@ -120,8 +123,8 @@ if not args.no_gpytorch:
 
             model_i.eval(); likelihood_i.eval()
             with torch.no_grad():
-                pred = likelihood_i(model_i(test_x)).mean.numpy()
-            preds_list.append(pred)
+                pred_sc = likelihood_i(model_i(test_x)).mean.numpy()
+            preds_list.append(pred_sc * y_std + y_mean)  # unnormalize
             print(f"  {name} done")
 
         Y_pred_gpytorch = np.column_stack(preds_list)
