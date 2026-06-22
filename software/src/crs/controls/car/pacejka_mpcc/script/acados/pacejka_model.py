@@ -1,11 +1,15 @@
 import math
+import os
 import numpy as np
 from casadi import *
-from typing import Dict
+from typing import Dict, Optional
 
 
 def pacejka_model(
-    constraints: Dict[str, float], use_linear_track_constraint: bool = False
+    constraints: Dict[str, float],
+    use_linear_track_constraint: bool = False,
+    mlp_weights_path: Optional[str] = None,
+    Ts: float = 0.02,
 ):
     # define structs
     model = types.SimpleNamespace()
@@ -190,13 +194,40 @@ def pacejka_model(
     Fy = Fy_r + Fx_f * sin(delta) + Fy_f * cos(delta) - m * vx * omega
     Mz = Fy_f * lf * cos(delta) + Fx_f * lf * sin(delta) - Fy_r * lr
 
+    # Residual correction: MLP (per-stage, build-time) or parametric d_vx/d_vy/d_omega (zero-order, runtime)
+    if mlp_weights_path and os.path.exists(mlp_weights_path):
+        npz = np.load(mlp_weights_path)
+        W1_np   = npz["W1"];   b1_np   = npz["b1"]
+        W2_np   = npz["W2"];   b2_np   = npz["b2"]
+        Wout_np = npz["Wout"]; bout_np = npz["bout"]
+        x_mean_np = npz["x_mean"]; x_std_np = npz["x_std"]
+        y_mean_np = npz["y_mean"]; y_std_np = npz["y_std"]
+
+        x_in   = vertcat(vx, vy, omega, delta, T)
+        x_norm = (x_in - DM(x_mean_np)) / DM(x_std_np)
+        h1     = tanh(DM(W1_np) @ x_norm + DM(b1_np))
+        h2     = tanh(DM(W2_np) @ h1     + DM(b2_np))
+        out_sc = DM(Wout_np) @ h2 + DM(bout_np)
+        out    = out_sc * DM(y_std_np) + DM(y_mean_np)
+
+        # MLP predicts velocity residuals [m/s]; ODE needs acceleration [m/s²]
+        d_vx_eff    = out[0] / Ts
+        d_vy_eff    = out[1] / Ts
+        d_omega_eff = out[2] / Ts
+        print(f"[pacejka_model] MLP embedded (per-stage correction): {mlp_weights_path}")
+    else:
+        # Parametric fallback: d_vx/d_vy/d_omega set at runtime via setGPResidual()
+        d_vx_eff    = d_vx
+        d_vy_eff    = d_vy
+        d_omega_eff = d_omega
+
     f_expl = vertcat(
         vx * cos(yaw) - vy * sin(yaw),
         vx * sin(yaw) + vy * cos(yaw),
         omega,
-        Fx / m + d_vx,
-        Fy / m + d_vy,
-        Mz / I + d_omega,
+        Fx / m + d_vx_eff,
+        Fy / m + d_vy_eff,
+        Mz / I + d_omega_eff,
         dT,
         ddelta,
         dtheta,

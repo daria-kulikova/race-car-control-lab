@@ -35,6 +35,7 @@ getConfig<crs_controls::pacejka_mpcc::mpcc_pacejka_config>(const ros::NodeHandle
   nh.getParam("warmstart_iterations", params.warmstart_iterations);  // Optional Param. No warning raised if not set.
   nh.getParam("data_log_path", params.data_log_path);               // Optional. Empty = logging disabled.
   nh.getParam("gp_model_path", params.gp_model_path);              // Optional. Empty = GP disabled.
+  nh.getParam("mlp_model_path", params.mlp_model_path);            // Optional. Empty = MLP disabled.
   nh.getParam("tracking_log_path", params.tracking_log_path);     // Optional. Empty = tracking log disabled.
   nh.getParam("sample_period", params.sample_period);             // Must match Ts in solver_acados.yaml.
 

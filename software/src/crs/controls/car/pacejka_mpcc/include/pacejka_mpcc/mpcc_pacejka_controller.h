@@ -12,6 +12,7 @@
 
 #include "pacejka_mpcc/mpcc_pacejka_config.h"
 #include "pacejka_mpcc/gp_residual.h"
+#include "pacejka_mpcc/mlp_residual.h"
 #include "pacejka_mpcc/solvers/pacejka_mpcc_structures.h"
 #ifdef BUILD_ACADOS_SOLVER
 #include "pacejka_mpcc/solvers/acados_pacejka_mpcc_solver.h"
@@ -171,9 +172,11 @@ private:
   double log_t_prev_ = 0.0;
   std::ofstream log_stream_;
 
-  // GP residual model for lag compensation correction
-  GPResidual gp_;
-  unsigned int gp_log_counter_ = 0;
+  // Residual models for lag compensation correction (MLP takes priority over GP if both configured)
+  GPResidual  gp_;
+  MLPResidual mlp_;
+  unsigned int gp_log_counter_  = 0;
+  unsigned int mlp_log_counter_ = 0;
 
   // Tracking quality logging
   std::ofstream tracking_log_stream_;

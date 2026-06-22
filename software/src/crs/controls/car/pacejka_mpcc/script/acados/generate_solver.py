@@ -5,6 +5,8 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 from pacejka_model import pacejka_model
 
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def generate_solver(config, lib_dir, additional_args):
     """
@@ -31,8 +33,17 @@ def generate_solver(config, lib_dir, additional_args):
     # create render arguments
     ocp = AcadosOcp()
 
+    # Auto-detect MLP weights placed alongside acados scripts (one directory up from here)
+    mlp_npz = os.path.join(os.path.dirname(_SCRIPT_DIR), "mlp_model.npz")
+    mlp_weights_path = mlp_npz if os.path.exists(mlp_npz) else None
+    if mlp_weights_path:
+        print(f"[generate_solver] Found mlp_model.npz — embedding MLP in dynamics")
+    else:
+        print(f"[generate_solver] No mlp_model.npz — using parametric d_vx/d_vy/d_omega")
+
     # export model
-    model, constraint = pacejka_model(config["model_bounds"], use_linear_constraint)
+    model, constraint = pacejka_model(config["model_bounds"], use_linear_constraint,
+                                      mlp_weights_path=mlp_weights_path, Ts=Ts)
 
     # define acados ODE
     model_ac = AcadosModel()

@@ -115,7 +115,9 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     // Set initial input (nothing to do, its zero)
   }
 
-  if (!config_.gp_model_path.empty())
+  if (!config_.mlp_model_path.empty())
+    mlp_.load(config_.mlp_model_path);
+  else if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 
   if (!config_.tracking_log_path.empty())
@@ -214,14 +216,28 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   // initialize state to virtually advanced vehicle states and inputs
   auto virtual_state = model_->applyModel(state, last_input_, config_.lag_compensation_time);
 
-  // Zero-order GP-MPC: evaluate GP once at current state.
-  // 1. Correct lag-compensated initial condition.
-  // 2. Apply same d as constant disturbance over the full horizon via solver params.
-  if (gp_.isLoaded())
+  // Residual correction for lag compensation and zero-order solver disturbance.
+  // MLP takes priority over GP when both model paths are configured.
+  // Both predict velocity residuals [m/s]; divide by Ts to get acceleration [m/s²] for acados.
+  if (mlp_.isLoaded())
+  {
+    auto d = mlp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
+    const double Ts = config_.sample_period;
+    const double a_vx    = d.d_vx    / Ts;
+    const double a_vy    = d.d_vy    / Ts;
+    const double a_omega = d.d_omega / Ts;
+    virtual_state.vel_x    += a_vx    * config_.lag_compensation_time;
+    virtual_state.vel_y    += a_vy    * config_.lag_compensation_time;
+    virtual_state.yaw_rate += a_omega * config_.lag_compensation_time;
+    solver_.setGPResidual(a_vx, a_vy, a_omega);
+    if (mlp_log_counter_++ % 50 == 0)
+      std::cout << "[MLP] eps_vx=" << d.d_vx << " eps_vy=" << d.d_vy << " eps_omega=" << d.d_omega
+                << "  →  a_vx=" << a_vx << " a_vy=" << a_vy << " a_omega=" << a_omega << std::endl;
+  }
+  else if (gp_.isLoaded())
   {
     auto d = gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
     // GP predicts velocity residual [m/s]; acados dynamics expect acceleration [m/s²].
-    // Convert: a = eps_v / Ts.  Lag correction: a * lag_time = delta_v [m/s].
     const double Ts = config_.sample_period;
     const double a_vx    = d.d_vx    / Ts;
     const double a_vy    = d.d_vy    / Ts;

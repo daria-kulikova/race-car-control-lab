@@ -76,6 +76,12 @@ struct mpcc_pacejka_config
   std::string gp_model_path = "";
 
   /**
+   * @brief Path to the MLP residual model binary (mlp_model.bin from train_mlp.py).
+   *        Empty string disables MLP correction. Takes priority over GP if both are set.
+   */
+  std::string mlp_model_path = "";
+
+  /**
    * @brief Path for tracking quality CSV. Empty string disables logging.
    *        CSV columns: t, eC, eL, pos_x, pos_y, ref_x, ref_y
    */
