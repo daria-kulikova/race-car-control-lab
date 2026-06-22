@@ -79,8 +79,8 @@ print("\nTraining MLP ...")
 y_scaler = StandardScaler()
 Y_train_sc = y_scaler.fit_transform(Y_train)
 
-mlp = MLPRegressor(hidden_layer_sizes=(64, 64), activation='tanh',
-                   solver='lbfgs', max_iter=2000,
+mlp = MLPRegressor(hidden_layer_sizes=(64, 64, 32), activation='tanh',
+                   solver='adam', max_iter=5000,
                    alpha=0.01,
                    random_state=args.seed)
 mlp.fit(X_train_sc, Y_train_sc)

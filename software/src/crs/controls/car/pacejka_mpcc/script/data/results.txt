@@ -14,3 +14,99 @@ Output            No GP   sklearn GP   Improv        MLP   Improv
 eps_vx         0.005682     0.002545    55.2%   0.002237    60.6%
 eps_vy         0.007647     0.002772    63.8%   0.002722    64.4%
 eps_omega      0.240300     0.077997    67.5%   0.077763    67.6%
+
+2) 
+
+Training sklearn GP ...
+  Kernel: 1.27**2 * RBF(length_scale=[0.392, 1.02, 0.565, 0.638, 0.669]) + WhiteKernel(noise_level=0.208)
+
+Training MLP ...
+/usr/local/lib/python3.8/dist-packages/sklearn/neural_network/_multilayer_perceptron.py:546: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+  self.n_iter_ = _check_optimize_result("lbfgs", opt_res, self.max_iter)
+  hidden layers: (64, 64)  iters: 3000
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP   sklearn GP   Improv        MLP   Improv
+eps_vx         0.005682     0.002705    52.4%   0.002416    57.5%
+eps_vy         0.007647     0.002851    62.7%   0.002582    66.2%
+eps_omega      0.240300     0.084621    64.8%   0.072988    69.6%
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+3) 
+
+Training MLP ...
+/usr/local/lib/python3.8/dist-packages/sklearn/neural_network/_multilayer_perceptron.py:546: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+  self.n_iter_ = _check_optimize_result("lbfgs", opt_res, self.max_iter)
+  hidden layers: (64, 64)  iters: 4000
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002417    57.5%
+eps_vy         0.007647   0.002618    65.8%
+eps_omega      0.240300   0.074328    69.1%
+
+4) Training MLP ...
+/usr/local/lib/python3.8/dist-packages/sklearn/neural_network/_multilayer_perceptron.py:546: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+  self.n_iter_ = _check_optimize_result("lbfgs", opt_res, self.max_iter)
+  hidden layers: (64, 64)  iters: 5000
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002454    56.8%
+eps_vy         0.007647   0.002597    66.0%
+eps_omega      0.240300   0.074247    69.1%
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+5) Training MLP ...
+/usr/local/lib/python3.8/dist-packages/sklearn/neural_network/_multilayer_perceptron.py:546: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+  self.n_iter_ = _check_optimize_result("lbfgs", opt_res, self.max_iter)
+  hidden layers: (64, 64)  iters: 7000
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002605    54.2%
+eps_vy         0.007647   0.002853    62.7%
+eps_omega      0.240300   0.082985    65.5%
+
+6) Training MLP ADAM...
+  hidden layers: (64, 64)  iters: 485
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002374    58.2%
+eps_vy         0.007647   0.002461    67.8%
+eps_omega      0.240300   0.069052    71.3%
+
+7) Training MLP SDG ...
+  hidden layers: (64, 64)  iters: 459
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002610    54.1%
+eps_vy         0.007647   0.002575    66.3%
+eps_omega      0.240300   0.072548    69.8%
+
+8) Training MLP ADAM T...
+  hidden layers: (64, 64, 32)  iters: 415
+
+── RMSE comparison (baseline = predict 0 = no GP correction) ────────────
+Output            No GP        MLP   Improv
+eps_vx         0.005682   0.002226    60.8%
+eps_vy         0.007647   0.002395    68.7%
+eps_omega      0.240300   0.067919    71.7%
