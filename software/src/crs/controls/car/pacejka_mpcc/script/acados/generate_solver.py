@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 
@@ -33,15 +34,15 @@ def generate_solver(config, lib_dir, additional_args):
     # create render arguments
     ocp = AcadosOcp()
 
+    residual_scale = config["solver_creation"].get("residual_scale", 1.0)
+
     # Auto-detect MLP weights placed alongside acados scripts (one directory up from here)
     mlp_npz = os.path.join(os.path.dirname(_SCRIPT_DIR), "mlp_model.npz")
     mlp_weights_path = mlp_npz if os.path.exists(mlp_npz) else None
     if mlp_weights_path:
-        print(f"[generate_solver] Found mlp_model.npz — embedding MLP in dynamics")
+        print(f"[generate_solver] Found mlp_model.npz — embedding MLP (scale={residual_scale})", file=sys.stderr, flush=True)
     else:
-        print(f"[generate_solver] No mlp_model.npz — using parametric d_vx/d_vy/d_omega")
-
-    residual_scale = config["solver_creation"].get("residual_scale", 1.0)
+        print(f"[generate_solver] No mlp_model.npz — using parametric d_vx/d_vy/d_omega (scale={residual_scale})", file=sys.stderr, flush=True)
     model, constraint = pacejka_model(config["model_bounds"], use_linear_constraint,
                                       mlp_weights_path=mlp_weights_path, Ts=Ts,
                                       residual_scale=residual_scale)
