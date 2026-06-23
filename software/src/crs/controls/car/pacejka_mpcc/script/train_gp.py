@@ -31,6 +31,8 @@ parser.add_argument("--max-points", type=int, default=2000,
                     help="Max training points (subsample if more)")
 parser.add_argument("--vx-min", type=float, default=0.5,
                     help="Ignore rows where vx < this (unstable low-speed dynamics)")
+parser.add_argument("--iqr-k", type=float, default=3.0,
+                    help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
 args = parser.parse_args()
 
 
@@ -41,9 +43,18 @@ data = np.loadtxt(args.data, delimiter=",", skiprows=1)
 print(f"  raw rows: {len(data)}")
 
 # Filter low speed
-mask = data[:, 0] >= args.vx_min          # vx >= vx_min
+mask = data[:, 0] >= args.vx_min
 data = data[mask]
 print(f"  after vx >= {args.vx_min} filter: {len(data)}")
+
+# Filter outliers on eps_ targets (cols 5,6,7) — removes bad IMU measurements
+mask = np.ones(len(data), dtype=bool)
+for c in [5, 6, 7]:
+    q25, q75 = np.percentile(data[:, c], [25, 75])
+    iqr = q75 - q25
+    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+data = data[mask]
+print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
 
 # Subsample if too many points (GP is O(n³))
 if len(data) > args.max_points:

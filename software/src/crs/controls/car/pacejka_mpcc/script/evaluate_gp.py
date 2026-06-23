@@ -27,6 +27,8 @@ parser.add_argument("--test-fraction", type=float, default=0.2)
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--no-gp",      action="store_true", help="skip sklearn GP")
 parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
+parser.add_argument("--iqr-k", type=float, default=3.0,
+                    help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
 args = parser.parse_args()
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
@@ -35,6 +37,15 @@ COLORS = ["steelblue", "darkorange", "forestgreen"]
 # ── Load & filter ─────────────────────────────────────────────────────────────
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
 data = data[data[:, 0] >= args.vx_min]
+print(f"  after vx >= {args.vx_min} filter: {len(data)}")
+
+mask = np.ones(len(data), dtype=bool)
+for c in [5, 6, 7]:
+    q25, q75 = np.percentile(data[:, c], [25, 75])
+    iqr = q75 - q25
+    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+data = data[mask]
+print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
 
 X = data[:, :5]   # [vx, vy, omega, delta, T]
 Y = data[:, 5:]   # [eps_vx, eps_vy, eps_omega]
