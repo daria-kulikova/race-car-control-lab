@@ -41,7 +41,7 @@ def generate_solver(config, lib_dir, additional_args):
     else:
         print(f"[generate_solver] No mlp_model.npz — using parametric d_vx/d_vy/d_omega")
 
-    residual_scale = config.get("residual_scale", 1.0)
+    residual_scale = config["solver_creation"].get("residual_scale", 1.0)
     model, constraint = pacejka_model(config["model_bounds"], use_linear_constraint,
                                       mlp_weights_path=mlp_weights_path, Ts=Ts,
                                       residual_scale=residual_scale)
