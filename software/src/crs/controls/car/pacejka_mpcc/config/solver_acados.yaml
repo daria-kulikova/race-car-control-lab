@@ -3,6 +3,7 @@
 solver_creation:
   N: 40 # Time Horizon
   Ts: 0.020 # 50 Hz
+  residual_scale: 1.0  # MLP correction scale [0, 1]; baked into solver at build time
 
 track:
   track_width: 0.46
