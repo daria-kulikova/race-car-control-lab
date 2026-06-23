@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/combined_data.csv")
 parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model.npz"))
 parser.add_argument("--vx-min",    type=float, default=0.5)
+parser.add_argument("--iqr-k",     type=float, default=3.0, help="IQR multiplier for outlier removal (larger = keep more)")
 parser.add_argument("--hidden",    type=int,   nargs="+", default=[64, 64, 32])
 parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
@@ -28,6 +29,16 @@ print(f"Loading {args.data} ...")
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
 data = data[data[:, 0] >= args.vx_min]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
+
+# ── Outlier filtering on eps_ targets (cols 5,6,7) ────────────────────────────
+eps_cols = [5, 6, 7]
+mask = np.ones(len(data), dtype=bool)
+for c in eps_cols:
+    q25, q75 = np.percentile(data[:, c], [25, 75])
+    iqr = q75 - q25
+    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
+data = data[mask]
 
 X = data[:, :5]   # [vx, vy, omega, delta, T]
 Y = data[:, 5:8]  # [eps_vx, eps_vy, eps_omega]
