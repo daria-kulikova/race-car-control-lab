@@ -70,7 +70,9 @@ print(f"Training MLP {args.hidden} ...")
 mlp = MLPRegressor(hidden_layer_sizes=tuple(args.hidden), activation='tanh',
                    solver='adam', max_iter=5000, early_stopping=True,
                    alpha=args.alpha_reg, random_state=args.seed)
-mlp.fit(X_sc, Y_sc, sample_weight=weights)
+X_sc_w = np.repeat(X_sc, weights.astype(int), axis=0)
+Y_sc_w = np.repeat(Y_sc, weights.astype(int), axis=0)
+mlp.fit(X_sc_w, Y_sc_w)
 print(f"  converged in {mlp.n_iter_} iterations")
 
 # Sanity: RMSE on training data
