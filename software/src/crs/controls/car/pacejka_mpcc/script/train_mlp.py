@@ -15,19 +15,33 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/combined_data.csv")
-parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model.npz"))
+parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_0.csv")
+parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model_0.npz"))
 parser.add_argument("--vx-min",    type=float, default=0.5)
-parser.add_argument("--iqr-k",     type=float, default=3.0, help="IQR multiplier for outlier removal (larger = keep more)")
+parser.add_argument("--iqr-k",     type=float, default=7.0, help="IQR multiplier for outlier removal (larger = keep more)")
 parser.add_argument("--hidden",    type=int,   nargs="+", default=[64, 64, 32])
+parser.add_argument("--n-datasets", type=int,   default=1,
+                    help="Number of datasets to combine (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
 parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
 args = parser.parse_args()
 
 # ── Load ──────────────────────────────────────────────────────────────────────
-print(f"Loading {args.data} ...")
-data = np.loadtxt(args.data, delimiter=",", skiprows=1)
-data = data[data[:, 0] >= args.vx_min]
+base = args.data[:-len("0.csv")]  # strip trailing "0.csv" → e.g. "/path/to/data_"
+chunks, weight_chunks = [], []
+for i in range(args.n_datasets):
+    path = base + f"{i}.csv"
+    d = np.loadtxt(path, delimiter=",", skiprows=1)
+    chunks.append(d)
+    weight_chunks.append(np.full(len(d), float(i + 1)))
+    print(f"  loaded {path}: {len(d)} rows, weight={i + 1}")
+data    = np.vstack(chunks)
+weights = np.concatenate(weight_chunks)
+print(f"  total: {len(data)} rows")
+
+mask_vx = data[:, 0] >= args.vx_min
+data    = data[mask_vx]
+weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
 # ── Outlier filtering on eps_ targets (cols 5,6,7) ────────────────────────────
@@ -38,7 +52,8 @@ for c in eps_cols:
     iqr = q75 - q25
     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
 print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
-data = data[mask]
+data    = data[mask]
+weights = weights[mask]
 
 X = data[:, :5]   # [vx, vy, omega, delta, T]
 Y = data[:, 5:8]  # [eps_vx, eps_vy, eps_omega]
@@ -55,7 +70,7 @@ print(f"Training MLP {args.hidden} ...")
 mlp = MLPRegressor(hidden_layer_sizes=tuple(args.hidden), activation='tanh',
                    solver='adam', max_iter=5000, early_stopping=True,
                    alpha=args.alpha_reg, random_state=args.seed)
-mlp.fit(X_sc, Y_sc)
+mlp.fit(X_sc, Y_sc, sample_weight=weights)
 print(f"  converged in {mlp.n_iter_} iterations")
 
 # Sanity: RMSE on training data
@@ -85,7 +100,8 @@ for i, (W, b) in enumerate(zip(layers, biases)):
     npz_dict[f"W{i}"] = W.T   # (out, in) convention
     npz_dict[f"b{i}"] = b
 
-npz_path = args.out
+stem = args.out[:-len(".npz")]
+npz_path = f"{stem}_{args.n_datasets - 1}.npz"
 np.savez(npz_path, **npz_dict)
 print(f"Saved → {npz_path}  (arch {sizes})")
 
