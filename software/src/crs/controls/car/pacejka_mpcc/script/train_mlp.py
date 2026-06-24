@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_0.csv")
-parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model_0.npz"))
+parser.add_argument("--out",  default=str(Path(__file__).parent / "mlp_model.npz"))
 parser.add_argument("--vx-min",    type=float, default=0.5)
 parser.add_argument("--iqr-k",     type=float, default=7.0, help="IQR multiplier for outlier removal (larger = keep more)")
 parser.add_argument("--hidden",    type=int,   nargs="+", default=[64, 64, 32])
