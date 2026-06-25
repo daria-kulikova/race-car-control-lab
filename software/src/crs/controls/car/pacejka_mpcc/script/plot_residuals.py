@@ -17,6 +17,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv")
 parser.add_argument("--out-dir", default=str(Path(__file__).parent))
 parser.add_argument("--vx-min", type=float, default=0.5)
+parser.add_argument("--lf",    type=float, default=0.04448988, help="front axle distance [m]")
+parser.add_argument("--lr",    type=float, default=0.04866242, help="rear axle distance [m]")
 args = parser.parse_args()
 
 out_dir = Path(args.out_dir)
@@ -33,12 +35,20 @@ eps_vx    = data[:, 5]
 eps_vy    = data[:, 6]
 eps_omega = data[:, 7]
 
+vx_safe = np.maximum(vx, 0.1)
+beta    = np.arctan2(vy, vx_safe)
+alpha_f = delta - np.arctan2(vy + args.lf * omega, vx_safe)
+alpha_r = -np.arctan2(vy - args.lr * omega, vx_safe)
+
 FEATURES = [
-    ("vx",    vx,    "vx [m/s]"),
-    ("vy",    vy,    "vy [m/s]"),
-    ("omega", omega, "omega [rad/s]"),
-    ("delta", delta, "delta [rad]"),
-    ("T",     T,     "T [–]"),
+    ("vx",      vx,      "vx [m/s]"),
+    ("vy",      vy,      "vy [m/s]"),
+    ("omega",   omega,   "omega [rad/s]"),
+    ("delta",   delta,   "delta [rad]"),
+    ("T",       T,       "T [–]"),
+    ("beta",    beta,    "beta [rad]"),
+    ("alpha_f", alpha_f, "alpha_f [rad]"),
+    ("alpha_r", alpha_r, "alpha_r [rad]"),
 ]
 RESIDUALS = [
     ("eps_vx",    eps_vx,    "eps_vx [m/s²]",    "steelblue"),

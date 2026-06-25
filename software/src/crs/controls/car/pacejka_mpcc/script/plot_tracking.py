@@ -200,6 +200,7 @@ for name, va, vb in metrics:
     else:
         change = (vb - va) / va * 100
         print(f"{name:<30} {va:>12.5f} {vb:>12.5f} {change:>+9.1f}%")
+print()
 
 if has_residuals:
     rx_a, ry_a, eps_omega_a = load_residuals(res_path_a)
@@ -227,6 +228,7 @@ if has_residuals:
                 print(f"{stat:<30} {fa:>12.5f} {fb:>12.5f} {'N/A':>10}")
             else:
                 print(f"{stat:<30} {fa:>12.5f} {fb:>12.5f} {change:>+9.1f}%")
+        print()
 
     vmax = max(np.abs(eps_omega_a).max(), np.abs(eps_omega_b).max())
 

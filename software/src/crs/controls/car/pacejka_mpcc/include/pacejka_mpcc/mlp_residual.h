@@ -31,8 +31,7 @@ namespace crs_controls::pacejka_mpcc
 class MLPResidual
 {
 public:
-  static constexpr int N_FEATURES = 5;  // [vx, vy, omega, delta, T]
-  static constexpr int N_OUTPUTS  = 3;  // [eps_vx, eps_vy, eps_omega]
+  static constexpr int N_OUTPUTS = 3;  // [eps_vx, eps_vy, eps_omega]
 
   struct Residual
   {
@@ -42,6 +41,8 @@ public:
   };
 
   MLPResidual() = default;
+
+  void setGeometry(double lf, double lr) { lf_ = lf; lr_ = lr; }
 
   bool load(const std::string& path)
   {
@@ -58,20 +59,22 @@ public:
     sizes_.resize(n_layers + 1);
     f.read(reinterpret_cast<char*>(sizes_.data()), (n_layers + 1) * sizeof(int32_t));
 
-    if (sizes_.front() != N_FEATURES || sizes_.back() != N_OUTPUTS)
+    const int n_in = sizes_.front();
+    if ((n_in != 5 && n_in != 8) || sizes_.back() != N_OUTPUTS)
     {
-      std::cout << "[MLPResidual] unexpected dimensions: n_in=" << sizes_.front()
+      std::cout << "[MLPResidual] unexpected dimensions: n_in=" << n_in
                 << " n_out=" << sizes_.back() << std::endl;
       return false;
     }
 
+    const int n_in = sizes_.front();
     auto read_vec = [&](std::vector<double>& v, int n) {
       v.resize(n);
       f.read(reinterpret_cast<char*>(v.data()), n * sizeof(double));
     };
 
-    read_vec(x_mean_, N_FEATURES);
-    read_vec(x_std_,  N_FEATURES);
+    read_vec(x_mean_, n_in);
+    read_vec(x_std_,  n_in);
     read_vec(y_mean_, N_OUTPUTS);
     read_vec(y_std_,  N_OUTPUTS);
 
@@ -97,17 +100,28 @@ public:
     if (!loaded_)
       return {};
 
-    // Normalize input
-    std::vector<double> act = { vx, vy, omega, delta, T };
-    for (int j = 0; j < N_FEATURES; ++j)
+    const int n_in  = sizes_.front();
+    const double vx_safe = std::max(vx, 0.1);
+    const double beta    = std::atan2(vy, vx_safe);
+    const double alpha_f = delta - std::atan2(vy + lf_ * omega, vx_safe);
+    const double alpha_r = -std::atan2(vy - lr_ * omega, vx_safe);
+
+    // Build input vector: 5-feature (legacy) or 8-feature (with slip angles)
+    std::vector<double> act;
+    if (n_in == 8)
+      act = { vx, vy, omega, delta, T, beta, alpha_f, alpha_r };
+    else
+      act = { vx, vy, omega, delta, T };
+
+    for (int j = 0; j < n_in; ++j)
       act[j] = (act[j] - x_mean_[j]) / x_std_[j];
 
-    // Forward pass: tanh for all layers except the last (linear output)
+    // Forward pass: tanh for hidden layers, linear output
     const int n_layers = static_cast<int>(W_.size());
     for (int i = 0; i < n_layers; ++i)
     {
       const int out_size = sizes_[i + 1];
-      const int in_size  = sizes_[i];
+      const int in_size  = static_cast<int>(act.size());
       std::vector<double> next(out_size);
       for (int r = 0; r < out_size; ++r)
       {
@@ -128,7 +142,9 @@ public:
   }
 
 private:
-  bool loaded_ = false;
+  bool   loaded_ = false;
+  double lf_     = 0.04448988;
+  double lr_     = 0.04866242;
 
   std::vector<int32_t>              sizes_;    // [n_in, h1, ..., hk, n_out]
   std::vector<double>               x_mean_, x_std_;

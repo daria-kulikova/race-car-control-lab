@@ -139,7 +139,11 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   }
 
   if (!config_.mlp_model_path.empty())
+  {
+    const auto& p = model_->getParams();
+    mlp_.setGeometry(p.lf, p.lr);
     mlp_.load(config_.mlp_model_path);
+  }
   else if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 

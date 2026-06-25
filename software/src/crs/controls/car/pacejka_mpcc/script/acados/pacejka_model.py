@@ -203,8 +203,16 @@ def pacejka_model(
         hidden    = list(npz["hidden"])
         n_layers  = len(hidden) + 1   # hidden layers + output layer
 
-        # Normalize input
-        x_in  = vertcat(vx, vy, omega, delta, T)
+        # Build input: 5-feature (legacy) or 8-feature (with slip angles)
+        n_in = int(npz["x_mean"].shape[0])
+        vx_safe = if_else(vx > 0.1, vx, SX(0.1))
+        beta    = atan2(vy, vx_safe)
+        alpha_f_feat = delta - atan2(vy + lf * omega, vx_safe)
+        alpha_r_feat = -atan2(vy - lr * omega, vx_safe)
+        if n_in == 8:
+            x_in = vertcat(vx, vy, omega, delta, T, beta, alpha_f_feat, alpha_r_feat)
+        else:
+            x_in = vertcat(vx, vy, omega, delta, T)
         act   = (x_in - DM(x_mean_np)) / DM(x_std_np)
 
         # Forward pass: tanh for hidden layers, linear for output

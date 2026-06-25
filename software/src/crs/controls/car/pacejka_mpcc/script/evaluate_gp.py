@@ -29,6 +29,8 @@ parser.add_argument("--no-gp",      action="store_true", help="skip sklearn GP")
 parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
 parser.add_argument("--iqr-k", type=float, default=3.0,
                     help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
+parser.add_argument("--lf", type=float, default=0.04448988, help="front axle distance [m]")
+parser.add_argument("--lr", type=float, default=0.04866242, help="rear axle distance [m]")
 args = parser.parse_args()
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
@@ -47,8 +49,13 @@ for c in [5, 6, 7]:
 data = data[mask]
 print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
 
-X = data[:, :5]   # [vx, vy, omega, delta, T]
-Y = data[:, 5:]   # [eps_vx, eps_vy, eps_omega]
+raw = data[:, :5]
+vx_safe = np.maximum(raw[:, 0], 0.1)
+beta    = np.arctan2(raw[:, 1], vx_safe)
+alpha_f = raw[:, 3] - np.arctan2(raw[:, 1] + args.lf * raw[:, 2], vx_safe)
+alpha_r = -np.arctan2(raw[:, 1] - args.lr * raw[:, 2], vx_safe)
+X = np.column_stack([raw, beta, alpha_f, alpha_r])  # [vx, vy, omega, delta, T, beta, alpha_f, alpha_r]
+Y = data[:, 5:]                                      # [eps_vx, eps_vy, eps_omega]
 
 # ── Train/test split (full data) ──────────────────────────────────────────────
 rng = np.random.default_rng(args.seed)
@@ -79,7 +86,7 @@ X_test_sc     = scaler.transform(X_test)
 Y_pred_sklearn = None
 if not args.no_gp:
     print("\nTraining sklearn GP ...")
-    kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
+    kernel = 1.0 * RBF(length_scale=np.ones(X.shape[1])) + WhiteKernel(noise_level=1e-3)
     gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
     gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
     Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
@@ -110,7 +117,7 @@ if not args.no_gpytorch:
                 super().__init__(train_x, train_y, likelihood)
                 self.mean_module  = gpytorch.means.ZeroMean()
                 self.covar_module = gpytorch.kernels.ScaleKernel(
-                    gpytorch.kernels.RBFKernel(ard_num_dims=5)
+                    gpytorch.kernels.RBFKernel(ard_num_dims=X_train_gp_sc.shape[1])
                 )
             def forward(self, x):
                 return gpytorch.distributions.MultivariateNormal(

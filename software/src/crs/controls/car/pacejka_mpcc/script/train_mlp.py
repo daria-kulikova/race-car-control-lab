@@ -24,7 +24,18 @@ parser.add_argument("--n-datasets", type=int,   default=1,
                     help="Number of datasets to combine (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
 parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
+parser.add_argument("--lf",        type=float, default=0.04448988, help="front axle distance [m]")
+parser.add_argument("--lr",        type=float, default=0.04866242, help="rear axle distance [m]")
 args = parser.parse_args()
+
+
+def slip_angles(vx, vy, omega, delta, lf, lr):
+    vx_safe = np.maximum(vx, 0.1)
+    beta  = np.arctan2(vy, vx_safe)
+    alpha_f = delta - np.arctan2(vy + lf * omega, vx_safe)
+    alpha_r = -np.arctan2(vy - lr * omega, vx_safe)
+    return beta, alpha_f, alpha_r
+
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 base = args.data[:-len("0.csv")]  # strip trailing "0.csv" → e.g. "/path/to/data_"
@@ -55,8 +66,11 @@ print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={
 data    = data[mask]
 weights = weights[mask]
 
-X = data[:, :5]   # [vx, vy, omega, delta, T]
-Y = data[:, 5:8]  # [eps_vx, eps_vy, eps_omega]
+raw = data[:, :5]   # [vx, vy, omega, delta, T]
+beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3],
+                                     args.lf, args.lr)
+X = np.column_stack([raw, beta, alpha_f, alpha_r])  # [vx, vy, omega, delta, T, beta, alpha_f, alpha_r]
+Y = data[:, 5:8]                                     # [eps_vx, eps_vy, eps_omega]
 
 # ── Scale ─────────────────────────────────────────────────────────────────────
 x_scaler = StandardScaler()
