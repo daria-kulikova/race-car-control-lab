@@ -24,8 +24,8 @@ parser.add_argument("--vx-min",        type=float, default=0.5)
 parser.add_argument("--iqr-k",         type=float, default=7.0,   help="IQR multiplier for outlier removal")
 parser.add_argument("--hidden",        type=int,   nargs="+",     default=[64, 64, 32])
 parser.add_argument("--n-datasets",    type=int,   default=1,     help="number of datasets (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
-parser.add_argument("--lf",            type=float, default=0.04448988, help="front axle distance [m]")
-parser.add_argument("--lr",            type=float, default=0.04866242, help="rear axle distance [m]")
+parser.add_argument("--lf",            type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr",            type=float, default=0.038, help="rear axle distance [m]")
 parser.add_argument("--learning-rate", type=float, default=1e-3)
 parser.add_argument("--epochs",        type=int,   default=2000)
 parser.add_argument("--batch-size",    type=int,   default=256)
@@ -33,6 +33,10 @@ parser.add_argument("--patience",      type=int,   default=50,   help="early sto
 parser.add_argument("--huber-beta",    type=float, default=1.0,  help="SmoothL1 transition point (in scaled space)")
 parser.add_argument("--weight-decay",  type=float, default=1e-4)
 parser.add_argument("--seed",          type=int,   default=42)
+parser.add_argument("--features",      type=str,   nargs="+",
+                    default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    help="feature subset to use for training")
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
@@ -66,20 +70,26 @@ weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
 # ── Outlier filtering ─────────────────────────────────────────────────────────
-mask = np.ones(len(data), dtype=bool)
-for c in [5, 6, 7]:
-    q25, q75 = np.percentile(data[:, c], [25, 75])
-    iqr = q75 - q25
-    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
-data    = data[mask]
-weights = weights[mask]
+# mask = np.ones(len(data), dtype=bool)
+# for c in [5, 6, 7]:
+#     q25, q75 = np.percentile(data[:, c], [25, 75])
+#     iqr = q75 - q25
+#     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+# print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
+# data    = data[mask]
+# weights = weights[mask]
 
 # ── Features ──────────────────────────────────────────────────────────────────
 raw = data[:, :5]
 beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3], args.lf, args.lr)
-X = np.column_stack([raw, beta, alpha_f, alpha_r])  # [vx, vy, omega, delta, T, beta, alpha_f, alpha_r]
+ALL_FEATURES = {
+    "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
+    "delta": raw[:, 3], "T": raw[:, 4],
+    "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
+}
+X = np.column_stack([ALL_FEATURES[f] for f in args.features])
 Y = data[:, 5:8]                                     # [eps_vx, eps_vy, eps_omega]
+print(f"  features ({len(args.features)}): {args.features}")
 
 # ── Scale ─────────────────────────────────────────────────────────────────────
 x_scaler = StandardScaler()

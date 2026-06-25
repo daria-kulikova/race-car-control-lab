@@ -26,6 +26,10 @@ parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
 parser.add_argument("--lf",        type=float, default=0.052, help="front axle distance [m]")
 parser.add_argument("--lr",        type=float, default=0.038, help="rear axle distance [m]")
+parser.add_argument("--features",  type=str,   nargs="+",
+                    default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    help="feature subset to use for training")
 args = parser.parse_args()
 
 
@@ -56,21 +60,27 @@ weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
 # ── Outlier filtering on eps_ targets (cols 5,6,7) ────────────────────────────
-eps_cols = [5, 6, 7]
-mask = np.ones(len(data), dtype=bool)
-for c in eps_cols:
-    q25, q75 = np.percentile(data[:, c], [25, 75])
-    iqr = q75 - q25
-    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
-data    = data[mask]
-weights = weights[mask]
+# eps_cols = [5, 6, 7]
+# mask = np.ones(len(data), dtype=bool)
+# for c in eps_cols:
+#     q25, q75 = np.percentile(data[:, c], [25, 75])
+#     iqr = q75 - q25
+#     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+# print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()}, k={args.iqr_k})")
+# data    = data[mask]
+# weights = weights[mask]
 
 raw = data[:, :5]   # [vx, vy, omega, delta, T]
 beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3],
                                      args.lf, args.lr)
-X = np.column_stack([raw, beta, alpha_f, alpha_r])  # [vx, vy, omega, delta, T, beta, alpha_f, alpha_r]
+ALL_FEATURES = {
+    "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
+    "delta": raw[:, 3], "T": raw[:, 4],
+    "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
+}
+X = np.column_stack([ALL_FEATURES[f] for f in args.features])
 Y = data[:, 5:8]                                     # [eps_vx, eps_vy, eps_omega]
+print(f"  features ({len(args.features)}): {args.features}")
 
 # ── Scale ─────────────────────────────────────────────────────────────────────
 x_scaler = StandardScaler()
