@@ -205,6 +205,29 @@ if has_residuals:
     rx_a, ry_a, eps_omega_a = load_residuals(res_path_a)
     rx_b, ry_b, eps_omega_b = load_residuals(res_path_b)
 
+    def load_residuals_full(path):
+        data = np.loadtxt(path, delimiter=",", skiprows=1)
+        return data[:, 5], data[:, 6], data[:, 7]  # eps_vx, eps_vy, eps_omega
+
+    eps_vx_a, eps_vy_a, _ = load_residuals_full(res_path_a)
+    eps_vx_b, eps_vy_b, _ = load_residuals_full(res_path_b)
+
+    for eps_name, eps_a, eps_b in [
+        ("eps_vx",    eps_vx_a,    eps_vx_b),
+        ("eps_vy",    eps_vy_a,    eps_vy_b),
+        ("eps_omega", eps_omega_a, eps_omega_b),
+    ]:
+        for stat, fa, fb in [
+            (f"mean |{eps_name}|", np.abs(eps_a).mean(),              np.abs(eps_b).mean()),
+            (f"std  |{eps_name}|", np.abs(eps_a).std(),               np.abs(eps_b).std()),
+            (f"95th |{eps_name}|", np.percentile(np.abs(eps_a), 95),  np.percentile(np.abs(eps_b), 95)),
+        ]:
+            change = (fb - fa) / fa * 100 if fa != 0 else float("nan")
+            if np.isnan(change):
+                print(f"{stat:<30} {fa:>12.5f} {fb:>12.5f} {'N/A':>10}")
+            else:
+                print(f"{stat:<30} {fa:>12.5f} {fb:>12.5f} {change:>+9.1f}%")
+
     vmax = max(np.abs(eps_omega_a).max(), np.abs(eps_omega_b).max())
 
     ax = axes[3, 0]
