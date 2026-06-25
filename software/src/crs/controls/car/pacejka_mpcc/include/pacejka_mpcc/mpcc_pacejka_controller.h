@@ -160,6 +160,9 @@ private:
   // Last known input that was applied
   crs_models::pacejka_model::pacejka_car_input last_input_;
 
+  // Virtual state (after lag compensation) passed to the solver at the last cycle
+  crs_models::pacejka_model::pacejka_car_state last_virtual_state_;
+
   // Current lap count
   int laps_ = 0;
   // Current distance driven on the track

@@ -44,9 +44,12 @@ template <typename SolverType>
 std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType>::getUncorrectedTrajectory()
 {
   std::vector<std::vector<double>> traj;
-  auto state = convertToGlobalCoordinates(last_solution_.x[0]);
+  auto state = last_virtual_state_;
   const double Ts = config_.sample_period;
-  for (int i = 0; i < solver_.N; i++)
+  traj.push_back({ state.pos_x, state.pos_y, state.vel_x, state.vel_y, state.yaw,
+                   last_reference_on_track_[0].x, last_reference_on_track_[0].y,
+                   last_reference_on_track_[0].yaw });
+  for (int i = 0; i < solver_.N - 1; i++)
   {
     crs_models::pacejka_model::pacejka_car_input input{
         last_solution_.x[i][static_cast<int>(pacejka_vars::TORQUE)],
@@ -54,8 +57,8 @@ std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType
     };
     state = model_->applyModel(state, input, Ts);
     traj.push_back({ state.pos_x, state.pos_y, state.vel_x, state.vel_y, state.yaw,
-                     last_reference_on_track_[i].x, last_reference_on_track_[i].y,
-                     last_reference_on_track_[i].yaw });
+                     last_reference_on_track_[i + 1].x, last_reference_on_track_[i + 1].y,
+                     last_reference_on_track_[i + 1].yaw });
   }
   return traj;
 }
@@ -235,6 +238,7 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
 
   // initialize state to virtually advanced vehicle states and inputs
   auto virtual_state = model_->applyModel(state, last_input_, config_.lag_compensation_time);
+  last_virtual_state_ = virtual_state;
 
   // Residual correction for lag compensation and zero-order solver disturbance.
   // MLP takes priority over GP when both model paths are configured.
