@@ -148,7 +148,7 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     tracking_log_stream_.open(config_.tracking_log_path);
     if (tracking_log_stream_.is_open())
     {
-      tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y\n";
+      tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y,lap\n";
       tracking_log_stream_.flush();
       std::cout << "[MPCC] tracking log → " << config_.tracking_log_path << std::endl;
     }
@@ -329,7 +329,7 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
     tracking_log_stream_ << std::fixed << std::setprecision(6)
                          << t_log << "," << eC << "," << eL << ","
                          << state.pos_x << "," << state.pos_y << ","
-                         << ref_x << "," << ref_y << "\n";
+                         << ref_x << "," << ref_y << "," << laps_ << "\n";
     tracking_log_stream_.flush();
   }
 

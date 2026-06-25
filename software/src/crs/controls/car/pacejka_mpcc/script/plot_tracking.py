@@ -39,14 +39,24 @@ def load(path):
     pos_y  = data[:, 4]
     ref_x  = data[:, 5]
     ref_y  = data[:, 6]
-    return t, eC, eL, pos_x, pos_y, ref_x, ref_y
+    lap    = data[:, 7].astype(int) if data.shape[1] > 7 else np.zeros(len(t), dtype=int)
+    return t, eC, eL, pos_x, pos_y, ref_x, ref_y, lap
 
 
-t_gp,    eC_gp,    eL_gp,    px_gp,    py_gp,    rx_gp,    ry_gp    = load(args.with_gp)
-t_nogp,  eC_nogp,  eL_nogp,  px_nogp,  py_nogp,  rx_nogp,  ry_nogp  = load(args.without_gp)
+def mean_lap_time(t, lap):
+    """Return mean lap time in seconds, or nan if fewer than 3 complete laps."""
+    lap_starts = np.where(np.diff(lap) > 0)[0] + 1  # indices where lap counter increments
+    if len(lap_starts) < 3:
+        return float("nan")
+    lap_times = np.diff(t[lap_starts])[1:]  # skip first lap (car may start mid-track)
+    return lap_times.mean()
+
+
+t_gp,    eC_gp,    eL_gp,    px_gp,    py_gp,    rx_gp,    ry_gp,    lap_gp    = load(args.with_gp)
+t_nogp,  eC_nogp,  eL_nogp,  px_nogp,  py_nogp,  rx_nogp,  ry_nogp,  lap_nogp  = load(args.without_gp)
 
 has_residuals = args.residuals_gp is not None and args.residuals_no_gp is not None
-n_rows = 3 if has_residuals else 2
+n_rows = 4 if has_residuals else 3
 fig, axes = plt.subplots(n_rows, 2, figsize=(14, 5 * n_rows))
 fig.suptitle("Tracking quality: with GP vs without GP", fontsize=13)
 
@@ -80,8 +90,18 @@ ax.set_ylabel("eL [m]")
 ax.set_title("Lag error over time")
 ax.legend()
 
-# ── Trajectory on track ───────────────────────────────────────────────────────
+# ── |eL| histogram ────────────────────────────────────────────────────────────
 ax = axes[1, 1]
+bins = np.linspace(0, max(np.abs(eL_gp).max(), np.abs(eL_nogp).max()), 60)
+ax.hist(np.abs(eL_nogp), bins=bins, alpha=0.6, color="tomato",    label=f"without GP  mean={np.abs(eL_nogp).mean():.4f} m")
+ax.hist(np.abs(eL_gp),   bins=bins, alpha=0.6, color="steelblue", label=f"with GP     mean={np.abs(eL_gp).mean():.4f} m")
+ax.set_xlabel("|eL| [m]")
+ax.set_ylabel("count")
+ax.set_title("Distribution of |lag error|")
+ax.legend()
+
+# ── Trajectory on track ───────────────────────────────────────────────────────
+ax = axes[2, 0]
 ax.plot(rx_gp, ry_gp, "k--", linewidth=1.0, alpha=0.5, label="reference")
 ax.plot(px_nogp, py_nogp, color="tomato",    alpha=0.6, linewidth=0.8, label="without GP")
 ax.plot(px_gp,   py_gp,   color="steelblue", alpha=0.6, linewidth=0.8, label="with GP")
@@ -90,19 +110,28 @@ ax.set_ylabel("y [m]")
 ax.set_title("Trajectory on track")
 ax.legend()
 ax.set_aspect("equal")
+axes[2, 1].axis("off")
 
 # ── Summary stats ─────────────────────────────────────────────────────────────
 print("\n── Summary ───────────────────────────────────────────")
 print(f"{'Metric':<30} {'Without GP':>12} {'With GP':>12} {'Change':>10}")
+lt_nogp = mean_lap_time(t_nogp, lap_nogp)
+lt_gp   = mean_lap_time(t_gp,   lap_gp)
 metrics = [
     ("mean |eC| [m]",    np.abs(eC_nogp).mean(),   np.abs(eC_gp).mean()),
     ("std  |eC| [m]",    np.abs(eC_nogp).std(),    np.abs(eC_gp).std()),
     ("95th pct |eC| [m]", np.percentile(np.abs(eC_nogp), 95), np.percentile(np.abs(eC_gp), 95)),
-    ("mean |eL| [m]",    np.abs(eL_nogp).mean(),   np.abs(eL_gp).mean()),
+    ("mean |eL| [m]",     np.abs(eL_nogp).mean(),              np.abs(eL_gp).mean()),
+    ("std  |eL| [m]",     np.abs(eL_nogp).std(),               np.abs(eL_gp).std()),
+    ("95th pct |eL| [m]", np.percentile(np.abs(eL_nogp), 95),  np.percentile(np.abs(eL_gp), 95)),
+    ("mean lap time [s]",  lt_nogp,                             lt_gp),
 ]
 for name, v_nogp, v_gp in metrics:
-    change = (v_gp - v_nogp) / v_nogp * 100
-    print(f"{name:<30} {v_nogp:>12.5f} {v_gp:>12.5f} {change:>+9.1f}%")
+    if np.isnan(v_nogp) or np.isnan(v_gp):
+        print(f"{name:<30} {'N/A':>12} {'N/A':>12} {'N/A':>10}")
+    else:
+        change = (v_gp - v_nogp) / v_nogp * 100
+        print(f"{name:<30} {v_nogp:>12.5f} {v_gp:>12.5f} {change:>+9.1f}%")
 
 if has_residuals:
     rx_gp,   ry_gp,   eps_omega_gp    = load_residuals(args.residuals_gp)
@@ -110,7 +139,7 @@ if has_residuals:
 
     vmax = max(np.abs(eps_omega_gp).max(), np.abs(eps_omega_nogp).max())
 
-    ax = axes[2, 0]
+    ax = axes[3, 0]
     sc = ax.scatter(rx_nogp, ry_nogp, c=eps_omega_nogp, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
@@ -118,7 +147,7 @@ if has_residuals:
     ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
     ax.set_aspect("equal")
 
-    ax = axes[2, 1]
+    ax = axes[3, 1]
     sc = ax.scatter(rx_gp, ry_gp, c=eps_omega_gp, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
