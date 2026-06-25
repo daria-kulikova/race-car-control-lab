@@ -184,6 +184,7 @@ private:
 
   // Tracking quality logging
   std::ofstream tracking_log_stream_;
+  unsigned int log_point_count_ = 0;
 };
 }  // namespace crs_controls::pacejka_mpcc
 

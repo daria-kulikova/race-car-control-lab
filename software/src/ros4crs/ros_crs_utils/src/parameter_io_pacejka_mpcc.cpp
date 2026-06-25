@@ -38,6 +38,9 @@ getConfig<crs_controls::pacejka_mpcc::mpcc_pacejka_config>(const ros::NodeHandle
   nh.getParam("mlp_model_path", params.mlp_model_path);            // Optional. Empty = MLP disabled.
   nh.getParam("residual_scale", params.residual_scale);            // Optional. Default = 1.0.
   nh.getParam("tracking_log_path", params.tracking_log_path);     // Optional. Empty = tracking log disabled.
+  int log_max_points = 0;
+  nh.getParam("log_max_points", log_max_points);                  // Optional. 0 = unlimited.
+  params.log_max_points = static_cast<unsigned int>(std::max(0, log_max_points));
   nh.getParam("sample_period", params.sample_period);             // Must match Ts in solver_acados.yaml.
 
   return params;

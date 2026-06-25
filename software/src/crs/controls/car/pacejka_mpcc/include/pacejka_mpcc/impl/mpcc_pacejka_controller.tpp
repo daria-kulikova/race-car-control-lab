@@ -209,7 +209,8 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   }
 
   // GP data logging: record residual = actual_state - model_prediction
-  if (!config_.data_log_path.empty())
+  const bool log_limit_reached = config_.log_max_points > 0 && log_point_count_ >= config_.log_max_points;
+  if (!config_.data_log_path.empty() && !log_limit_reached)
   {
     double t_now = std::chrono::duration<double>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -314,7 +315,7 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   last_input_.steer = last_solution_.x[1][static_cast<int>(pacejka_vars::STEER)];
   theta_ = last_solution_.x[1][static_cast<int>(pacejka_vars::THETA)];
 
-  if (tracking_log_stream_.is_open())
+  if (tracking_log_stream_.is_open() && !log_limit_reached)
   {
     // Contouring and lag errors at the current state vs closest track reference
     const double ref_x   = last_reference_on_track_[0].x;
@@ -331,6 +332,15 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
                          << state.pos_x << "," << state.pos_y << ","
                          << ref_x << "," << ref_y << "," << laps_ << "\n";
     tracking_log_stream_.flush();
+
+    log_point_count_++;
+    if (config_.log_max_points > 0 && log_point_count_ >= config_.log_max_points)
+    {
+      log_stream_.close();
+      tracking_log_stream_.close();
+      std::cout << "[MPCC] Logging stopped: " << log_point_count_
+                << " points written to both logs." << std::endl;
+    }
   }
 
   return last_input_;

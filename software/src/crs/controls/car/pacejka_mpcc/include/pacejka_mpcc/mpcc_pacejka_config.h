@@ -93,5 +93,11 @@ struct mpcc_pacejka_config
    *        CSV columns: t, eC, eL, pos_x, pos_y, ref_x, ref_y
    */
   std::string tracking_log_path = "";
+
+  /**
+   * @brief Maximum number of rows to write to both data_log and tracking_log.
+   *        0 = unlimited. Both logs are closed simultaneously when the limit is reached.
+   */
+  unsigned int log_max_points = 0;
 };
 }  // namespace crs_controls::pacejka_mpcc
