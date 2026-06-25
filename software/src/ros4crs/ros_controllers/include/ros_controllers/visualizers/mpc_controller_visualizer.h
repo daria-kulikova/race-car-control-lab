@@ -102,8 +102,8 @@ public:
     uncorrected.scale.y = planned_size_y;
     uncorrected.scale.z = planned_size_z;
     uncorrected.color.r = 1.0;
-    uncorrected.color.g = 0.0;
-    uncorrected.color.b = 0.0;
+    uncorrected.color.g = 0.4;
+    uncorrected.color.b = 0.7;
     uncorrected.color.a = 1.0;
     uncorrected.action = visualization_msgs::Marker::ADD;
     uncorrected.type = visualization_msgs::Marker::POINTS;
