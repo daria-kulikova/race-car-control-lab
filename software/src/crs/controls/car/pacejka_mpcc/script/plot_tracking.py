@@ -1,69 +1,139 @@
 """
-Compare tracking quality (contouring error eC) between two runs:
-one with GP correction and one without.
+Compare tracking quality between two runs.
 
-Usage:
-    python3 /code/src/crs/controls/car/pacejka_mpcc/script/plot_tracking.py \
-        --with-gp    /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_cm1_0555_3.csv \
-        --without-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/tracking_cm1_0555_2.csv \
-        --residuals-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_3.csv \
-        --residuals-no-gp /code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_2.csv
+Modes:
+  baseline  compare dataset 0 vs the last found (default)
+  last      compare second-to-last vs last
+  none      specify datasets explicitly via --indices or --file-a/--file-b
+
+Usage examples:
+    python3 plot_tracking.py
+    python3 plot_tracking.py --mode last
+    python3 plot_tracking.py --mode none --indices 1 4
+    python3 plot_tracking.py --mode none --file-a tracking_other_0.csv --file-b tracking_other_3.csv
 """
 
 import argparse
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+DATA_DIR       = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
+PLOTS_DIR      = Path("/code/src/crs/controls/car/pacejka_mpcc/script/plots")
+TRACKING_BASE  = "tracking_cm1_0555"
+RESIDUALS_BASE = "mpcc_residuals_cm1_0555"
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--with-gp",        required=True, help="tracking CSV from run WITH GP")
-parser.add_argument("--without-gp",     required=True, help="tracking CSV from run WITHOUT GP")
-parser.add_argument("--residuals-gp",   default=None,  help="residuals CSV from run WITH GP (for eps_omega map)")
-parser.add_argument("--residuals-no-gp",default=None,  help="residuals CSV from run WITHOUT GP")
-parser.add_argument("--out", default=str(Path(__file__).parent / "tracking_comparison.png"))
+parser.add_argument("--mode", choices=["baseline", "last", "none"], default="baseline",
+                    help="how to select the two datasets")
+parser.add_argument("--indices", nargs=2, type=int, metavar=("A", "B"),
+                    help="[none mode] indices appended to default base names")
+parser.add_argument("--file-a", default=None,
+                    help="[none mode] explicit filename for dataset A (inside DATA_DIR)")
+parser.add_argument("--file-b", default=None,
+                    help="[none mode] explicit filename for dataset B (inside DATA_DIR)")
+parser.add_argument("--out", default=None,
+                    help="output filename (default: tracking_comparison_A_B.png in PLOTS_DIR)")
 args = parser.parse_args()
 
 
+def discover_indices(base: str):
+    pattern = re.compile(rf"^{re.escape(base)}_(\d+)\.csv$")
+    found = []
+    for f in DATA_DIR.iterdir():
+        m = pattern.match(f.name)
+        if m:
+            found.append(int(m.group(1)))
+    return sorted(found)
+
+
+def tracking_path(name: str) -> Path:
+    return DATA_DIR / name
+
+
+def residuals_name(tracking_name: str) -> str:
+    return tracking_name.replace("tracking_", "mpcc_residuals_", 1)
+
+
+# Resolve which two files to compare
+if args.mode == "baseline":
+    indices = discover_indices(TRACKING_BASE)
+    if len(indices) < 2:
+        raise FileNotFoundError(f"Need at least 2 {TRACKING_BASE}_*.csv files in {DATA_DIR}")
+    idx_a, idx_b = indices[0], indices[-1]
+    name_a = f"{TRACKING_BASE}_{idx_a}.csv"
+    name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+
+elif args.mode == "last":
+    indices = discover_indices(TRACKING_BASE)
+    if len(indices) < 2:
+        raise FileNotFoundError(f"Need at least 2 {TRACKING_BASE}_*.csv files in {DATA_DIR}")
+    idx_a, idx_b = indices[-2], indices[-1]
+    name_a = f"{TRACKING_BASE}_{idx_a}.csv"
+    name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+
+else:  # none
+    if args.indices:
+        idx_a, idx_b = args.indices
+        name_a = f"{TRACKING_BASE}_{idx_a}.csv"
+        name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+    elif args.file_a and args.file_b:
+        idx_a, idx_b = "A", "B"
+        name_a, name_b = args.file_a, args.file_b
+    else:
+        parser.error("--mode none requires either --indices A B or both --file-a and --file-b")
+
+path_a = DATA_DIR / name_a
+path_b = DATA_DIR / name_b
+res_path_a = DATA_DIR / residuals_name(name_a)
+res_path_b = DATA_DIR / residuals_name(name_b)
+has_residuals = res_path_a.exists() and res_path_b.exists()
+
+label_a = f"dataset {idx_a}"
+label_b = f"dataset {idx_b}"
+out_path = args.out if args.out else str(PLOTS_DIR / f"tracking_comparison_{idx_a}_{idx_b}.png")
+print(f"Comparing:  A = {name_a}  vs  B = {name_b}")
+if has_residuals:
+    print(f"Residuals:  {res_path_a.name}  vs  {res_path_b.name}")
+
+
 def load_residuals(path):
-    """Load residuals CSV: vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta"""
     data = np.loadtxt(path, delimiter=",", skiprows=1)
     return data[:, 8], data[:, 9], data[:, 7]   # pos_x, pos_y, eps_omega
 
 
 def load(path):
     data = np.loadtxt(path, delimiter=",", skiprows=1)
-    t      = data[:, 0] - data[0, 0]   # relative time
-    eC     = data[:, 1]
-    eL     = data[:, 2]
-    pos_x  = data[:, 3]
-    pos_y  = data[:, 4]
-    ref_x  = data[:, 5]
-    ref_y  = data[:, 6]
-    lap    = data[:, 7].astype(int) if data.shape[1] > 7 else np.zeros(len(t), dtype=int)
+    t     = data[:, 0] - data[0, 0]
+    eC    = data[:, 1]
+    eL    = data[:, 2]
+    pos_x = data[:, 3]
+    pos_y = data[:, 4]
+    ref_x = data[:, 5]
+    ref_y = data[:, 6]
+    lap   = data[:, 7].astype(int) if data.shape[1] > 7 else np.zeros(len(t), dtype=int)
     return t, eC, eL, pos_x, pos_y, ref_x, ref_y, lap
 
 
 def mean_lap_time(t, lap):
-    """Return mean lap time in seconds, or nan if fewer than 3 complete laps."""
-    lap_starts = np.where(np.diff(lap) > 0)[0] + 1  # indices where lap counter increments
+    lap_starts = np.where(np.diff(lap) > 0)[0] + 1
     if len(lap_starts) < 3:
         return float("nan")
-    lap_times = np.diff(t[lap_starts])[1:]  # skip first lap (car may start mid-track)
-    return lap_times.mean()
+    return np.diff(t[lap_starts])[1:].mean()
 
 
-t_gp,    eC_gp,    eL_gp,    px_gp,    py_gp,    rx_gp,    ry_gp,    lap_gp    = load(args.with_gp)
-t_nogp,  eC_nogp,  eL_nogp,  px_nogp,  py_nogp,  rx_nogp,  ry_nogp,  lap_nogp  = load(args.without_gp)
+t_a, eC_a, eL_a, px_a, py_a, rx_a, ry_a, lap_a = load(path_a)
+t_b, eC_b, eL_b, px_b, py_b, rx_b, ry_b, lap_b = load(path_b)
 
-has_residuals = args.residuals_gp is not None and args.residuals_no_gp is not None
 n_rows = 4 if has_residuals else 3
 fig, axes = plt.subplots(n_rows, 2, figsize=(14, 5 * n_rows))
-fig.suptitle("Tracking quality: with GP vs without GP", fontsize=13)
+fig.suptitle(f"Tracking quality: {label_a} vs {label_b}", fontsize=13)
 
 # ── eC over time ──────────────────────────────────────────────────────────────
 ax = axes[0, 0]
-ax.plot(t_nogp, eC_nogp, color="tomato",     alpha=0.7, linewidth=0.8, label="without GP")
-ax.plot(t_gp,   eC_gp,   color="steelblue",  alpha=0.7, linewidth=0.8, label="with GP")
+ax.plot(t_a, eC_a, color="tomato",    alpha=0.7, linewidth=0.8, label=label_a)
+ax.plot(t_b, eC_b, color="steelblue", alpha=0.7, linewidth=0.8, label=label_b)
 ax.axhline(0, color="black", linewidth=0.6, linestyle="--")
 ax.set_xlabel("time [s]")
 ax.set_ylabel("eC [m]")
@@ -72,9 +142,9 @@ ax.legend()
 
 # ── |eC| histogram ────────────────────────────────────────────────────────────
 ax = axes[0, 1]
-bins = np.linspace(0, max(np.abs(eC_gp).max(), np.abs(eC_nogp).max()), 60)
-ax.hist(np.abs(eC_nogp), bins=bins, alpha=0.6, color="tomato",    label=f"without GP  mean={np.abs(eC_nogp).mean():.4f} m")
-ax.hist(np.abs(eC_gp),   bins=bins, alpha=0.6, color="steelblue", label=f"with GP     mean={np.abs(eC_gp).mean():.4f} m")
+bins = np.linspace(0, max(np.abs(eC_a).max(), np.abs(eC_b).max()), 60)
+ax.hist(np.abs(eC_a), bins=bins, alpha=0.6, color="tomato",    label=f"{label_a}  mean={np.abs(eC_a).mean():.4f} m")
+ax.hist(np.abs(eC_b), bins=bins, alpha=0.6, color="steelblue", label=f"{label_b}  mean={np.abs(eC_b).mean():.4f} m")
 ax.set_xlabel("|eC| [m]")
 ax.set_ylabel("count")
 ax.set_title("Distribution of |contouring error|")
@@ -82,8 +152,8 @@ ax.legend()
 
 # ── eL over time ──────────────────────────────────────────────────────────────
 ax = axes[1, 0]
-ax.plot(t_nogp, eL_nogp, color="tomato",    alpha=0.7, linewidth=0.8, label="without GP")
-ax.plot(t_gp,   eL_gp,   color="steelblue", alpha=0.7, linewidth=0.8, label="with GP")
+ax.plot(t_a, eL_a, color="tomato",    alpha=0.7, linewidth=0.8, label=label_a)
+ax.plot(t_b, eL_b, color="steelblue", alpha=0.7, linewidth=0.8, label=label_b)
 ax.axhline(0, color="black", linewidth=0.6, linestyle="--")
 ax.set_xlabel("time [s]")
 ax.set_ylabel("eL [m]")
@@ -92,9 +162,9 @@ ax.legend()
 
 # ── |eL| histogram ────────────────────────────────────────────────────────────
 ax = axes[1, 1]
-bins = np.linspace(0, max(np.abs(eL_gp).max(), np.abs(eL_nogp).max()), 60)
-ax.hist(np.abs(eL_nogp), bins=bins, alpha=0.6, color="tomato",    label=f"without GP  mean={np.abs(eL_nogp).mean():.4f} m")
-ax.hist(np.abs(eL_gp),   bins=bins, alpha=0.6, color="steelblue", label=f"with GP     mean={np.abs(eL_gp).mean():.4f} m")
+bins = np.linspace(0, max(np.abs(eL_a).max(), np.abs(eL_b).max()), 60)
+ax.hist(np.abs(eL_a), bins=bins, alpha=0.6, color="tomato",    label=f"{label_a}  mean={np.abs(eL_a).mean():.4f} m")
+ax.hist(np.abs(eL_b), bins=bins, alpha=0.6, color="steelblue", label=f"{label_b}  mean={np.abs(eL_b).mean():.4f} m")
 ax.set_xlabel("|eL| [m]")
 ax.set_ylabel("count")
 ax.set_title("Distribution of |lag error|")
@@ -102,9 +172,9 @@ ax.legend()
 
 # ── Trajectory on track ───────────────────────────────────────────────────────
 ax = axes[2, 0]
-ax.plot(rx_gp, ry_gp, "k--", linewidth=1.0, alpha=0.5, label="reference")
-ax.plot(px_nogp, py_nogp, color="tomato",    alpha=0.6, linewidth=0.8, label="without GP")
-ax.plot(px_gp,   py_gp,   color="steelblue", alpha=0.6, linewidth=0.8, label="with GP")
+ax.plot(rx_b, ry_b, "k--", linewidth=1.0, alpha=0.5, label="reference")
+ax.plot(px_a, py_a, color="tomato",    alpha=0.6, linewidth=0.8, label=label_a)
+ax.plot(px_b, py_b, color="steelblue", alpha=0.6, linewidth=0.8, label=label_b)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("y [m]")
 ax.set_title("Trajectory on track")
@@ -113,49 +183,50 @@ ax.set_aspect("equal")
 axes[2, 1].axis("off")
 
 # ── Summary stats ─────────────────────────────────────────────────────────────
-print("\n── Summary ───────────────────────────────────────────")
-print(f"{'Metric':<30} {'Without GP':>12} {'With GP':>12} {'Change':>10}")
-lt_nogp = mean_lap_time(t_nogp, lap_nogp)
-lt_gp   = mean_lap_time(t_gp,   lap_gp)
+print(f"\n{'Metric':<30} {label_a:>12} {label_b:>12} {'Change':>10}")
+print("-" * 68)
+lt_a = mean_lap_time(t_a, lap_a)
+lt_b = mean_lap_time(t_b, lap_b)
 metrics = [
-    ("mean |eC| [m]",    np.abs(eC_nogp).mean(),   np.abs(eC_gp).mean()),
-    ("std  |eC| [m]",    np.abs(eC_nogp).std(),    np.abs(eC_gp).std()),
-    ("95th pct |eC| [m]", np.percentile(np.abs(eC_nogp), 95), np.percentile(np.abs(eC_gp), 95)),
-    ("mean |eL| [m]",     np.abs(eL_nogp).mean(),              np.abs(eL_gp).mean()),
-    ("std  |eL| [m]",     np.abs(eL_nogp).std(),               np.abs(eL_gp).std()),
-    ("95th pct |eL| [m]", np.percentile(np.abs(eL_nogp), 95),  np.percentile(np.abs(eL_gp), 95)),
-    ("mean lap time [s]",  lt_nogp,                             lt_gp),
+    ("mean |eC| [m]",      np.abs(eC_a).mean(),               np.abs(eC_b).mean()),
+    ("std  |eC| [m]",      np.abs(eC_a).std(),                np.abs(eC_b).std()),
+    ("95th pct |eC| [m]",  np.percentile(np.abs(eC_a), 95),   np.percentile(np.abs(eC_b), 95)),
+    ("mean |eL| [m]",      np.abs(eL_a).mean(),               np.abs(eL_b).mean()),
+    ("std  |eL| [m]",      np.abs(eL_a).std(),                np.abs(eL_b).std()),
+    ("95th pct |eL| [m]",  np.percentile(np.abs(eL_a), 95),   np.percentile(np.abs(eL_b), 95)),
+    ("mean lap time [s]",  lt_a,                              lt_b),
 ]
-for name, v_nogp, v_gp in metrics:
-    if np.isnan(v_nogp) or np.isnan(v_gp):
+for name, va, vb in metrics:
+    if np.isnan(va) or np.isnan(vb):
         print(f"{name:<30} {'N/A':>12} {'N/A':>12} {'N/A':>10}")
     else:
-        change = (v_gp - v_nogp) / v_nogp * 100
-        print(f"{name:<30} {v_nogp:>12.5f} {v_gp:>12.5f} {change:>+9.1f}%")
+        change = (vb - va) / va * 100
+        print(f"{name:<30} {va:>12.5f} {vb:>12.5f} {change:>+9.1f}%")
 
 if has_residuals:
-    rx_gp,   ry_gp,   eps_omega_gp    = load_residuals(args.residuals_gp)
-    rx_nogp, ry_nogp, eps_omega_nogp  = load_residuals(args.residuals_no_gp)
+    rx_a, ry_a, eps_omega_a = load_residuals(res_path_a)
+    rx_b, ry_b, eps_omega_b = load_residuals(res_path_b)
 
-    vmax = max(np.abs(eps_omega_gp).max(), np.abs(eps_omega_nogp).max())
+    vmax = max(np.abs(eps_omega_a).max(), np.abs(eps_omega_b).max())
 
     ax = axes[3, 0]
-    sc = ax.scatter(rx_nogp, ry_nogp, c=eps_omega_nogp, cmap="RdBu_r",
+    sc = ax.scatter(rx_a, ry_a, c=eps_omega_a, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
-    ax.set_title("eps_omega on track — WITHOUT GP")
+    ax.set_title(f"eps_omega on track — {label_a}")
     ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
     ax.set_aspect("equal")
 
     ax = axes[3, 1]
-    sc = ax.scatter(rx_gp, ry_gp, c=eps_omega_gp, cmap="RdBu_r",
+    sc = ax.scatter(rx_b, ry_b, c=eps_omega_b, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
-    ax.set_title("eps_omega on track — WITH GP")
+    ax.set_title(f"eps_omega on track — {label_b}")
     ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
     ax.set_aspect("equal")
 
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 plt.tight_layout()
-plt.savefig(args.out, dpi=150)
-print(f"\nSaved → {args.out}")
+plt.savefig(out_path, dpi=150)
+print(f"\nSaved -> {out_path}")
 plt.show()
