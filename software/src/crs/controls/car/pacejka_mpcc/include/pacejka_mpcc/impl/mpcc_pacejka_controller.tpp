@@ -41,6 +41,26 @@ std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType
 }
 
 template <typename SolverType>
+std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType>::getUncorrectedTrajectory()
+{
+  std::vector<std::vector<double>> traj;
+  auto state = convertToGlobalCoordinates(last_solution_.x[0]);
+  const double Ts = config_.sample_period;
+  for (int i = 0; i < solver_.N; i++)
+  {
+    crs_models::pacejka_model::pacejka_car_input input{
+        last_solution_.x[i][static_cast<int>(pacejka_vars::TORQUE)],
+        last_solution_.x[i][static_cast<int>(pacejka_vars::STEER)]
+    };
+    state = model_->applyModel(state, input, Ts);
+    traj.push_back({ state.pos_x, state.pos_y, state.vel_x, state.vel_y, state.yaw,
+                     last_reference_on_track_[i].x, last_reference_on_track_[i].y,
+                     last_reference_on_track_[i].yaw });
+  }
+  return traj;
+}
+
+template <typename SolverType>
 typename PacejkaMpccController<SolverType>::MpcParameters
 PacejkaMpccController<SolverType>::generateCurrentSolverParameters()
 {

@@ -28,6 +28,8 @@ public:
   virtual InputType getControlInput(StateType state, double timestamp = 0) = 0;
 
   virtual std::optional<std::vector<std::vector<double>>> getPlannedTrajectory() override = 0;
+
+  virtual std::optional<std::vector<std::vector<double>>> getUncorrectedTrajectory() { return std::nullopt; }
 };
 
 }  // namespace crs_controls

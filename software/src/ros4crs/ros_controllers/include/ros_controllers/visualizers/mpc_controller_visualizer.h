@@ -40,6 +40,7 @@ private:
 
   visualization_msgs::Marker reference;
   visualization_msgs::Marker planned;
+  visualization_msgs::Marker uncorrected;
 
 public:
   MpcControllerVisualizer(ros::NodeHandle nh_private,
@@ -92,6 +93,20 @@ public:
     planned.scale.z = planned_size_z;
     planned.action = visualization_msgs::Marker::ADD;
     planned.type = use_arrows ? visualization_msgs::Marker::ARROW : visualization_msgs::Marker::POINTS;
+
+    // Uncorrected trajectory (red — pure Pacejka without residuals)
+    uncorrected.header.frame_id = frame_id;
+    uncorrected.ns = ns + "_uncorrected_trajectory";
+    uncorrected.id = 0;
+    uncorrected.scale.x = planned_size_x;
+    uncorrected.scale.y = planned_size_y;
+    uncorrected.scale.z = planned_size_z;
+    uncorrected.color.r = 1.0;
+    uncorrected.color.g = 0.0;
+    uncorrected.color.b = 0.0;
+    uncorrected.color.a = 1.0;
+    uncorrected.action = visualization_msgs::Marker::ADD;
+    uncorrected.type = visualization_msgs::Marker::POINTS;
   };
 
   void visualizationCallback(const ros::TimerEvent& event) override
@@ -179,6 +194,24 @@ public:
       // If we do not use arrows, only need to publish one marker containing all points.
       BaseControllerVisualizer<StateType, InputType>::visualization_publisher_.publish(reference);
       BaseControllerVisualizer<StateType, InputType>::visualization_publisher_.publish(planned);
+    }
+
+    // Uncorrected trajectory: forward-integrate pure Pacejka without residuals
+    auto uncorrected_traj_opt = mpc_controller_ptr->getUncorrectedTrajectory();
+    if (uncorrected_traj_opt.has_value())
+    {
+      uncorrected.header.stamp = ros::Time::now();
+      uncorrected.points.clear();
+      uncorrected.colors.clear();
+      for (const auto& pt : uncorrected_traj_opt.value())
+      {
+        geometry_msgs::Point p;
+        p.x = pt[0];
+        p.y = pt[1];
+        p.z = 0.0;
+        uncorrected.points.push_back(p);
+      }
+      BaseControllerVisualizer<StateType, InputType>::visualization_publisher_.publish(uncorrected);
     }
   }
 };

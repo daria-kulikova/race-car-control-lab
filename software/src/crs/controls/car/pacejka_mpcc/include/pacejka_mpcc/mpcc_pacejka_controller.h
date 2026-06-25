@@ -89,6 +89,7 @@ public:
    * ]
    */
   std::optional<std::vector<std::vector<double>>> getPlannedTrajectory() override;
+  std::optional<std::vector<std::vector<double>>> getUncorrectedTrajectory() override;
 
   /**
    * @brief Initializes the mpc solver
