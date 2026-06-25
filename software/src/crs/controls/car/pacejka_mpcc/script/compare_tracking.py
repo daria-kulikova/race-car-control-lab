@@ -10,7 +10,7 @@ Two comparison modes (--mode):
 Output: CSV with one row per (pair, metric).
 
 Usage:
-    python3 compare_tracking.py --data tracking_0.csv --mode baseline --out results.csv
+    python3 src/crs/controls/car/pacejka_mpcc/script/compare_tracking.py --data src/crs/controls/car/pacejka_mpcc/script/data/tracking_cm1_0555_0.csv --mode baseline --out results.csv
     python3 compare_tracking.py --data tracking_0.csv --mode consecutive
 """
 
@@ -35,7 +35,7 @@ if not data_path.name.endswith("_0.csv"):
 base = str(data_path)[: -len("_0.csv")]
 
 # Discover all available files
-files: dict[int, Path] = {}
+files = {}
 i = 0
 while True:
     p = Path(f"{base}_{i}.csv")
@@ -67,7 +67,7 @@ def mean_lap_time(t, lap):
     return np.diff(t[lap_starts])[1:].mean()
 
 
-def compute_metrics(t, eC, eL, lap) -> dict[str, float]:
+def compute_metrics(t, eC, eL, lap):
     return {
         "mean |eC| [m]":      float(np.abs(eC).mean()),
         "std |eC| [m]":       float(np.abs(eC).std()),
@@ -88,7 +88,7 @@ else:
 
 # Load only the datasets we need
 needed = {i for pair in pairs for i in pair}
-cache: dict[int, dict[str, float]] = {}
+cache = {}
 for idx in sorted(needed):
     t, eC, eL, lap = load(files[idx])
     cache[idx] = compute_metrics(t, eC, eL, lap)
