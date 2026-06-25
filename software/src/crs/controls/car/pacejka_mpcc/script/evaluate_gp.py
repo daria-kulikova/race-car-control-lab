@@ -29,8 +29,8 @@ parser.add_argument("--no-gp",      action="store_true", help="skip sklearn GP")
 parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
 parser.add_argument("--iqr-k", type=float, default=3.0,
                     help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
-parser.add_argument("--lf", type=float, default=0.04448988, help="front axle distance [m]")
-parser.add_argument("--lr", type=float, default=0.04866242, help="rear axle distance [m]")
+parser.add_argument("--lf", type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr", type=float, default=0.038, help="rear axle distance [m]")
 args = parser.parse_args()
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]

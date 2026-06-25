@@ -14,11 +14,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv")
+parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_0.csv") 
 parser.add_argument("--out-dir", default=str(Path(__file__).parent))
 parser.add_argument("--vx-min", type=float, default=0.5)
-parser.add_argument("--lf",    type=float, default=0.04448988, help="front axle distance [m]")
-parser.add_argument("--lr",    type=float, default=0.04866242, help="rear axle distance [m]")
+parser.add_argument("--lf",    type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr",    type=float, default=0.038, help="rear axle distance [m]")
 args = parser.parse_args()
 
 out_dir = Path(args.out_dir)

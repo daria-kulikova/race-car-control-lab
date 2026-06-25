@@ -24,8 +24,8 @@ parser.add_argument("--n-datasets", type=int,   default=1,
                     help="Number of datasets to combine (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
 parser.add_argument("--alpha-reg", type=float, default=0.01)
 parser.add_argument("--seed",      type=int,   default=42)
-parser.add_argument("--lf",        type=float, default=0.04448988, help="front axle distance [m]")
-parser.add_argument("--lr",        type=float, default=0.04866242, help="rear axle distance [m]")
+parser.add_argument("--lf",        type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr",        type=float, default=0.038, help="rear axle distance [m]")
 args = parser.parse_args()
 
 
