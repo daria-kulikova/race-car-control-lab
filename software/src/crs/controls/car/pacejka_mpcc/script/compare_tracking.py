@@ -37,7 +37,7 @@ if not data_path.name.endswith("_0.csv"):
 
 base = str(data_path)[: -len("_0.csv")]
 
-# Discover all available files
+# Discover consecutive files starting from 0
 files = {}
 i = 0
 while True:

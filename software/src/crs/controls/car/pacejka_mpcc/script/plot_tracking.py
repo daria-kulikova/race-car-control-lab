@@ -39,13 +39,11 @@ args = parser.parse_args()
 
 
 def discover_indices(base: str):
-    pattern = re.compile(rf"^{re.escape(base)}_(\d+)\.csv$")
-    found = []
-    for f in DATA_DIR.iterdir():
-        m = pattern.match(f.name)
-        if m:
-            found.append(int(m.group(1)))
-    return sorted(found)
+    i, found = 0, []
+    while (DATA_DIR / f"{base}_{i}.csv").exists():
+        found.append(i)
+        i += 1
+    return found
 
 
 def tracking_path(name: str) -> Path:
