@@ -18,11 +18,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data",          default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mpcc_residuals_cm1_0555_0.csv")
-parser.add_argument("--out",           default=str(Path(__file__).parent / "mlp_model.npz"))
-parser.add_argument("--vx-min",        type=float, default=0.5)
+parser.add_argument("--data",          default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
+parser.add_argument("--out",           default=str(Path(__file__).parent / "models/mlp_final/mlp_model.npz"))
+parser.add_argument("--vx-min",        type=float, default=1.0)
 parser.add_argument("--iqr-k",         type=float, default=7.0,   help="IQR multiplier for outlier removal")
-parser.add_argument("--hidden",        type=int,   nargs="+",     default=[64, 64, 32])
+parser.add_argument("--hidden",        type=int,   nargs="+",     default=[64, 64])
 parser.add_argument("--n-datasets",    type=int,   default=1,     help="number of datasets (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
 parser.add_argument("--lf",            type=float, default=0.052, help="front axle distance [m]")
 parser.add_argument("--lr",            type=float, default=0.038, help="rear axle distance [m]")
@@ -34,7 +34,7 @@ parser.add_argument("--huber-beta",    type=float, default=1.0,  help="SmoothL1 
 parser.add_argument("--weight-decay",  type=float, default=1e-4)
 parser.add_argument("--seed",          type=int,   default=42)
 parser.add_argument("--features",      type=str,   nargs="+",
-                    default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    default=["vx", "vy", "omega", "delta", "T"],
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     help="feature subset to use for training")
 args = parser.parse_args()
