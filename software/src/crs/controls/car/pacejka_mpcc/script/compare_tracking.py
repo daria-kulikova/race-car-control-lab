@@ -65,10 +65,19 @@ def load(path: Path):
 
 
 def mean_lap_time(t, lap):
-    lap_starts = np.where(np.diff(lap) > 0)[0] + 1
-    if len(lap_starts) < 3:
-        return float("nan")
-    return np.diff(t[lap_starts])[1:].mean()
+    lap = lap.astype(int)
+    diff = np.diff(lap)
+    lap_start_idx = np.where(diff > 0)[0] + 1
+    reset_idx     = np.where(diff < 0)[0] + 1
+
+    boundaries = [0] + list(reset_idx) + [len(lap)]
+    intervals = []
+    for lo, hi in zip(boundaries[:-1], boundaries[1:]):
+        grp = lap_start_idx[(lap_start_idx >= lo) & (lap_start_idx < hi)]
+        for i in range(1, len(grp) - 2):
+            intervals.append(t[grp[i + 1]] - t[grp[i]])
+
+    return float(np.mean(intervals)) if intervals else float("nan")
 
 
 def compute_metrics(t, eC, eL, lap):

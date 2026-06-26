@@ -100,10 +100,21 @@ def load(path):
 
 
 def mean_lap_time(t, lap):
-    lap_starts = np.where(np.diff(lap) > 0)[0] + 1
-    if len(lap_starts) < 3:
-        return float("nan")
-    return np.diff(t[lap_starts])[1:].mean()
+    lap = lap.astype(int)
+    diff = np.diff(lap)
+    lap_start_idx = np.where(diff > 0)[0] + 1   # where lap counter increments
+    reset_idx     = np.where(diff < 0)[0] + 1   # where lap resets (new run)
+
+    # Split lap_start_idx into per-run groups
+    boundaries = [0] + list(reset_idx) + [len(lap)]
+    intervals = []
+    for lo, hi in zip(boundaries[:-1], boundaries[1:]):
+        grp = lap_start_idx[(lap_start_idx >= lo) & (lap_start_idx < hi)]
+        # need ≥4 transitions to have at least one interior lap
+        for i in range(1, len(grp) - 2):
+            intervals.append(t[grp[i + 1]] - t[grp[i]])
+
+    return float(np.mean(intervals)) if intervals else float("nan")
 
 
 t_a, eC_a, eL_a, px_a, py_a, rx_a, ry_a, lap_a, eps_vx_a, eps_vy_a, eps_omega_a = load(path_a)
