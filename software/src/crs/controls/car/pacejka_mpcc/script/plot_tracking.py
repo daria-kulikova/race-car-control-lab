@@ -258,10 +258,10 @@ if True:
                 print(f"{stat:<30} {fa:>12.5f} {fb:>12.5f} {change:>+9.1f}%")
         print()
 
-    vmax = max(np.abs(eps_omega_a).max(), np.abs(eps_omega_b).max())
+    vmax = float(np.percentile(np.abs(np.concatenate([eps_omega_a, eps_omega_b])), 98))
 
     ax = axes[3, 0]
-    sc = ax.scatter(rx_a, ry_a, c=eps_omega_a, cmap="RdBu_r",
+    sc = ax.scatter(px_a, py_a, c=eps_omega_a, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
     ax.set_title(f"eps_omega on track — {label_a}")
@@ -269,7 +269,7 @@ if True:
     ax.set_aspect("equal")
 
     ax = axes[3, 1]
-    sc = ax.scatter(rx_b, ry_b, c=eps_omega_b, cmap="RdBu_r",
+    sc = ax.scatter(px_b, py_b, c=eps_omega_b, cmap="RdBu_r",
                     vmin=-vmax, vmax=vmax, s=8, alpha=0.7)
     plt.colorbar(sc, ax=ax, label="eps_omega [m/s]")
     ax.set_title(f"eps_omega on track — {label_b}")
