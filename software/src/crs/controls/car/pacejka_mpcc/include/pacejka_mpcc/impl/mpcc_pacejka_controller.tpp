@@ -149,12 +149,17 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
 
   if (!config_.tracking_log_path.empty())
   {
-    tracking_log_stream_.open(config_.tracking_log_path);
+    const bool tracking_exists = std::ifstream(config_.tracking_log_path).good();
+    tracking_log_stream_.open(config_.tracking_log_path, std::ios::app);
     if (tracking_log_stream_.is_open())
     {
-      tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y,lap\n";
-      tracking_log_stream_.flush();
-      std::cout << "[MPCC] tracking log → " << config_.tracking_log_path << std::endl;
+      if (!tracking_exists)
+      {
+        tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y,lap\n";
+        tracking_log_stream_.flush();
+      }
+      std::cout << "[MPCC] tracking log → " << config_.tracking_log_path
+                << (tracking_exists ? " (appending)" : " (new)") << std::endl;
     }
     else
       std::cout << "[MPCC] ERROR: could not open tracking log: " << config_.tracking_log_path << std::endl;
@@ -163,16 +168,21 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   std::cout << "[MPCC] data_log_path='" << config_.data_log_path << "'" << std::endl;
   if (!config_.data_log_path.empty())
   {
-    log_stream_.open(config_.data_log_path);
+    const bool log_exists = std::ifstream(config_.data_log_path).good();
+    log_stream_.open(config_.data_log_path, std::ios::app);
     if (!log_stream_.is_open())
     {
       std::cout << "[MPCC] ERROR: could not open log file: " << config_.data_log_path << std::endl;
     }
     else
     {
-      log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta\n";
-      log_stream_.flush();
-      std::cout << "[MPCC] GP data logging → " << config_.data_log_path << std::endl;
+      if (!log_exists)
+      {
+        log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta\n";
+        log_stream_.flush();
+      }
+      std::cout << "[MPCC] GP data logging → " << config_.data_log_path
+                << (log_exists ? " (appending)" : " (new)") << std::endl;
     }
   }
 
