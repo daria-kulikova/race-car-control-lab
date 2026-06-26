@@ -111,7 +111,7 @@ def mean_lap_time(t, lap):
     for lo, hi in zip(boundaries[:-1], boundaries[1:]):
         grp = lap_start_idx[(lap_start_idx >= lo) & (lap_start_idx < hi)]
         # need ≥4 transitions to have at least one interior lap
-        for i in range(1, len(grp) - 2):
+        for i in range(1, len(grp) - 1):
             intervals.append(t[grp[i + 1]] - t[grp[i]])
 
     return float(np.mean(intervals)) if intervals else float("nan")
