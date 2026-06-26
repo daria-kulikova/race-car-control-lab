@@ -110,15 +110,57 @@ def mean_lap_time(t, lap):
     intervals = []
     for lo, hi in zip(boundaries[:-1], boundaries[1:]):
         grp = lap_start_idx[(lap_start_idx >= lo) & (lap_start_idx < hi)]
-        # need ≥4 transitions to have at least one interior lap
         for i in range(0, len(grp) - 1):
             intervals.append(t[grp[i + 1]] - t[grp[i]])
 
     return float(np.mean(intervals)) if intervals else float("nan")
 
 
+def run_breaks(t, lap):
+    """Indices where a new run starts (lap reset or large time gap)."""
+    dt = np.diff(t)
+    pos = dt[dt > 0]
+    typical_dt = float(np.median(pos)) if len(pos) else 0.05
+    time_br = set(np.where(dt > 5 * typical_dt)[0] + 1)
+    lap_br  = set(np.where(np.diff(lap.astype(int)) < 0)[0] + 1)
+    return sorted(time_br | lap_br)
+
+
+def stitch_time(t, breaks):
+    """Remap t to remove wall-clock gaps between runs; runs are placed back-to-back."""
+    boundaries = [0] + list(breaks) + [len(t)]
+    t_out  = np.empty_like(t)
+    offset = 0.0
+    for lo, hi in zip(boundaries[:-1], boundaries[1:]):
+        seg = t[lo:hi]
+        dt  = float(np.median(np.diff(seg))) if len(seg) > 1 else 0.05
+        t_out[lo:hi] = seg - seg[0] + offset
+        offset += (seg[-1] - seg[0]) + dt
+    return t_out
+
+
+def plot_seg(ax, t_s, y, breaks, label=None, **kw):
+    """Plot y vs t_s as separate segments — no line connecting across run boundaries."""
+    for k, (ts, ys) in enumerate(zip(np.split(t_s, breaks), np.split(y, breaks))):
+        ax.plot(ts, ys, label=(label if k == 0 else None), **kw)
+
+
+def plot_xy_seg(ax, x, y, breaks, label=None, **kw):
+    """Plot y vs x as separate segments — no line connecting across run boundaries."""
+    for k, (xs, ys) in enumerate(zip(np.split(x, breaks), np.split(y, breaks))):
+        ax.plot(xs, ys, label=(label if k == 0 else None), **kw)
+
+
 t_a, eC_a, eL_a, px_a, py_a, rx_a, ry_a, lap_a, eps_vx_a, eps_vy_a, eps_omega_a = load(path_a)
 t_b, eC_b, eL_b, px_b, py_b, rx_b, ry_b, lap_b, eps_vx_b, eps_vy_b, eps_omega_b = load(path_b)
+
+breaks_a = run_breaks(t_a, lap_a)
+breaks_b = run_breaks(t_b, lap_b)
+t_a = stitch_time(t_a, breaks_a)
+t_b = stitch_time(t_b, breaks_b)
+n_runs_a = len(breaks_a) + 1
+n_runs_b = len(breaks_b) + 1
+print(f"  dataset A: {n_runs_a} run(s);  dataset B: {n_runs_b} run(s)")
 
 n_rows = 4
 fig, axes = plt.subplots(n_rows, 2, figsize=(14, 5 * n_rows))
@@ -126,8 +168,8 @@ fig.suptitle(f"Tracking quality: {label_a} vs {label_b}", fontsize=13)
 
 # ── eC over time ──────────────────────────────────────────────────────────────
 ax = axes[0, 0]
-ax.plot(t_a, eC_a, color="tomato",    alpha=0.7, linewidth=0.8, label=label_a)
-ax.plot(t_b, eC_b, color="steelblue", alpha=0.7, linewidth=0.8, label=label_b)
+plot_seg(ax, t_a, eC_a, breaks_a, label=label_a, color="tomato",    alpha=0.7, linewidth=0.8)
+plot_seg(ax, t_b, eC_b, breaks_b, label=label_b, color="steelblue", alpha=0.7, linewidth=0.8)
 ax.axhline(0, color="black", linewidth=0.6, linestyle="--")
 ax.set_xlabel("time [s]")
 ax.set_ylabel("eC [m]")
@@ -146,8 +188,8 @@ ax.legend()
 
 # ── eL over time ──────────────────────────────────────────────────────────────
 ax = axes[1, 0]
-ax.plot(t_a, eL_a, color="tomato",    alpha=0.7, linewidth=0.8, label=label_a)
-ax.plot(t_b, eL_b, color="steelblue", alpha=0.7, linewidth=0.8, label=label_b)
+plot_seg(ax, t_a, eL_a, breaks_a, label=label_a, color="tomato",    alpha=0.7, linewidth=0.8)
+plot_seg(ax, t_b, eL_b, breaks_b, label=label_b, color="steelblue", alpha=0.7, linewidth=0.8)
 ax.axhline(0, color="black", linewidth=0.6, linestyle="--")
 ax.set_xlabel("time [s]")
 ax.set_ylabel("eL [m]")
@@ -166,9 +208,9 @@ ax.legend()
 
 # ── Trajectory on track ───────────────────────────────────────────────────────
 ax = axes[2, 0]
-ax.plot(rx_b, ry_b, "k--", linewidth=1.0, alpha=0.5, label="reference")
-ax.plot(px_a, py_a, color="tomato",    alpha=0.6, linewidth=0.8, label=label_a)
-ax.plot(px_b, py_b, color="steelblue", alpha=0.6, linewidth=0.8, label=label_b)
+plot_xy_seg(ax, rx_b, ry_b, breaks_b, label="reference", color="black", linestyle="--", linewidth=1.0, alpha=0.5)
+plot_xy_seg(ax, px_a, py_a, breaks_a, label=label_a, color="tomato",    alpha=0.6, linewidth=0.8)
+plot_xy_seg(ax, px_b, py_b, breaks_b, label=label_b, color="steelblue", alpha=0.6, linewidth=0.8)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("y [m]")
 ax.set_title("Trajectory on track")
