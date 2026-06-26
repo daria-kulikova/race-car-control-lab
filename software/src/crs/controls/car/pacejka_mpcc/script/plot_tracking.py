@@ -19,10 +19,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-DATA_DIR       = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
-PLOTS_DIR      = Path("/code/src/crs/controls/car/pacejka_mpcc/script/plots")
-TRACKING_BASE  = "tracking_cm1_0555"
-RESIDUALS_BASE = "mpcc_residuals_cm1_0555"
+DATA_DIR  = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
+PLOTS_DIR = Path("/code/src/crs/controls/car/pacejka_mpcc/script/plots")
+LOG_BASE  = "mpcc_log_cm1_0555"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", choices=["baseline", "last", "none"], default="baseline",
@@ -46,36 +45,28 @@ def discover_indices(base: str):
     return found
 
 
-def tracking_path(name: str) -> Path:
-    return DATA_DIR / name
-
-
-def residuals_name(tracking_name: str) -> str:
-    return tracking_name.replace("tracking_", "mpcc_residuals_", 1)
-
-
 # Resolve which two files to compare
 if args.mode == "baseline":
-    indices = discover_indices(TRACKING_BASE)
+    indices = discover_indices(LOG_BASE)
     if len(indices) < 2:
-        raise FileNotFoundError(f"Need at least 2 {TRACKING_BASE}_*.csv files in {DATA_DIR}")
+        raise FileNotFoundError(f"Need at least 2 {LOG_BASE}_*.csv files in {DATA_DIR}")
     idx_a, idx_b = indices[0], indices[-1]
-    name_a = f"{TRACKING_BASE}_{idx_a}.csv"
-    name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+    name_a = f"{LOG_BASE}_{idx_a}.csv"
+    name_b = f"{LOG_BASE}_{idx_b}.csv"
 
 elif args.mode == "last":
-    indices = discover_indices(TRACKING_BASE)
+    indices = discover_indices(LOG_BASE)
     if len(indices) < 2:
-        raise FileNotFoundError(f"Need at least 2 {TRACKING_BASE}_*.csv files in {DATA_DIR}")
+        raise FileNotFoundError(f"Need at least 2 {LOG_BASE}_*.csv files in {DATA_DIR}")
     idx_a, idx_b = indices[-2], indices[-1]
-    name_a = f"{TRACKING_BASE}_{idx_a}.csv"
-    name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+    name_a = f"{LOG_BASE}_{idx_a}.csv"
+    name_b = f"{LOG_BASE}_{idx_b}.csv"
 
 else:  # none
     if args.indices:
         idx_a, idx_b = args.indices
-        name_a = f"{TRACKING_BASE}_{idx_a}.csv"
-        name_b = f"{TRACKING_BASE}_{idx_b}.csv"
+        name_a = f"{LOG_BASE}_{idx_a}.csv"
+        name_b = f"{LOG_BASE}_{idx_b}.csv"
     elif args.file_a and args.file_b:
         idx_a, idx_b = "A", "B"
         name_a, name_b = args.file_a, args.file_b
@@ -84,34 +75,28 @@ else:  # none
 
 path_a = DATA_DIR / name_a
 path_b = DATA_DIR / name_b
-res_path_a = DATA_DIR / residuals_name(name_a)
-res_path_b = DATA_DIR / residuals_name(name_b)
-has_residuals = res_path_a.exists() and res_path_b.exists()
 
 label_a = f"dataset {idx_a}"
 label_b = f"dataset {idx_b}"
 out_path = args.out if args.out else str(PLOTS_DIR / f"tracking_comparison_{idx_a}_{idx_b}.png")
 print(f"Comparing:  A = {name_a}  vs  B = {name_b}")
-if has_residuals:
-    print(f"Residuals:  {res_path_a.name}  vs  {res_path_b.name}")
-
-
-def load_residuals(path):
-    data = np.loadtxt(path, delimiter=",", skiprows=1)
-    return data[:, 8], data[:, 9], data[:, 7]   # pos_x, pos_y, eps_omega
 
 
 def load(path):
-    data = np.loadtxt(path, delimiter=",", skiprows=1)
+    # columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
+    data  = np.loadtxt(path, delimiter=",", skiprows=1)
     t     = data[:, 0] - data[0, 0]
-    eC    = data[:, 1]
-    eL    = data[:, 2]
-    pos_x = data[:, 3]
-    pos_y = data[:, 4]
-    ref_x = data[:, 5]
-    ref_y = data[:, 6]
-    lap   = data[:, 7].astype(int) if data.shape[1] > 7 else np.zeros(len(t), dtype=int)
-    return t, eC, eL, pos_x, pos_y, ref_x, ref_y, lap
+    eC    = data[:, 9]
+    eL    = data[:, 10]
+    pos_x = data[:, 11]
+    pos_y = data[:, 12]
+    ref_x = data[:, 13]
+    ref_y = data[:, 14]
+    lap   = data[:, 15].astype(int)
+    eps_vx    = data[:, 6]
+    eps_vy    = data[:, 7]
+    eps_omega = data[:, 8]
+    return t, eC, eL, pos_x, pos_y, ref_x, ref_y, lap, eps_vx, eps_vy, eps_omega
 
 
 def mean_lap_time(t, lap):
@@ -121,10 +106,10 @@ def mean_lap_time(t, lap):
     return np.diff(t[lap_starts])[1:].mean()
 
 
-t_a, eC_a, eL_a, px_a, py_a, rx_a, ry_a, lap_a = load(path_a)
-t_b, eC_b, eL_b, px_b, py_b, rx_b, ry_b, lap_b = load(path_b)
+t_a, eC_a, eL_a, px_a, py_a, rx_a, ry_a, lap_a, eps_vx_a, eps_vy_a, eps_omega_a = load(path_a)
+t_b, eC_b, eL_b, px_b, py_b, rx_b, ry_b, lap_b, eps_vx_b, eps_vy_b, eps_omega_b = load(path_b)
 
-n_rows = 4 if has_residuals else 3
+n_rows = 4
 fig, axes = plt.subplots(n_rows, 2, figsize=(14, 5 * n_rows))
 fig.suptitle(f"Tracking quality: {label_a} vs {label_b}", fontsize=13)
 
@@ -202,17 +187,7 @@ for name, va, vb in metrics:
         print(f"{name:<30} {va:>12.5f} {vb:>12.5f} {change:>+9.1f}%")
 print()
 
-if has_residuals:
-    rx_a, ry_a, eps_omega_a = load_residuals(res_path_a)
-    rx_b, ry_b, eps_omega_b = load_residuals(res_path_b)
-
-    def load_residuals_full(path):
-        data = np.loadtxt(path, delimiter=",", skiprows=1)
-        return data[:, 5], data[:, 6], data[:, 7]  # eps_vx, eps_vy, eps_omega
-
-    eps_vx_a, eps_vy_a, _ = load_residuals_full(res_path_a)
-    eps_vx_b, eps_vy_b, _ = load_residuals_full(res_path_b)
-
+if True:
     for eps_name, eps_a, eps_b in [
         ("eps_vx",    eps_vx_a,    eps_vx_b),
         ("eps_vy",    eps_vy_a,    eps_vy_b),

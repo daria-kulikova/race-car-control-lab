@@ -55,7 +55,7 @@ data    = np.vstack(chunks)
 weights = np.concatenate(weight_chunks)
 print(f"  total: {len(data)} rows")
 
-mask_vx = data[:, 0] >= args.vx_min
+mask_vx = data[:, 1] >= args.vx_min
 data    = data[mask_vx]
 weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
@@ -71,7 +71,7 @@ print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 # data    = data[mask]
 # weights = weights[mask]
 
-raw = data[:, :5]   # [vx, vy, omega, delta, T]
+raw = data[:, 1:6]   # [vx, vy, omega, delta, T]
 beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3],
                                      args.lf, args.lr)
 ALL_FEATURES = {
@@ -80,7 +80,7 @@ ALL_FEATURES = {
     "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
 }
 X = np.column_stack([ALL_FEATURES[f] for f in args.features])
-Y = data[:, 5:8]                                     # [eps_vx, eps_vy, eps_omega]
+Y = data[:, 6:9]                                     # [eps_vx, eps_vy, eps_omega]
 print(f"  features ({len(args.features)}): {args.features}")
 
 # ── Optional test split (held out before scaling) ─────────────────────────────

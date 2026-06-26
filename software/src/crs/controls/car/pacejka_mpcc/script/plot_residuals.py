@@ -24,16 +24,17 @@ args = parser.parse_args()
 out_dir = Path(args.out_dir)
 
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
-data = data[data[:, 0] >= args.vx_min]
+# columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
+data = data[data[:, 1] >= args.vx_min]
 
-vx    = data[:, 0]
-vy    = data[:, 1]
-omega = data[:, 2]
-delta = data[:, 3]
-T     = data[:, 4]
-eps_vx    = data[:, 5]
-eps_vy    = data[:, 6]
-eps_omega = data[:, 7]
+vx    = data[:, 1]
+vy    = data[:, 2]
+omega = data[:, 3]
+delta = data[:, 4]
+T     = data[:, 5]
+eps_vx    = data[:, 6]
+eps_vy    = data[:, 7]
+eps_omega = data[:, 8]
 
 vx_safe = np.maximum(vx, 0.1)
 beta    = np.arctan2(vy, vx_safe)

@@ -33,11 +33,10 @@ getConfig<crs_controls::pacejka_mpcc::mpcc_pacejka_config>(const ros::NodeHandle
   params.max_sqp_iterations = static_cast<unsigned int>(max_sqp_iter);
 
   nh.getParam("warmstart_iterations", params.warmstart_iterations);  // Optional Param. No warning raised if not set.
-  nh.getParam("data_log_path", params.data_log_path);               // Optional. Empty = logging disabled.
+  nh.getParam("log_path", params.log_path);                        // Optional. Empty = logging disabled.
   nh.getParam("gp_model_path", params.gp_model_path);              // Optional. Empty = GP disabled.
   nh.getParam("mlp_model_path", params.mlp_model_path);            // Optional. Empty = MLP disabled.
   nh.getParam("residual_scale", params.residual_scale);            // Optional. Default = 1.0.
-  nh.getParam("tracking_log_path", params.tracking_log_path);     // Optional. Empty = tracking log disabled.
   int log_max_points = 0;
   nh.getParam("log_max_points", log_max_points);                  // Optional. 0 = unlimited.
   params.log_max_points = static_cast<unsigned int>(std::max(0, log_max_points));

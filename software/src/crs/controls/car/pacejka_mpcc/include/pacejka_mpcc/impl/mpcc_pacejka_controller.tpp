@@ -147,41 +147,22 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
   else if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 
-  if (!config_.tracking_log_path.empty())
+  if (!config_.log_path.empty())
   {
-    const bool tracking_exists = std::ifstream(config_.tracking_log_path).good();
-    tracking_log_stream_.open(config_.tracking_log_path, std::ios::app);
-    if (tracking_log_stream_.is_open())
-    {
-      if (!tracking_exists)
-      {
-        tracking_log_stream_ << "t,eC,eL,pos_x,pos_y,ref_x,ref_y,lap\n";
-        tracking_log_stream_.flush();
-      }
-      std::cout << "[MPCC] tracking log → " << config_.tracking_log_path
-                << (tracking_exists ? " (appending)" : " (new)") << std::endl;
-    }
-    else
-      std::cout << "[MPCC] ERROR: could not open tracking log: " << config_.tracking_log_path << std::endl;
-  }
-
-  std::cout << "[MPCC] data_log_path='" << config_.data_log_path << "'" << std::endl;
-  if (!config_.data_log_path.empty())
-  {
-    const bool log_exists = std::ifstream(config_.data_log_path).good();
-    log_stream_.open(config_.data_log_path, std::ios::app);
+    const bool log_exists = std::ifstream(config_.log_path).good();
+    log_stream_.open(config_.log_path, std::ios::app);
     if (!log_stream_.is_open())
     {
-      std::cout << "[MPCC] ERROR: could not open log file: " << config_.data_log_path << std::endl;
+      std::cout << "[MPCC] ERROR: could not open log file: " << config_.log_path << std::endl;
     }
     else
     {
       if (!log_exists)
       {
-        log_stream_ << "vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,pos_x,pos_y,theta\n";
+        log_stream_ << "t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta\n";
         log_stream_.flush();
       }
-      std::cout << "[MPCC] GP data logging → " << config_.data_log_path
+      std::cout << "[MPCC] logging → " << config_.log_path
                 << (log_exists ? " (appending)" : " (new)") << std::endl;
     }
   }
@@ -222,9 +203,10 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
     is_initialized_ = true;
   }
 
-  // GP data logging: record residual = actual_state - model_prediction
+  // Compute residual = actual_state - model_prediction; store for writing after solver
   const bool log_limit_reached = config_.log_max_points > 0 && log_point_count_ >= config_.log_max_points;
-  if (!config_.data_log_path.empty() && !log_limit_reached)
+  log_pending_ = false;
+  if (!config_.log_path.empty() && !log_limit_reached)
   {
     double t_now = std::chrono::duration<double>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -233,17 +215,17 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
       double dt = t_now - log_t_prev_;
       if (dt > 0.005 && dt < 0.2)
       {
-        // last_input_ here still holds the command sent to hardware at the previous tick
         auto predicted = model_->applyModel(log_state_prev_, last_input_, dt);
-        log_stream_ << std::fixed << std::setprecision(6)
-                    << log_state_prev_.vel_x    << "," << log_state_prev_.vel_y    << ","
-                    << log_state_prev_.yaw_rate << "," << last_input_.steer        << ","
-                    << last_input_.torque       << ","
-                    << (state.vel_x    - predicted.vel_x)    << ","
-                    << (state.vel_y    - predicted.vel_y)    << ","
-                    << (state.yaw_rate - predicted.yaw_rate) << ","
-                    << state.pos_x << "," << state.pos_y << "," << theta_ << "\n";
-        log_stream_.flush();
+        log_pend_t_         = t_now;
+        log_pend_vx_        = log_state_prev_.vel_x;
+        log_pend_vy_        = log_state_prev_.vel_y;
+        log_pend_omega_     = log_state_prev_.yaw_rate;
+        log_pend_delta_     = last_input_.steer;
+        log_pend_T_         = last_input_.torque;
+        log_pend_eps_vx_    = state.vel_x    - predicted.vel_x;
+        log_pend_eps_vy_    = state.vel_y    - predicted.vel_y;
+        log_pend_eps_omega_ = state.yaw_rate - predicted.yaw_rate;
+        log_pending_ = true;
       }
     }
     log_state_prev_ = state;
@@ -329,31 +311,31 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   last_input_.steer = last_solution_.x[1][static_cast<int>(pacejka_vars::STEER)];
   theta_ = last_solution_.x[1][static_cast<int>(pacejka_vars::THETA)];
 
-  if (tracking_log_stream_.is_open() && !log_limit_reached)
+  if (log_stream_.is_open() && log_pending_)
   {
-    // Contouring and lag errors at the current state vs closest track reference
-    const double ref_x   = last_reference_on_track_[0].x;
-    const double ref_y   = last_reference_on_track_[0].y;
-    const double phi     = last_reference_on_track_[0].yaw;
-    const double dx      = state.pos_x - ref_x;
-    const double dy      = state.pos_y - ref_y;
-    const double eC      =  std::sin(phi) * dx - std::cos(phi) * dy;
-    const double eL      = -std::cos(phi) * dx - std::sin(phi) * dy;
-    double t_log = std::chrono::duration<double>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-    tracking_log_stream_ << std::fixed << std::setprecision(6)
-                         << t_log << "," << eC << "," << eL << ","
-                         << state.pos_x << "," << state.pos_y << ","
-                         << ref_x << "," << ref_y << "," << laps_ << "\n";
-    tracking_log_stream_.flush();
+    const double ref_x = last_reference_on_track_[0].x;
+    const double ref_y = last_reference_on_track_[0].y;
+    const double phi   = last_reference_on_track_[0].yaw;
+    const double dx    = state.pos_x - ref_x;
+    const double dy    = state.pos_y - ref_y;
+    const double eC    =  std::sin(phi) * dx - std::cos(phi) * dy;
+    const double eL    = -std::cos(phi) * dx - std::sin(phi) * dy;
+    log_stream_ << std::fixed << std::setprecision(6)
+                << log_pend_t_       << ","
+                << log_pend_vx_      << "," << log_pend_vy_      << "," << log_pend_omega_ << ","
+                << log_pend_delta_   << "," << log_pend_T_        << ","
+                << log_pend_eps_vx_  << "," << log_pend_eps_vy_  << "," << log_pend_eps_omega_ << ","
+                << eC << "," << eL << ","
+                << state.pos_x << "," << state.pos_y << ","
+                << ref_x << "," << ref_y << "," << laps_ << "," << theta_ << "\n";
+    log_stream_.flush();
+    log_pending_ = false;
 
     log_point_count_++;
     if (config_.log_max_points > 0 && log_point_count_ >= config_.log_max_points)
     {
       log_stream_.close();
-      tracking_log_stream_.close();
-      std::cout << "[MPCC] Logging stopped: " << log_point_count_
-                << " points written to both logs." << std::endl;
+      std::cout << "[MPCC] Logging stopped: " << log_point_count_ << " points written." << std::endl;
     }
   }
 

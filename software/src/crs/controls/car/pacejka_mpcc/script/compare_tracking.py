@@ -23,8 +23,8 @@ parser = argparse.ArgumentParser()
 DATA_DIR    = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
 RESULTS_DIR = Path("/code/src/crs/controls/car/pacejka_mpcc/script/results")
 
-parser.add_argument("--data", default="tracking_cm1_0555_0.csv",
-                    help="Filename of the _0.csv tracking file inside DATA_DIR")
+parser.add_argument("--data", default="mpcc_log_cm1_0555_0.csv",
+                    help="Filename of the _0.csv log file inside DATA_DIR")
 parser.add_argument("--mode", choices=["baseline", "consecutive"], default="baseline",
                     help="baseline: all vs dataset 0; consecutive: i vs i-1 (from pair 1-2 onward)")
 parser.add_argument("--out", default=None,
@@ -55,11 +55,12 @@ print(f"Found {len(files)} datasets: {sorted(files)}")
 
 
 def load(path: Path):
+    # columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
     data = np.loadtxt(path, delimiter=",", skiprows=1)
-    t = data[:, 0] - data[0, 0]
-    eC = data[:, 1]
-    eL = data[:, 2]
-    lap = data[:, 7].astype(int) if data.shape[1] > 7 else np.zeros(len(t), dtype=int)
+    t   = data[:, 0] - data[0, 0]
+    eC  = data[:, 9]
+    eL  = data[:, 10]
+    lap = data[:, 15].astype(int)
     return t, eC, eL, lap
 
 

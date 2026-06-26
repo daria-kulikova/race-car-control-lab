@@ -64,10 +64,10 @@ struct mpcc_pacejka_config
   unsigned int max_sqp_iterations = 1;
 
   /**
-   * @brief Path for GP training data CSV. Empty string disables logging.
-   *        CSV columns: vx, vy, omega, delta, T, eps_vx, eps_vy, eps_omega
+   * @brief Path for combined data+tracking CSV. Empty string disables logging.
+   *        CSV columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
    */
-  std::string data_log_path = "";
+  std::string log_path = "";
 
   /**
    * @brief Path to the GP residual model binary (gp_model.bin from train_gp.py).
@@ -89,14 +89,8 @@ struct mpcc_pacejka_config
   double residual_scale = 1.0;
 
   /**
-   * @brief Path for tracking quality CSV. Empty string disables logging.
-   *        CSV columns: t, eC, eL, pos_x, pos_y, ref_x, ref_y
-   */
-  std::string tracking_log_path = "";
-
-  /**
-   * @brief Maximum number of rows to write to both data_log and tracking_log.
-   *        0 = unlimited. Both logs are closed simultaneously when the limit is reached.
+   * @brief Maximum number of rows to write to the combined log.
+   *        0 = unlimited.
    */
   unsigned int log_max_points = 0;
 };

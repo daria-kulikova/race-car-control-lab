@@ -170,11 +170,18 @@ private:
 
   bool is_initialized_ = false;
 
-  // GP data logging
+  // Combined data logging
   bool log_has_prev_ = false;
   crs_models::pacejka_model::pacejka_car_state log_state_prev_;
   double log_t_prev_ = 0.0;
   std::ofstream log_stream_;
+
+  // Pending log row (computed in residuals block, written in tracking block)
+  bool   log_pending_      = false;
+  double log_pend_t_       = 0.0;
+  double log_pend_vx_      = 0.0, log_pend_vy_      = 0.0, log_pend_omega_ = 0.0;
+  double log_pend_delta_   = 0.0, log_pend_T_        = 0.0;
+  double log_pend_eps_vx_  = 0.0, log_pend_eps_vy_  = 0.0, log_pend_eps_omega_ = 0.0;
 
   // Residual models for lag compensation correction (MLP takes priority over GP if both configured)
   GPResidual  gp_;
@@ -182,8 +189,6 @@ private:
   unsigned int gp_log_counter_  = 0;
   unsigned int mlp_log_counter_ = 0;
 
-  // Tracking quality logging
-  std::ofstream tracking_log_stream_;
   unsigned int log_point_count_ = 0;
 };
 }  // namespace crs_controls::pacejka_mpcc

@@ -42,18 +42,19 @@ COLORS = ["steelblue", "darkorange", "forestgreen"]
 
 # ── Load & filter ─────────────────────────────────────────────────────────────
 data = np.loadtxt(args.data, delimiter=",", skiprows=1)
-data = data[data[:, 0] >= args.vx_min]
+# columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
+data = data[data[:, 1] >= args.vx_min]
 print(f"  after vx >= {args.vx_min} filter: {len(data)}")
 
 mask = np.ones(len(data), dtype=bool)
-for c in [5, 6, 7]:
+for c in [6, 7, 8]:
     q25, q75 = np.percentile(data[:, c], [25, 75])
     iqr = q75 - q25
     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
 data = data[mask]
 print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
 
-raw = data[:, :5]
+raw = data[:, 1:6]   # [vx, vy, omega, delta, T]
 vx_safe = np.maximum(raw[:, 0], 0.1)
 beta    = np.arctan2(raw[:, 1], vx_safe)
 alpha_f = raw[:, 3] - np.arctan2(raw[:, 1] + args.lf * raw[:, 2], vx_safe)
@@ -64,7 +65,7 @@ ALL_FEATURES = {
     "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
 }
 X = np.column_stack([ALL_FEATURES[f] for f in args.features])
-Y = data[:, 5:]                                      # [eps_vx, eps_vy, eps_omega]
+Y = data[:, 6:9]                                     # [eps_vx, eps_vy, eps_omega]
 print(f"  features ({len(args.features)}): {args.features}")
 
 # ── Train/test split (full data) ──────────────────────────────────────────────
