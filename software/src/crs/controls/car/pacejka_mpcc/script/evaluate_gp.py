@@ -31,6 +31,10 @@ parser.add_argument("--iqr-k", type=float, default=3.0,
                     help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
 parser.add_argument("--lf", type=float, default=0.052, help="front axle distance [m]")
 parser.add_argument("--lr", type=float, default=0.038, help="rear axle distance [m]")
+parser.add_argument("--features", type=str, nargs="+",
+                    default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    help="feature subset to use for training")
 args = parser.parse_args()
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
@@ -54,8 +58,14 @@ vx_safe = np.maximum(raw[:, 0], 0.1)
 beta    = np.arctan2(raw[:, 1], vx_safe)
 alpha_f = raw[:, 3] - np.arctan2(raw[:, 1] + args.lf * raw[:, 2], vx_safe)
 alpha_r = -np.arctan2(raw[:, 1] - args.lr * raw[:, 2], vx_safe)
-X = np.column_stack([raw, beta, alpha_f, alpha_r])  # [vx, vy, omega, delta, T, beta, alpha_f, alpha_r]
+ALL_FEATURES = {
+    "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
+    "delta": raw[:, 3], "T": raw[:, 4],
+    "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
+}
+X = np.column_stack([ALL_FEATURES[f] for f in args.features])
 Y = data[:, 5:]                                      # [eps_vx, eps_vy, eps_omega]
+print(f"  features ({len(args.features)}): {args.features}")
 
 # ── Train/test split (full data) ──────────────────────────────────────────────
 rng = np.random.default_rng(args.seed)

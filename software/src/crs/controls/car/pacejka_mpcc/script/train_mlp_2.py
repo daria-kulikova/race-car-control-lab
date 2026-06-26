@@ -33,6 +33,7 @@ parser.add_argument("--patience",      type=int,   default=50,   help="early sto
 parser.add_argument("--huber-beta",    type=float, default=1.0,  help="SmoothL1 transition point (in scaled space)")
 parser.add_argument("--weight-decay",  type=float, default=1e-4)
 parser.add_argument("--seed",          type=int,   default=42)
+parser.add_argument("--test-fraction", type=float, default=0.0,  help="fraction held out for test RMSE (0 = disabled)")
 parser.add_argument("--features",      type=str,   nargs="+",
                     default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
@@ -91,7 +92,19 @@ X = np.column_stack([ALL_FEATURES[f] for f in args.features])
 Y = data[:, 5:8]                                     # [eps_vx, eps_vy, eps_omega]
 print(f"  features ({len(args.features)}): {args.features}")
 
-# ── Scale ─────────────────────────────────────────────────────────────────────
+# ── Optional test split (held out before scaling) ─────────────────────────────
+rng = np.random.default_rng(args.seed)
+if args.test_fraction > 0.0:
+    n_test   = int(len(X) * args.test_fraction)
+    test_idx = rng.choice(len(X), n_test, replace=False)
+    train_idx = np.setdiff1d(np.arange(len(X)), test_idx)
+    X_test_raw, Y_test_raw = X[test_idx], Y[test_idx]
+    X, Y, weights = X[train_idx], Y[train_idx], weights[train_idx]
+    print(f"  test set: {n_test} points  train+val: {len(X)} points")
+else:
+    X_test_raw = Y_test_raw = None
+
+# ── Scale (fit only on train+val) ─────────────────────────────────────────────
 x_scaler = StandardScaler()
 X_sc = x_scaler.fit_transform(X)
 
@@ -99,7 +112,6 @@ y_scaler = StandardScaler()
 Y_sc = y_scaler.fit_transform(Y)
 
 # ── Train / val split ─────────────────────────────────────────────────────────
-rng     = np.random.default_rng(args.seed)
 val_idx = rng.choice(len(X_sc), int(len(X_sc) * 0.1), replace=False)
 tr_idx  = np.setdiff1d(np.arange(len(X_sc)), val_idx)
 
@@ -176,8 +188,20 @@ with torch.no_grad():
 Y_pred = y_scaler.inverse_transform(Y_pred_sc)
 rmse_base = np.sqrt(np.mean(Y ** 2, axis=0))
 rmse_mlp  = np.sqrt(np.mean((Y - Y_pred) ** 2, axis=0))
+print("  [train]")
 for name, rb, rm in zip(["eps_vx", "eps_vy", "eps_omega"], rmse_base, rmse_mlp):
-    print(f"  {name}: no-model={rb:.6f}  mlp={rm:.6f}  improv={100*(rb-rm)/rb:.1f}%")
+    print(f"    {name}: no-model={rb:.6f}  mlp={rm:.6f}  improv={100*(rb-rm)/rb:.1f}%")
+
+if X_test_raw is not None:
+    X_test_sc = x_scaler.transform(X_test_raw)
+    with torch.no_grad():
+        Y_test_pred_sc = model(torch.tensor(X_test_sc, dtype=torch.float32)).numpy()
+    Y_test_pred = y_scaler.inverse_transform(Y_test_pred_sc)
+    rmse_base_t = np.sqrt(np.mean(Y_test_raw ** 2, axis=0))
+    rmse_mlp_t  = np.sqrt(np.mean((Y_test_raw - Y_test_pred) ** 2, axis=0))
+    print("  [test]")
+    for name, rb, rm in zip(["eps_vx", "eps_vy", "eps_omega"], rmse_base_t, rmse_mlp_t):
+        print(f"    {name}: no-model={rb:.6f}  mlp={rm:.6f}  improv={100*(rb-rm)/rb:.1f}%")
 
 # ── Extract linear layer weights ──────────────────────────────────────────────
 # PyTorch Linear.weight shape: (n_out, n_in) — already row-major W@x+b convention
