@@ -33,7 +33,6 @@ parser.add_argument("--patience",      type=int,   default=50,   help="early sto
 parser.add_argument("--huber-beta",    type=float, default=1.0,  help="SmoothL1 transition point (in scaled space)")
 parser.add_argument("--weight-decay",  type=float, default=1e-4)
 parser.add_argument("--seed",          type=int,   default=42)
-parser.add_argument("--test-fraction", type=float, default=0.0,  help="fraction held out for test RMSE (0 = disabled)")
 parser.add_argument("--features",      type=str,   nargs="+",
                     default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
@@ -92,17 +91,30 @@ X = np.column_stack([ALL_FEATURES[f] for f in args.features])
 Y = data[:, 6:9]                                     # [eps_vx, eps_vy, eps_omega]
 print(f"  features ({len(args.features)}): {args.features}")
 
-# ── Optional test split (held out before scaling) ─────────────────────────────
-rng = np.random.default_rng(args.seed)
-if args.test_fraction > 0.0:
-    n_test   = int(len(X) * args.test_fraction)
-    test_idx = rng.choice(len(X), n_test, replace=False)
-    train_idx = np.setdiff1d(np.arange(len(X)), test_idx)
-    X_test_raw, Y_test_raw = X[test_idx], Y[test_idx]
-    X, Y, weights = X[train_idx], Y[train_idx], weights[train_idx]
-    print(f"  test set: {n_test} points  train+val: {len(X)} points")
+# ── Load test data from *_test_{i}.csv files ──────────────────────────────────
+test_base = base + "test_"
+test_chunks = []
+for i in range(args.n_datasets):
+    p = test_base + f"{i}.csv"
+    if Path(p).exists():
+        test_chunks.append(np.loadtxt(p, delimiter=",", skiprows=1))
+        print(f"  loaded test {p}: {len(test_chunks[-1])} rows")
+if test_chunks:
+    test_data = np.vstack(test_chunks)
+    test_data = test_data[test_data[:, 1] >= args.vx_min]
+    raw_t = test_data[:, 1:6]
+    b_t, af_t, ar_t = slip_angles(raw_t[:, 0], raw_t[:, 1], raw_t[:, 2], raw_t[:, 3], args.lf, args.lr)
+    ALL_T = {"vx": raw_t[:, 0], "vy": raw_t[:, 1], "omega": raw_t[:, 2],
+             "delta": raw_t[:, 3], "T": raw_t[:, 4],
+             "beta": b_t, "alpha_f": af_t, "alpha_r": ar_t}
+    X_test_raw = np.column_stack([ALL_T[f] for f in args.features])
+    Y_test_raw = test_data[:, 6:9]
+    print(f"  test total: {len(X_test_raw)} points")
 else:
     X_test_raw = Y_test_raw = None
+    print("  no test files found — skipping test evaluation")
+
+rng = np.random.default_rng(args.seed)
 
 # ── Scale (fit only on train+val) ─────────────────────────────────────────────
 x_scaler = StandardScaler()
