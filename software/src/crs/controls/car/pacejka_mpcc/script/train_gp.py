@@ -1,14 +1,13 @@
 """
-Train a GP residual model from MPCC data log.
+Train a GP residual model from MPCC combined log files.
 
-Input CSV (from C++ controller data_log_path):
-    vx, vy, omega, delta, T, eps_vx, eps_vy, eps_omega
-
-Output (saved alongside this script):
-    gp_model.npz  — everything needed for C++ inference
+Loads n-datasets files (*_0.csv, *_1.csv, ...) with dataset i having weight i+1.
+Test data is loaded from *_test_{i}.csv files (same convention as train_mlp_2.py).
 
 Usage:
-    python3 train_gp.py --data /path/to/mpcc_residuals.csv
+    python3 train_gp.py
+    python3 train_gp.py --n-datasets 3 --features vx vy omega delta T
+    python3 train_gp.py --max-points 3000 --vx-min 1.0
 """
 
 import argparse
@@ -20,137 +19,185 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from sklearn.preprocessing import StandardScaler
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
-
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", default="/code/src/data/mpcc_residuals.csv",
-                    help="Path to mpcc_residuals.csv")
-parser.add_argument("--out",  default=str(Path(__file__).parent / "gp_model.npz"),
-                    help="Output .npz path (default: gp_model.npz next to this script)")
-parser.add_argument("--max-points", type=int, default=2000,
-                    help="Max training points (subsample if more)")
-parser.add_argument("--vx-min", type=float, default=0.5,
-                    help="Ignore rows where vx < this (unstable low-speed dynamics)")
-parser.add_argument("--iqr-k", type=float, default=3.0,
-                    help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
+parser.add_argument("--data",         default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
+parser.add_argument("--out",          default=str(Path(__file__).parent / "models/mlp_final/gp_model.npz"))
+parser.add_argument("--max-points",   type=int,   default=2000,
+                    help="max training points (GP is O(n³))")
+parser.add_argument("--vx-min",       type=float, default=0.5)
+parser.add_argument("--iqr-k",        type=float, default=3.0,
+                    help="IQR multiplier for outlier removal on eps_ targets")
+parser.add_argument("--n-datasets",   type=int,   default=1,
+                    help="number of datasets (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
+parser.add_argument("--seed",         type=int,   default=42)
+parser.add_argument("--lf",           type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr",           type=float, default=0.038, help="rear axle distance [m]")
+parser.add_argument("--features",     type=str,   nargs="+",
+                    default=["vx", "vy", "omega", "delta", "T"],
+                    choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
+                    help="feature subset to use for training")
 args = parser.parse_args()
 
+rng = np.random.default_rng(args.seed)
 
-# ── Load data ─────────────────────────────────────────────────────────────────
 
-print(f"Loading {args.data} ...")
-data = np.loadtxt(args.data, delimiter=",", skiprows=1)
-print(f"  raw rows: {len(data)}")
+def slip_angles(vx, vy, omega, delta):
+    vx_safe = np.maximum(vx, 0.1)
+    beta    = np.arctan2(vy, vx_safe)
+    alpha_f = delta - np.arctan2(vy + args.lf * omega, vx_safe)
+    alpha_r = -np.arctan2(vy - args.lr * omega, vx_safe)
+    return beta, alpha_f, alpha_r
 
-# Filter low speed
-mask = data[:, 0] >= args.vx_min
-data = data[mask]
-print(f"  after vx >= {args.vx_min} filter: {len(data)}")
 
-# Filter outliers on eps_ targets (cols 5,6,7) — removes bad IMU measurements
+def build_features(data):
+    # columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
+    raw = data[:, 1:6]   # [vx, vy, omega, delta, T]
+    beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3])
+    ALL = {
+        "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
+        "delta": raw[:, 3], "T": raw[:, 4],
+        "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
+    }
+    X = np.column_stack([ALL[f] for f in args.features])
+    Y = data[:, 6:9]   # [eps_vx, eps_vy, eps_omega]
+    return X, Y
+
+
+# ── Load training data ────────────────────────────────────────────────────────
+base = args.data[:-len("0.csv")]
+chunks, weight_chunks = [], []
+for i in range(args.n_datasets):
+    path = base + f"{i}.csv"
+    d = np.loadtxt(path, delimiter=",", skiprows=1)
+    chunks.append(d)
+    weight_chunks.append(np.full(len(d), float(i + 1)))
+    print(f"  loaded {path}: {len(d)} rows, weight={i + 1}")
+data    = np.vstack(chunks)
+weights = np.concatenate(weight_chunks)
+print(f"  total: {len(data)} rows")
+
+mask_vx = data[:, 1] >= args.vx_min
+data    = data[mask_vx]
+weights = weights[mask_vx]
+print(f"  {len(data)} points after vx >= {args.vx_min} filter")
+
 mask = np.ones(len(data), dtype=bool)
-for c in [5, 6, 7]:
+for c in [6, 7, 8]:
     q25, q75 = np.percentile(data[:, c], [25, 75])
     iqr = q75 - q25
     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-data = data[mask]
-print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
+data    = data[mask]
+weights = weights[mask]
+print(f"  {mask.sum()} points after outlier filter (k={args.iqr_k}, removed {(~mask).sum()})")
 
-# Subsample if too many points (GP is O(n³))
-if len(data) > args.max_points:
-    idx = np.random.choice(len(data), args.max_points, replace=False)
-    data = data[idx]
-    print(f"  subsampled to {args.max_points}")
+X_all, Y_all = build_features(data)
+print(f"  features ({len(args.features)}): {args.features}")
 
-# Features: [vx, vy, omega, delta, T]
-X = data[:, :5]
-# Targets:  [eps_vx, eps_vy, eps_omega]
-Y = data[:, 5:]
+# ── Load test data from *_test_{i}.csv ───────────────────────────────────────
+test_base   = base + "test_"
+test_chunks = []
+for i in range(args.n_datasets):
+    p = test_base + f"{i}.csv"
+    if Path(p).exists():
+        test_chunks.append(np.loadtxt(p, delimiter=",", skiprows=1))
+        print(f"  loaded test {p}: {len(test_chunks[-1])} rows")
 
-print(f"  X shape: {X.shape},  Y shape: {Y.shape}")
-print(f"  residual std:  eps_vx={Y[:,0].std():.4f}  "
-      f"eps_vy={Y[:,1].std():.4f}  eps_omega={Y[:,2].std():.4f}")
+if test_chunks:
+    test_data = np.vstack(test_chunks)
+    test_data = test_data[test_data[:, 1] >= args.vx_min]
+    X_test, Y_test = build_features(test_data)
+    print(f"  test total: {len(X_test)} points")
+else:
+    print("  no test files found — falling back to 20% random split")
+    n_test   = int(len(data) * 0.2)
+    test_idx = rng.choice(len(data), n_test, replace=False)
+    tr_idx   = np.setdiff1d(np.arange(len(data)), test_idx)
+    X_test,  Y_test  = X_all[test_idx], Y_all[test_idx]
+    X_all,   Y_all   = X_all[tr_idx],   Y_all[tr_idx]
+    weights          = weights[tr_idx]
 
+# ── Weighted subsample for GP ─────────────────────────────────────────────────
+w_norm = weights / weights.sum()
+if len(X_all) > args.max_points:
+    gp_idx = rng.choice(len(X_all), args.max_points, replace=False, p=w_norm)
+    X_train, Y_train = X_all[gp_idx], Y_all[gp_idx]
+    print(f"  subsampled to {args.max_points} (weighted by dataset recency)")
+else:
+    X_train, Y_train = X_all, Y_all
+
+print(f"  GP train: {len(X_train)}  test: {len(X_test)}")
+print(f"  residual std:  eps_vx={Y_train[:,0].std():.4f}  "
+      f"eps_vy={Y_train[:,1].std():.4f}  eps_omega={Y_train[:,2].std():.4f}")
 
 # ── Scale features ────────────────────────────────────────────────────────────
-
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
+scaler   = StandardScaler()
+X_train_sc = scaler.fit_transform(X_train)
+X_test_sc  = scaler.transform(X_test)
 
 # ── Train GP ──────────────────────────────────────────────────────────────────
-# One GP per output dimension (sklearn's multi-output GP is just 3 independent GPs)
-
-print("Training GP ...")
-kernel = 1.0 * RBF(length_scale=np.ones(5)) + WhiteKernel(noise_level=1e-3)
+n_feat = X_train.shape[1]
+print(f"\nTraining GP ({n_feat} features, {len(X_train)} points) ...")
+kernel = 1.0 * RBF(length_scale=np.ones(n_feat)) + WhiteKernel(noise_level=1e-3)
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
-gp.fit(X_scaled, Y)
-
+gp.fit(X_train_sc, Y_train)
 print(f"  learned kernel: {gp.kernel_}")
 
-# Decompose kernel components
-k_rbf    = gp.kernel_.k1          # RBF part  (k1 * k2 = ConstantKernel * RBF → combined as 1.0*RBF)
-k_noise  = gp.kernel_.k2          # WhiteKernel
-
-# Extract length scales (after fitting, RBF may be wrapped in ConstantKernel)
-# Handle both sklearn kernel structures
+# ── Extract kernel parameters ─────────────────────────────────────────────────
+k_rbf   = gp.kernel_.k1
+k_noise = gp.kernel_.k2
 try:
-    length_scale = k_rbf.k2.length_scale          # ConstantKernel * RBF
+    length_scale = k_rbf.k2.length_scale
     amplitude    = np.sqrt(k_rbf.k1.constant_value)
 except AttributeError:
-    length_scale = k_rbf.length_scale              # plain RBF (if amplitude=1)
+    length_scale = k_rbf.length_scale
     amplitude    = 1.0
-
 noise_level = k_noise.noise_level
 
 print(f"  amplitude:     {amplitude:.4f}")
 print(f"  length_scales: {length_scale}")
 print(f"  noise_level:   {noise_level:.6f}")
 
+alpha   = gp.alpha_
+X_stored = gp.X_train_
+y_mean  = gp._y_train_mean
+y_std   = getattr(gp, "_y_train_std", np.ones_like(y_mean))
 
-# ── Precompute alpha = K^{-1} y  (needed for fast inference) ─────────────────
+# ── RMSE on test set ──────────────────────────────────────────────────────────
+Y_pred = gp.predict(X_test_sc)
+print("\n── RMSE on test set ──────────────────────────────────────────────────────")
+for i, name in enumerate(["eps_vx", "eps_vy", "eps_omega"]):
+    rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))
+    rmse_gp   = np.sqrt(np.mean((Y_test[:, i] - Y_pred[:, i]) ** 2))
+    print(f"  {name}: no-model={rmse_base:.6f}  GP={rmse_gp:.6f}  "
+          f"improv={100*(rmse_base-rmse_gp)/rmse_base:.1f}%")
 
-alpha = gp.alpha_        # shape (n_train, n_outputs) — sklearn stores this
-X_train = gp.X_train_   # scaled training inputs
-
-# y normalisation params (needed to unnormalise predictions in C++)
-y_mean = gp._y_train_mean   # (n_outputs,)
-y_std  = getattr(gp, "_y_train_std", np.ones_like(y_mean))  # (n_outputs,)
-
-print(f"  alpha shape: {alpha.shape}")
-print(f"  y_mean:  {y_mean}")
-print(f"  y_std:   {y_std}")
-
-
-# ── Save ──────────────────────────────────────────────────────────────────────
-
-np.savez(args.out,
-         X_train      = X_train,          # (n, 5) scaled
-         alpha        = alpha,            # (n, 3)
-         length_scale = length_scale,     # (5,)
+# ── Save .npz ─────────────────────────────────────────────────────────────────
+stem     = args.out[:-len(".npz")]
+npz_path = f"{stem}_{args.n_datasets - 1}.npz"
+Path(npz_path).parent.mkdir(parents=True, exist_ok=True)
+np.savez(npz_path,
+         X_train      = X_stored,
+         alpha        = alpha,
+         length_scale = np.atleast_1d(length_scale),
          amplitude    = np.array([amplitude]),
          noise_level  = np.array([noise_level]),
-         scaler_mean  = scaler.mean_,     # (5,) for standardisation in C++
-         scaler_std   = scaler.scale_,    # (5,)
-         y_mean       = y_mean,           # (3,) output mean  (for unnormalising)
-         y_std        = y_std,            # (3,) output std
+         scaler_mean  = scaler.mean_,
+         scaler_std   = scaler.scale_,
+         y_mean       = y_mean,
+         y_std        = y_std,
 )
+print(f"\nSaved → {npz_path}")
 
-print(f"\nSaved → {args.out}")
-print("Columns in alpha: [eps_vx, eps_vy, eps_omega]")
-
-
-# ── Export binary for C++ inference ──────────────────────────────────────────
-
-bin_path = str(args.out).replace(".npz", ".bin")
-n_train, n_features = X_train.shape
-n_outputs = alpha.shape[1]
+# ── Save .bin for C++ inference ───────────────────────────────────────────────
+bin_path   = str(npz_path).replace(".npz", ".bin")
+n_train, n_features = X_stored.shape
+n_outputs  = alpha.shape[1]
 
 with open(bin_path, "wb") as f:
     np.array([n_train, n_features, n_outputs], dtype=np.int32).tofile(f)
-    X_train.astype(np.float64).tofile(f)
+    X_stored.astype(np.float64).tofile(f)
     alpha.astype(np.float64).tofile(f)
-    length_scale.astype(np.float64).tofile(f)
+    np.atleast_1d(length_scale).astype(np.float64).tofile(f)
     np.array([amplitude], dtype=np.float64).tofile(f)
     scaler.mean_.astype(np.float64).tofile(f)
     scaler.scale_.astype(np.float64).tofile(f)
@@ -158,12 +205,4 @@ with open(bin_path, "wb") as f:
     y_std.astype(np.float64).tofile(f)
 
 print(f"Saved → {bin_path}  (for C++ inference)")
-
-
-# ── Quick sanity check ────────────────────────────────────────────────────────
-
-y_pred, y_std = gp.predict(X_scaled[:10], return_std=True)
-print("\nSanity check (first 10 points):")
-for i, name in enumerate(["eps_vx", "eps_vy", "eps_omega"]):
-    print(f"  pred  {name}: {y_pred[:, i]}")
-    print(f"  actual {name}: {Y[:10, i]}")
+print(f"Columns in alpha: [eps_vx, eps_vy, eps_omega]")

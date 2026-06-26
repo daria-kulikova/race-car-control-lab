@@ -1,11 +1,13 @@
 """
 Evaluate and compare GP residual models: sklearn vs gpytorch.
 
-Splits data 80/20, trains both GPs on 80%, evaluates on held-out 20%.
+Loads n-datasets files (*_0.csv, *_1.csv, ...) with dataset i having weight i+1.
+Test data is loaded from *_test_{i}.csv files (same convention as train_mlp_2.py).
 
 Usage:
-    python3 src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py
-    python3 src/crs/controls/car/pacejka_mpcc/script/evaluate_gp.py --no-gpytorch   # skip gpytorch if not installed,
+    python3 evaluate_gp.py
+    python3 evaluate_gp.py --n-datasets 3 --features vx vy omega delta T
+    python3 evaluate_gp.py --no-gpytorch
 """
 
 import argparse
@@ -19,19 +21,21 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", default="/code/src/crs/controls/car/pacejka_mpcc/script/data/combined_data.csv")
-parser.add_argument("--out", default=str(Path(__file__).parent / "gp_evaluation.png"))
-parser.add_argument("--vx-min", type=float, default=0.5)
-parser.add_argument("--gp-max-points", type=int, default=2000, help="max training points for GP (MLP uses all)")
-parser.add_argument("--test-fraction", type=float, default=0.2)
-parser.add_argument("--seed", type=int, default=42)
-parser.add_argument("--no-gp",      action="store_true", help="skip sklearn GP")
-parser.add_argument("--no-gpytorch", action="store_true", help="skip gpytorch comparison")
-parser.add_argument("--iqr-k", type=float, default=3.0,
-                    help="IQR multiplier for outlier removal on eps_ targets (larger = keep more)")
-parser.add_argument("--lf", type=float, default=0.052, help="front axle distance [m]")
-parser.add_argument("--lr", type=float, default=0.038, help="rear axle distance [m]")
-parser.add_argument("--features", type=str, nargs="+",
+parser.add_argument("--data",          default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
+parser.add_argument("--out",           default=str(Path(__file__).parent / "gp_evaluation.png"))
+parser.add_argument("--vx-min",        type=float, default=0.5)
+parser.add_argument("--iqr-k",         type=float, default=3.0,
+                    help="IQR multiplier for outlier removal on eps_ targets")
+parser.add_argument("--gp-max-points", type=int,   default=2000,
+                    help="max training points for GP (MLP uses all)")
+parser.add_argument("--n-datasets",    type=int,   default=1,
+                    help="number of datasets (*_0.csv, *_1.csv, ...); dataset i gets weight i+1")
+parser.add_argument("--seed",          type=int,   default=42)
+parser.add_argument("--no-gp",         action="store_true", help="skip sklearn GP")
+parser.add_argument("--no-gpytorch",   action="store_true", help="skip gpytorch comparison")
+parser.add_argument("--lf",            type=float, default=0.052, help="front axle distance [m]")
+parser.add_argument("--lr",            type=float, default=0.038, help="rear axle distance [m]")
+parser.add_argument("--features",      type=str,   nargs="+",
                     default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     help="feature subset to use for training")
@@ -40,53 +44,96 @@ args = parser.parse_args()
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
 COLORS = ["steelblue", "darkorange", "forestgreen"]
 
-# ── Load & filter ─────────────────────────────────────────────────────────────
-data = np.loadtxt(args.data, delimiter=",", skiprows=1)
-# columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
-data = data[data[:, 1] >= args.vx_min]
-print(f"  after vx >= {args.vx_min} filter: {len(data)}")
+rng = np.random.default_rng(args.seed)
+
+
+def slip_angles(vx, vy, omega, delta, lf, lr):
+    vx_safe = np.maximum(vx, 0.1)
+    beta    = np.arctan2(vy, vx_safe)
+    alpha_f = delta - np.arctan2(vy + lf * omega, vx_safe)
+    alpha_r = -np.arctan2(vy - lr * omega, vx_safe)
+    return beta, alpha_f, alpha_r
+
+
+def build_features(data):
+    # columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
+    raw = data[:, 1:6]   # [vx, vy, omega, delta, T]
+    beta, alpha_f, alpha_r = slip_angles(raw[:, 0], raw[:, 1], raw[:, 2], raw[:, 3],
+                                         args.lf, args.lr)
+    ALL = {
+        "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
+        "delta": raw[:, 3], "T": raw[:, 4],
+        "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
+    }
+    X = np.column_stack([ALL[f] for f in args.features])
+    Y = data[:, 6:9]   # [eps_vx, eps_vy, eps_omega]
+    return X, Y
+
+
+# ── Load training data ────────────────────────────────────────────────────────
+base = args.data[:-len("0.csv")]
+chunks, weight_chunks = [], []
+for i in range(args.n_datasets):
+    path = base + f"{i}.csv"
+    d = np.loadtxt(path, delimiter=",", skiprows=1)
+    chunks.append(d)
+    weight_chunks.append(np.full(len(d), float(i + 1)))
+    print(f"  loaded {path}: {len(d)} rows, weight={i + 1}")
+data    = np.vstack(chunks)
+weights = np.concatenate(weight_chunks)
+print(f"  total: {len(data)} rows")
+
+mask_vx = data[:, 1] >= args.vx_min
+data    = data[mask_vx]
+weights = weights[mask_vx]
+print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
 mask = np.ones(len(data), dtype=bool)
 for c in [6, 7, 8]:
     q25, q75 = np.percentile(data[:, c], [25, 75])
     iqr = q75 - q25
     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-data = data[mask]
-print(f"  after outlier filter (k={args.iqr_k}): {len(data)} (removed {(~mask).sum()})")
+data    = data[mask]
+weights = weights[mask]
+print(f"  {mask.sum()} points after outlier filter (k={args.iqr_k}, removed {(~mask).sum()})")
 
-raw = data[:, 1:6]   # [vx, vy, omega, delta, T]
-vx_safe = np.maximum(raw[:, 0], 0.1)
-beta    = np.arctan2(raw[:, 1], vx_safe)
-alpha_f = raw[:, 3] - np.arctan2(raw[:, 1] + args.lf * raw[:, 2], vx_safe)
-alpha_r = -np.arctan2(raw[:, 1] - args.lr * raw[:, 2], vx_safe)
-ALL_FEATURES = {
-    "vx": raw[:, 0], "vy": raw[:, 1], "omega": raw[:, 2],
-    "delta": raw[:, 3], "T": raw[:, 4],
-    "beta": beta, "alpha_f": alpha_f, "alpha_r": alpha_r,
-}
-X = np.column_stack([ALL_FEATURES[f] for f in args.features])
-Y = data[:, 6:9]                                     # [eps_vx, eps_vy, eps_omega]
+X_train, Y_train = build_features(data)
 print(f"  features ({len(args.features)}): {args.features}")
 
-# ── Train/test split (full data) ──────────────────────────────────────────────
-rng = np.random.default_rng(args.seed)
-n_test = int(len(data) * args.test_fraction)
-test_idx = rng.choice(len(data), n_test, replace=False)
-train_idx = np.setdiff1d(np.arange(len(data)), test_idx)
+# ── Load test data from *_test_{i}.csv ───────────────────────────────────────
+test_base   = base + "test_"
+test_chunks = []
+for i in range(args.n_datasets):
+    p = test_base + f"{i}.csv"
+    if Path(p).exists():
+        test_chunks.append(np.loadtxt(p, delimiter=",", skiprows=1))
+        print(f"  loaded test {p}: {len(test_chunks[-1])} rows")
 
-X_train, Y_train = X[train_idx], Y[train_idx]
-X_test,  Y_test  = X[test_idx],  Y[test_idx]
+if test_chunks:
+    test_data = np.vstack(test_chunks)
+    test_data = test_data[test_data[:, 1] >= args.vx_min]
+    X_test, Y_test = build_features(test_data)
+    print(f"  test total: {len(X_test)} points")
+else:
+    print("  no test files found — falling back to 20% random split")
+    n_test   = int(len(data) * 0.2)
+    test_idx = rng.choice(len(data), n_test, replace=False)
+    tr_idx   = np.setdiff1d(np.arange(len(data)), test_idx)
+    X_test,  Y_test  = X_train[test_idx],  Y_train[test_idx]
+    X_train, Y_train = X_train[tr_idx],    Y_train[tr_idx]
+    weights          = weights[tr_idx]
 
-# ── GP subsample (GP doesn't scale to large datasets) ─────────────────────────
+# ── GP subsample: weighted (recent datasets sampled more) ─────────────────────
+w_norm = weights / weights.sum()
 if len(X_train) > args.gp_max_points:
-    gp_idx = rng.choice(len(X_train), args.gp_max_points, replace=False)
+    gp_idx = rng.choice(len(X_train), args.gp_max_points, replace=False, p=w_norm)
     X_train_gp, Y_train_gp = X_train[gp_idx], Y_train[gp_idx]
 else:
     X_train_gp, Y_train_gp = X_train, Y_train
 
-print(f"Train total: {len(X_train)}  GP train: {len(X_train_gp)}  Test: {len(X_test)}")
+print(f"\nTrain total: {len(X_train)}  GP train: {len(X_train_gp)}  Test: {len(X_test)}")
 
-# ── shared scaler (always needed for MLP) ─────────────────────────────────────
+# ── Scaler (fit on GP subset to stay consistent with GP inputs) ───────────────
 scaler = StandardScaler()
 scaler.fit(X_train_gp)
 X_train_gp_sc = scaler.transform(X_train_gp)
@@ -97,22 +144,25 @@ X_test_sc     = scaler.transform(X_test)
 Y_pred_sklearn = None
 if not args.no_gp:
     print("\nTraining sklearn GP ...")
-    kernel = 1.0 * RBF(length_scale=np.ones(X.shape[1])) + WhiteKernel(noise_level=1e-3)
+    kernel = 1.0 * RBF(length_scale=np.ones(X_train.shape[1])) + WhiteKernel(noise_level=1e-3)
     gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
     gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
     Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
     print(f"  Kernel: {gp_sklearn.kernel_}")
 
-# ── MLP ───────────────────────────────────────────────────────────────────────
+# ── MLP (sklearn, weighted by repeating samples) ──────────────────────────────
 print("\nTraining MLP ...")
-y_scaler = StandardScaler()
+y_scaler   = StandardScaler()
 Y_train_sc = y_scaler.fit_transform(Y_train)
 
-mlp = MLPRegressor(hidden_layer_sizes=(64, 64, 32), activation='tanh',
-                   solver='adam', max_iter=5000,
-                   alpha=0.01,
-                   random_state=args.seed)
-mlp.fit(X_train_sc, Y_train_sc)
+int_w = weights.astype(int)
+X_train_sc_w = np.repeat(X_train_sc, int_w, axis=0)
+Y_train_sc_w = np.repeat(Y_train_sc, int_w, axis=0)
+
+mlp = MLPRegressor(hidden_layer_sizes=(64, 64, 32), activation="tanh",
+                   solver="adam", max_iter=5000, early_stopping=True,
+                   alpha=0.01, random_state=args.seed)
+mlp.fit(X_train_sc_w, Y_train_sc_w)
 Y_pred_mlp = y_scaler.inverse_transform(mlp.predict(X_test_sc))
 print(f"  hidden layers: {mlp.hidden_layer_sizes}  iters: {mlp.n_iter_}")
 
@@ -143,10 +193,10 @@ if not args.no_gpytorch:
         for out_i, name in enumerate(OUTPUT_NAMES):
             y_mean = Y_train_gp[:, out_i].mean()
             y_std  = Y_train_gp[:, out_i].std() + 1e-8
-            ty_i = torch.tensor((Y_train_gp[:, out_i] - y_mean) / y_std, dtype=torch.float32)
+            ty_i   = torch.tensor((Y_train_gp[:, out_i] - y_mean) / y_std, dtype=torch.float32)
 
             likelihood_i = gpytorch.likelihoods.GaussianLikelihood()
-            model_i = SingleOutputGP(tx, ty_i, likelihood_i)
+            model_i      = SingleOutputGP(tx, ty_i, likelihood_i)
 
             model_i.train(); likelihood_i.train()
             optimizer = torch.optim.Adam(model_i.parameters(), lr=0.1)
@@ -161,7 +211,7 @@ if not args.no_gpytorch:
             model_i.eval(); likelihood_i.eval()
             with torch.no_grad():
                 pred_sc = likelihood_i(model_i(test_x)).mean.numpy()
-            preds_list.append(pred_sc * y_std + y_mean)  # unnormalize
+            preds_list.append(pred_sc * y_std + y_mean)
             print(f"  {name} done")
 
         Y_pred_gpytorch = np.column_stack(preds_list)
@@ -171,10 +221,10 @@ if not args.no_gpytorch:
         print("  gpytorch not installed — skipping. Run: pip install gpytorch")
 
 # ── RMSE comparison ───────────────────────────────────────────────────────────
-print("\n── RMSE comparison (baseline = predict 0 = no GP correction) ────────────")
-header = f"{'Output':<12} {'No GP':>10} {'MLP':>10} {'Improv':>8}"
+print("\n── RMSE comparison (baseline = predict 0) ────────────────────────────────")
+header = f"{'Output':<12} {'No model':>10} {'MLP':>10} {'Improv':>8}"
 if Y_pred_sklearn is not None:
-    header = f"{'Output':<12} {'No GP':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
+    header = f"{'Output':<12} {'No model':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
 if Y_pred_gpytorch is not None:
     header += f" {'gpytorch GP':>13} {'Improv':>8}"
 print(header)
@@ -207,15 +257,16 @@ fig, axes = plt.subplots(n_models, 3, figsize=(14, 5 * n_models))
 if n_models == 1:
     axes = axes[np.newaxis, :]
 
-fig.suptitle("Model comparison: predicted vs actual residual (held-out 20%)", fontsize=12)
+src = "test file" if test_chunks else "random 20% split"
+fig.suptitle(f"Model comparison: predicted vs actual residual ({src})", fontsize=12)
 
 for col_i, (name, color) in enumerate(zip(OUTPUT_NAMES, COLORS)):
     for row_i, (label, Y_pred) in enumerate(all_models):
-        ax = axes[row_i, col_i]
+        ax     = axes[row_i, col_i]
         actual = Y_test[:, col_i]
         pred   = Y_pred[:, col_i]
 
-        lim = max(np.abs(actual).max(), np.abs(pred).max()) * 1.1
+        lim = float(np.percentile(np.abs(np.concatenate([actual, pred])), 99)) * 1.1
         ax.scatter(actual, pred, s=8, alpha=0.4, color=color)
         ax.plot([-lim, lim], [-lim, lim], "k--", linewidth=1, label="perfect")
         ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
@@ -223,7 +274,7 @@ for col_i, (name, color) in enumerate(zip(OUTPUT_NAMES, COLORS)):
         ax.set_ylabel(f"predicted {name}")
         rmse_base = np.sqrt(np.mean(actual ** 2))
         rmse      = np.sqrt(np.mean((actual - pred) ** 2))
-        ax.set_title(f"{label} — {name}\nno-GP={rmse_base:.5f}  {label}={rmse:.5f}")
+        ax.set_title(f"{label} — {name}\nno-model={rmse_base:.5f}  {label}={rmse:.5f}")
         ax.legend(fontsize=8)
         ax.set_aspect("equal")
 
