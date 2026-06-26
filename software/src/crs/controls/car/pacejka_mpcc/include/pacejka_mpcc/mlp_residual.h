@@ -67,7 +67,6 @@ public:
       return false;
     }
 
-    const int n_in = sizes_.front();
     auto read_vec = [&](std::vector<double>& v, int n) {
       v.resize(n);
       f.read(reinterpret_cast<char*>(v.data()), n * sizeof(double));
