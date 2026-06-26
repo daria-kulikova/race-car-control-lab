@@ -37,7 +37,7 @@ def generate_solver(config, lib_dir, additional_args):
     residual_scale = config["solver_creation"].get("residual_scale", 1.0)
 
     # Auto-detect MLP weights placed alongside acados scripts (one directory up from here)
-    mlp_npz = os.path.join(os.path.dirname(_SCRIPT_DIR), "mlp_model.npz")
+    mlp_npz = os.path.join(os.path.dirname(_SCRIPT_DIR), "mlp_model65.npz")
     mlp_weights_path = mlp_npz if os.path.exists(mlp_npz) else None
     if mlp_weights_path:
         print(f"[generate_solver] Found mlp_model.npz — embedding MLP (scale={residual_scale})", file=sys.stderr, flush=True)

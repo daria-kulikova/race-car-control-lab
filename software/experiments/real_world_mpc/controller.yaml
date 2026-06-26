@@ -20,10 +20,11 @@ controller_params:
   steer_limit: 0.3
 
   # Combined data+tracking log. Appends on repeated runs. Empty = logging disabled.
-  log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv
+  log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_1.csv
+#  log_path: /code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_test_1.csv
 
   # Residual correction in lag compensation (MLP takes priority over GP if both are set).
-  #mlp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/mlp_model.bin
+  mlp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/models/mlp_final/mlp_model_0.bin
   #gp_model_path: /code/src/crs/controls/car/pacejka_mpcc/script/gp_model.bin
   residual_scale: 1.0  # [0, 1] — tune down if correction destabilises (try 0.3, 0.5)
   sample_period: 0.02  # Must match Ts in solver_acados.yaml (50Hz)

@@ -19,9 +19,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-DATA_DIR  = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
-PLOTS_DIR = Path("/code/src/crs/controls/car/pacejka_mpcc/script/plots")
-LOG_BASE  = "mpcc_log_cm1_0555"
+DATA_DIR  = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final")
+PLOTS_DIR = Path("/code/src/crs/controls/car/pacejka_mpcc/script/plots/mlp_final")
+LOG_BASE  = "residuals"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", choices=["baseline", "last", "none"], default="baseline",
