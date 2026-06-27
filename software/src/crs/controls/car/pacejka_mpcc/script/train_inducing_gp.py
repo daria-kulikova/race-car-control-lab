@@ -32,9 +32,9 @@ OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data",              default="/code/src/crs/controls/car/pacejka_mpcc/script/data/gp_final/residuals_0.csv")
-parser.add_argument("--out",               default=str(Path(__file__).parent / "models/gp_final/inducing_gp_test_model.npz"))
-parser.add_argument("--n-inducing-points", type=int,   default=500)
-parser.add_argument("--n-iter",            type=int,   default=500)
+parser.add_argument("--out",               default=str(Path(__file__).parent / "models/gp_final/inducing_gp_model.npz"))
+parser.add_argument("--n-inducing-points", type=int,   default=300)
+parser.add_argument("--n-iter",            type=int,   default=1000)
 parser.add_argument("--step-size",         type=float, default=0.05, help="Adam learning rate")
 parser.add_argument("--vx-min",            type=float, default=1.0)
 parser.add_argument("--n-datasets",        type=int,   default=1)
@@ -180,16 +180,25 @@ for out_i, name in enumerate(OUTPUT_NAMES):
     opt = torch.optim.Adam(
         list(model_i.parameters()) + list(lik_i.parameters()), lr=args.step_size
     )
+    warmup_iters = args.n_iter // 10
+    def lr_lambda(it):
+        if it < warmup_iters:
+            return it / warmup_iters
+        t = (it - warmup_iters) / (args.n_iter - warmup_iters)
+        return 0.01 + 0.99 * 0.5 * (1 + torch.cos(torch.tensor(t * 3.14159)).item())
+    scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
     mll = gpytorch.mlls.VariationalELBO(lik_i, model_i, num_data=len(ty_i))
 
     for it in range(args.n_iter):
         opt.zero_grad()
         (-mll(model_i(tx), ty_i)).backward()
         opt.step()
+        scheduler.step()
         if (it + 1) % 100 == 0:
             with torch.no_grad():
                 l = -mll(model_i(tx), ty_i).item()
-            print(f"  {name}  iter {it + 1}/{args.n_iter}  loss={l:.4f}")
+            lr_now = scheduler.get_last_lr()[0]
+            print(f"  {name}  iter {it + 1}/{args.n_iter}  loss={l:.4f}  lr={lr_now:.5f}")
 
     # Extract parameters for C++ inference
     model_i.eval(); lik_i.eval()
@@ -198,12 +207,14 @@ for out_i, name in enumerate(OUTPUT_NAMES):
         m_u_o = model_i.variational_strategy._variational_distribution.variational_mean.detach()  # m
         K_ZZ      = model_i.covar_module(Z_o).evaluate()
         K_ZZ_diag = K_ZZ.diagonal().mean().item()
-        jitter    = max(K_ZZ_diag * 1e-3, 1e-6)
+        jitter    = max(K_ZZ_diag * 1e-4, 1e-7)
         L         = torch.linalg.cholesky(K_ZZ + torch.eye(m) * jitter)
-        alpha_ind = torch.cholesky_solve(m_u_o.unsqueeze(-1), L).squeeze(-1).numpy()
+        # VariationalStrategy is whitened: variational_mean is m_tilde in whitened space.
+        # Predictive mean = K(x*,Z) @ L^{-T} @ m_tilde, so alpha_ind = L^{-T} @ m_tilde.
+        alpha_ind = torch.linalg.solve_triangular(L.T, m_u_o.unsqueeze(-1), upper=True).squeeze(-1).numpy()
         alpha_norm = float(np.linalg.norm(alpha_ind))
-        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  jitter={jitter:.1e}  ||alpha_ind||={alpha_norm:.3f}")
-        if alpha_norm > 1e3:
+        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  ||alpha_ind||={alpha_norm:.3f}")
+        if alpha_norm > 1e2:
             print(f"    WARNING: alpha_ind norm={alpha_norm:.1f} large — use residual_scale<=0.3 on first test")
 
         amp = float(model_i.covar_module.outputscale.item() ** 0.5)
