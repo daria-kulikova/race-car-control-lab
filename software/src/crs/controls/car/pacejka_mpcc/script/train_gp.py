@@ -22,9 +22,9 @@ from sklearn.preprocessing import StandardScaler
 parser = argparse.ArgumentParser()
 parser.add_argument("--data",         default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
 parser.add_argument("--out",          default=str(Path(__file__).parent / "models/mlp_final/gp_model.npz"))
-parser.add_argument("--max-points",   type=int,   default=2000,
+parser.add_argument("--max-points",   type=int,   default=1500,
                     help="max training points (GP is O(n³))")
-parser.add_argument("--vx-min",       type=float, default=0.5)
+parser.add_argument("--vx-min",       type=float, default=1.0)
 parser.add_argument("--iqr-k",        type=float, default=3.0,
                     help="IQR multiplier for outlier removal on eps_ targets")
 parser.add_argument("--n-datasets",   type=int,   default=1,
@@ -81,14 +81,14 @@ data    = data[mask_vx]
 weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
-mask = np.ones(len(data), dtype=bool)
-for c in [6, 7, 8]:
-    q25, q75 = np.percentile(data[:, c], [25, 75])
-    iqr = q75 - q25
-    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-data    = data[mask]
-weights = weights[mask]
-print(f"  {mask.sum()} points after outlier filter (k={args.iqr_k}, removed {(~mask).sum()})")
+# mask = np.ones(len(data), dtype=bool)
+# for c in [6, 7, 8]:
+#     q25, q75 = np.percentile(data[:, c], [25, 75])
+#     iqr = q75 - q25
+#     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+# data    = data[mask]
+# weights = weights[mask]
+# print(f"  {mask.sum()} points after outlier filter (k={args.iqr_k}, removed {(~mask).sum()})")
 
 X_all, Y_all = build_features(data)
 print(f"  features ({len(args.features)}): {args.features}")

@@ -26,7 +26,7 @@ parser.add_argument("--data",              default="/code/src/crs/controls/car/p
 parser.add_argument("--out",               default=str(Path(__file__).parent / "plots/model_evaluation.png"))
 parser.add_argument("--vx-min",            type=float, default=1.0)
 parser.add_argument("--iqr-k",             type=float, default=3.0)
-parser.add_argument("--gp-max-points",     type=int,   default=2000,
+parser.add_argument("--gp-max-points",     type=int,   default=1500,
                     help="max training points for sklearn/exact gpytorch GP")
 parser.add_argument("--n-datasets",        type=int,   default=1,
                     help="number of datasets (*_0.csv, ...); dataset i gets weight i+1")
