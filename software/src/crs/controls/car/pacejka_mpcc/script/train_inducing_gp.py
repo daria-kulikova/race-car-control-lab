@@ -3,11 +3,12 @@ Train an inducing-point GP residual model from MPCC combined log files.
 Saves .npz (for inspection) and .bin (for C++ controller).
 
 Three separate models are trained, one per output [eps_vx, eps_vy, eps_omega].
+Dataset i gets weight i+1 (newer data sampled more often per epoch).
 
 Usage:
     python3 train_inducing_gp.py
     python3 train_inducing_gp.py --n-datasets 3 --features omega alpha_f alpha_r vx
-    python3 train_inducing_gp.py --n-inducing-points 200 --n-iter 1000
+    python3 train_inducing_gp.py --n-inducing-points 300 --n-epochs 100 --batch-size 256
 """
 
 import argparse
@@ -34,8 +35,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data",              default="/code/src/crs/controls/car/pacejka_mpcc/script/data/gp_final/residuals_0.csv")
 parser.add_argument("--out",               default=str(Path(__file__).parent / "models/gp_final/inducing_gp_model.npz"))
 parser.add_argument("--n-inducing-points", type=int,   default=300)
-parser.add_argument("--n-iter",            type=int,   default=1000)
-parser.add_argument("--step-size",         type=float, default=0.05, help="Adam learning rate")
+parser.add_argument("--n-epochs",          type=int,   default=100,  help="training epochs")
+parser.add_argument("--batch-size",        type=int,   default=256,  help="mini-batch size (0 = full batch)")
+parser.add_argument("--step-size",         type=float, default=0.1,  help="Adam learning rate")
 parser.add_argument("--vx-min",            type=float, default=1.0)
 parser.add_argument("--n-datasets",        type=int,   default=1)
 parser.add_argument("--seed",              type=int,   default=42)
@@ -158,15 +160,20 @@ class InducingGP(gpytorch.models.ApproximateGP):
         )
 
 
-tx     = torch.tensor(X_sc,      dtype=torch.float32)
-test_x = torch.tensor(X_test_sc, dtype=torch.float32)
-ind_t  = torch.tensor(ind_np,    dtype=torch.float32)
+tx       = torch.tensor(X_sc,      dtype=torch.float32)
+test_x   = torch.tensor(X_test_sc, dtype=torch.float32)
+ind_t    = torch.tensor(ind_np,    dtype=torch.float32)
+w_torch  = torch.tensor(weights,   dtype=torch.float32)
+
+batch_size       = args.batch_size if args.batch_size > 0 else len(X_sc)
+steps_per_epoch  = max(1, len(X_sc) // batch_size)
 
 # ── Train one model per output ─────────────────────────────────────────────────
 Z_list, alpha_ind_list, amplitude_list, ls_list = [], [], [], []
 y_mean_list, y_std_list = [], []
 
-print(f"\nTraining {len(OUTPUT_NAMES)} inducing GPs ({len(X_all)} pts, {m} inducing) ...")
+print(f"\nTraining {len(OUTPUT_NAMES)} inducing GPs ({len(X_all)} pts, {m} inducing, "
+      f"batch={batch_size}, {steps_per_epoch} steps/epoch) ...")
 
 for out_i, name in enumerate(OUTPUT_NAMES):
     y_mean = float(Y_all[:, out_i].mean())
@@ -180,25 +187,19 @@ for out_i, name in enumerate(OUTPUT_NAMES):
     opt = torch.optim.Adam(
         list(model_i.parameters()) + list(lik_i.parameters()), lr=args.step_size
     )
-    warmup_iters = args.n_iter // 10
-    def lr_lambda(it):
-        if it < warmup_iters:
-            return it / warmup_iters
-        t = (it - warmup_iters) / (args.n_iter - warmup_iters)
-        return 0.01 + 0.99 * 0.5 * (1 + torch.cos(torch.tensor(t * 3.14159)).item())
-    scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
     mll = gpytorch.mlls.VariationalELBO(lik_i, model_i, num_data=len(ty_i))
 
-    for it in range(args.n_iter):
-        opt.zero_grad()
-        (-mll(model_i(tx), ty_i)).backward()
-        opt.step()
-        scheduler.step()
-        if (it + 1) % 100 == 0:
-            with torch.no_grad():
-                l = -mll(model_i(tx), ty_i).item()
-            lr_now = scheduler.get_last_lr()[0]
-            print(f"  {name}  iter {it + 1}/{args.n_iter}  loss={l:.4f}  lr={lr_now:.5f}")
+    for epoch in range(args.n_epochs):
+        epoch_loss = 0.0
+        for _ in range(steps_per_epoch):
+            idx = torch.multinomial(w_torch, batch_size, replacement=True)
+            opt.zero_grad()
+            loss = -mll(model_i(tx[idx]), ty_i[idx])
+            loss.backward()
+            opt.step()
+            epoch_loss += loss.item()
+        if (epoch + 1) % 10 == 0:
+            print(f"  {name}  epoch {epoch + 1}/{args.n_epochs}  loss={epoch_loss / steps_per_epoch:.4f}")
 
     # Extract parameters for C++ inference
     model_i.eval(); lik_i.eval()
