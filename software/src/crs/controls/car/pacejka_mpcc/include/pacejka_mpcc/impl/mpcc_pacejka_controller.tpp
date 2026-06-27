@@ -267,7 +267,8 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   }
   else if (inducing_gp_.isLoaded())
   {
-    auto d = inducing_gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
+    auto d = inducing_gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque,
+                                   config_.inducing_gp_uncertainty_scaling);
     apply_residual(d.d_vx, d.d_vy, d.d_omega, "InducingGP", inducing_gp_log_counter_);
   }
   else if (gp_.isLoaded())

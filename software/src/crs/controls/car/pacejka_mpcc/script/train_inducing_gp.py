@@ -170,6 +170,7 @@ steps_per_epoch  = max(1, len(X_sc) // batch_size)
 
 # ── Train one model per output ─────────────────────────────────────────────────
 Z_list, alpha_ind_list, amplitude_list, ls_list = [], [], [], []
+L_ZZ_inv_list, LS_T_LZZinv_list = [], []
 y_mean_list, y_std_list = [], []
 
 print(f"\nTraining {len(OUTPUT_NAMES)} inducing GPs ({len(X_all)} pts, {m} inducing, "
@@ -220,6 +221,14 @@ for out_i, name in enumerate(OUTPUT_NAMES):
         if alpha_norm > 1e2:
             print(f"    WARNING: alpha_ind norm={alpha_norm:.1f} large — use residual_scale<=0.3 on first test")
 
+        # Posterior variance: σ²(x*) = amp² - ||k_v||² + ||L_S^T @ k_v||²
+        # where k_v = L_ZZ^{-1} @ k(x*,Z).
+        # Precompute L_ZZ^{-1} and L_S^T @ L_ZZ^{-1} for C++ inference.
+        L_S = model_i.variational_strategy._variational_distribution.chol_variational_covar.detach()
+        L_ZZ_inv   = torch.linalg.solve_triangular(L, torch.eye(m), upper=False)  # m × m
+        LS_T_LZZinv = (L_S.T @ L_ZZ_inv).numpy()                                  # m × m
+        L_ZZ_inv_np = L_ZZ_inv.numpy()
+
         amp = float(model_i.covar_module.outputscale.item() ** 0.5)
         ls  = model_i.covar_module.base_kernel.lengthscale.squeeze().numpy()
 
@@ -236,6 +245,8 @@ for out_i, name in enumerate(OUTPUT_NAMES):
     alpha_ind_list.append(alpha_ind)
     amplitude_list.append(amp)
     ls_list.append(ls)
+    L_ZZ_inv_list.append(L_ZZ_inv_np)
+    LS_T_LZZinv_list.append(LS_T_LZZinv)
     y_mean_list.append(y_mean)
     y_std_list.append(y_std)
 
@@ -248,10 +259,12 @@ np.savez(npz_path,
          feature_indices = feature_indices,
          lf              = np.array([args.lf]),
          lr              = np.array([args.lr]),
-         Z               = np.stack(Z_list),             # (3, m, d)
-         alpha_ind       = np.stack(alpha_ind_list),     # (3, m)
-         amplitude       = np.array(amplitude_list),     # (3,)
-         length_scale    = np.stack(ls_list),            # (3, d)
+         Z               = np.stack(Z_list),               # (3, m, d)
+         alpha_ind       = np.stack(alpha_ind_list),       # (3, m)
+         amplitude       = np.array(amplitude_list),       # (3,)
+         length_scale    = np.stack(ls_list),              # (3, d)
+         L_ZZ_inv        = np.stack(L_ZZ_inv_list),        # (3, m, m)
+         LS_T_LZZinv     = np.stack(LS_T_LZZinv_list),     # (3, m, m)
          scaler_mean     = scaler.mean_,
          scaler_std      = scaler.scale_,
          y_mean          = np.array(y_mean_list),
@@ -260,18 +273,24 @@ print(f"\nSaved → {npz_path}")
 
 # ── Save .bin for C++ inference ────────────────────────────────────────────────
 # Format:
-#   int32[3]       : n_inducing, n_features, n_outputs
-#   uint8[d]       : feature_indices  (into ALL_FEATURES order)
-#   float64[2]     : lf, lr
+#   int32[3]         : n_inducing, n_features, n_outputs
+#   uint8[d]         : feature_indices  (into ALL_FEATURES order)
+#   float64[2]       : lf, lr
 #   for o in 0..2:
-#     float64[m*d] : Z_o  (row-major)
-#     float64[m]   : alpha_ind_o
-#     float64      : amplitude_o
-#     float64[d]   : length_scale_o
-#   float64[d]     : scaler_mean
-#   float64[d]     : scaler_std
-#   float64[3]     : y_mean
-#   float64[3]     : y_std
+#     float64[m*d]   : Z_o           (row-major)
+#     float64[m]     : alpha_ind_o   (= L_ZZ^{-T} @ m_tilde)
+#     float64        : amplitude_o
+#     float64[d]     : length_scale_o
+#     float64[m*m]   : L_ZZ_inv_o    (row-major, for variance: k_v = L_ZZ_inv @ k)
+#     float64[m*m]   : LS_T_LZZinv_o (row-major, for variance: Lsk = LS_T_LZZinv @ k)
+#   float64[d]       : scaler_mean
+#   float64[d]       : scaler_std
+#   float64[3]       : y_mean
+#   float64[3]       : y_std
+#
+# Posterior variance: σ²= amp²- ||k_v||²+ ||Lsk||²  (clamped to [0, amp²])
+# Confidence scale:   s = max(0, 1 - σ²/amp²)
+# Scaled prediction:  out = (k @ alpha_ind) * s * y_std + y_mean
 bin_path  = npz_path.replace(".npz", ".bin")
 d = len(args.features)
 
@@ -284,6 +303,8 @@ with open(bin_path, "wb") as f:
         alpha_ind_list[o].astype(np.float64).tofile(f)
         np.array([amplitude_list[o]], dtype=np.float64).tofile(f)
         ls_list[o].astype(np.float64).tofile(f)
+        L_ZZ_inv_list[o].astype(np.float64).tofile(f)
+        LS_T_LZZinv_list[o].astype(np.float64).tofile(f)
     scaler.mean_.astype(np.float64).tofile(f)
     scaler.scale_.astype(np.float64).tofile(f)
     np.array(y_mean_list, dtype=np.float64).tofile(f)

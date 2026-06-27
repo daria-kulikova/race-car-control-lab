@@ -82,6 +82,12 @@ struct mpcc_pacejka_config
   std::string inducing_gp_model_path = "";
 
   /**
+   * @brief If true, scale inducing GP corrections by posterior confidence (1 - sigma²/amp²).
+   *        Reduces correction in regions far from training data. Default true.
+   */
+  bool inducing_gp_uncertainty_scaling = true;
+
+  /**
    * @brief Path to the MLP residual model binary (mlp_model.bin from train_mlp.py).
    *        Empty string disables MLP correction. Takes priority over GP if both are set.
    */
