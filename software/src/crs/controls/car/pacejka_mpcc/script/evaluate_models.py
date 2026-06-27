@@ -150,7 +150,17 @@ if not args.no_gp:
     gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True, random_state=args.seed)
     gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
     Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
-    print(f"  Kernel: {gp_sklearn.kernel_}")
+    k = gp_sklearn.kernel_
+    try:
+        amplitude   = np.sqrt(k.k1.k1.constant_value)
+        ls          = k.k1.k2.length_scale
+    except AttributeError:
+        amplitude   = 1.0
+        ls          = k.k1.length_scale
+    noise = k.k2.noise_level
+    print(f"  amplitude:    {amplitude:.4f}")
+    print(f"  length_scale: {dict(zip(args.features, np.round(ls, 4)))}")
+    print(f"  noise_level:  {noise:.6f}")
 
 # ── MLP (sklearn, weighted by repeating samples) ──────────────────────────────
 Y_pred_mlp = None
@@ -211,11 +221,17 @@ if not args.no_gpytorch:
                     (-mll(model_i(tx), ty_i)).backward()
                     opt.step()
 
+                with torch.no_grad():
+                    amp = model_i.covar_module.outputscale.item() ** 0.5
+                    ls  = model_i.covar_module.base_kernel.lengthscale.squeeze().numpy()
+                    nz  = lik_i.noise.item()
+                print(f"  {name}  amplitude={amp:.4f}  noise={nz:.6f}")
+                print(f"    length_scale: {dict(zip(args.features, np.round(ls, 4)))}")
+
                 model_i.eval(); lik_i.eval()
                 with torch.no_grad(), gpytorch.settings.cholesky_jitter(1e-3):
                     pred_sc = lik_i(model_i(test_x)).mean.numpy()
                 preds_list.append(pred_sc * y_std + y_mean)
-                print(f"  {name} done")
 
             Y_pred_gpytorch = np.column_stack(preds_list)
             gp_label = "gpytorch ExactGP"
