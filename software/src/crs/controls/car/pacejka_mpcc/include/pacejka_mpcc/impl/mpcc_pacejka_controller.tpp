@@ -25,7 +25,7 @@ std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType
   for (int i = 0; i < solver_.N; i++)
   {
     const auto global_coords = convertToGlobalCoordinates(last_solution_.x[i]);
-    traj.push_back({
+    std::vector<double> row = {
         global_coords.pos_x,
         global_coords.pos_y,
         global_coords.vel_x,
@@ -34,7 +34,19 @@ std::optional<std::vector<std::vector<double>>> PacejkaMpccController<SolverType
         last_reference_on_track_[i].x,
         last_reference_on_track_[i].y,
         last_reference_on_track_[i].yaw,
-    });
+    };
+    if (inducing_gp_.isLoaded() && !mlp_.isLoaded() && config_.inducing_gp_uncertainty_scaling)
+    {
+      const double vx    = last_solution_.x[i][static_cast<int>(pacejka_vars::VX)];
+      const double vy    = last_solution_.x[i][static_cast<int>(pacejka_vars::VY)];
+      const double omega = last_solution_.x[i][static_cast<int>(pacejka_vars::DYAW)];
+      const double delta = last_solution_.x[i][static_cast<int>(pacejka_vars::STEER)];
+      const double T     = last_solution_.x[i][static_cast<int>(pacejka_vars::TORQUE)];
+      auto res = inducing_gp_.predict(vx, vy, omega, delta, T,
+                                      config_.inducing_gp_uncertainty_scaling);
+      row.push_back((res.scale_vx + res.scale_vy + res.scale_omega) / 3.0);
+    }
+    traj.push_back(std::move(row));
   }
 
   return traj;

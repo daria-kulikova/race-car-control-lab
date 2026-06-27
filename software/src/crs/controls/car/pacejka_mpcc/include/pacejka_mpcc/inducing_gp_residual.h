@@ -55,6 +55,10 @@ public:
     double d_vx    = 0.0;
     double d_vy    = 0.0;
     double d_omega = 0.0;
+    // Posterior confidence per output: 1 = fully confident, 0 = maximum uncertainty
+    double scale_vx    = 1.0;
+    double scale_vy    = 1.0;
+    double scale_omega = 1.0;
   };
 
   InducingGPResidual() = default;
@@ -141,7 +145,8 @@ public:
       x_sc[j] = (all_raw[feature_indices_[j]] - scaler_mean_[j]) / scaler_std_[j];
 
     // Per-output kernel inference with confidence scaling
-    double out[N_OUTPUTS] = {};
+    double out[N_OUTPUTS]    = {};
+    double scales[N_OUTPUTS] = { 1.0, 1.0, 1.0 };
     for (int o = 0; o < N_OUTPUTS; ++o)
     {
       const double amp2 = amplitude_[o] * amplitude_[o];
@@ -182,20 +187,17 @@ public:
         kv_sq  += kv_i  * kv_i;
         lsk_sq += lsk_i * lsk_i;
       }
-      double scale = 1.0;
-      if (use_uncertainty_scaling)
-      {
-        const double sigma2 = std::max(0.0, std::min(amp2, amp2 - kv_sq + lsk_sq));
-        scale = std::max(0.0, 1.0 - sigma2 / amp2);
-      }
-
-      out[o] = mean * scale;
+      const double sigma2 = std::max(0.0, std::min(amp2, amp2 - kv_sq + lsk_sq));
+      const double scale  = std::max(0.0, 1.0 - sigma2 / amp2);
+      scales[o] = scale;
+      out[o] = mean * (use_uncertainty_scaling ? scale : 1.0);
     }
 
     return {
       out[0] * y_std_[0] + y_mean_[0],
       out[1] * y_std_[1] + y_mean_[1],
       out[2] * y_std_[2] + y_mean_[2],
+      scales[0], scales[1], scales[2],
     };
   }
 
