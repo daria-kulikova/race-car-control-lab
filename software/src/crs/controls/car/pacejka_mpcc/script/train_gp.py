@@ -138,7 +138,7 @@ X_test_sc  = scaler.transform(X_test)
 # ── Train GP ──────────────────────────────────────────────────────────────────
 n_feat = X_train.shape[1]
 print(f"\nTraining GP ({n_feat} features, {len(X_train)} points) ...")
-kernel = 1.0 * RBF(length_scale=np.ones(n_feat)) + WhiteKernel(noise_level=1e-3)
+kernel = 1.0 * RBF(length_scale=np.ones(n_feat), length_scale_bounds=(1e-2, 100)) + WhiteKernel(noise_level=0.1, noise_level_bounds=(1e-2, 1e1))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True, random_state=args.seed)
 gp.fit(X_train_sc, Y_train)
 print(f"  learned kernel: {gp.kernel_}")

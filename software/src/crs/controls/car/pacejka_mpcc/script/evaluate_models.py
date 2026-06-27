@@ -146,7 +146,7 @@ X_test_sc     = scaler.transform(X_test)
 Y_pred_sklearn = None
 if not args.no_gp:
     print("\nTraining sklearn GP ...")
-    kernel = 1.0 * RBF(length_scale=np.ones(X_train.shape[1])) + WhiteKernel(noise_level=1e-3)
+    kernel = 1.0 * RBF(length_scale=np.ones(X_train.shape[1]), length_scale_bounds=(1e-2, 100)) + WhiteKernel(noise_level=0.1, noise_level_bounds=(1e-2, 1e1))
     gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True, random_state=args.seed)
     gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
     Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
@@ -212,7 +212,7 @@ if not args.no_gpytorch:
                     opt.step()
 
                 model_i.eval(); lik_i.eval()
-                with torch.no_grad():
+                with torch.no_grad(), gpytorch.settings.cholesky_jitter(1e-3):
                     pred_sc = lik_i(model_i(test_x)).mean.numpy()
                 preds_list.append(pred_sc * y_std + y_mean)
                 print(f"  {name} done")
