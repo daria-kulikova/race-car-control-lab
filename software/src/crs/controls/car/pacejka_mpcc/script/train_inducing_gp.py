@@ -196,14 +196,13 @@ for out_i, name in enumerate(OUTPUT_NAMES):
     with torch.no_grad():
         Z_o   = model_i.variational_strategy.inducing_points.detach()       # m × d
         m_u_o = model_i.variational_strategy._variational_distribution.variational_mean.detach()  # m
-        K_ZZ_diag = model_i.covar_module(Z_o).evaluate().diagonal().mean().item()
-        jitter    = max(K_ZZ_diag * 1e-3, 1e-4)
-        K_ZZ      = model_i.covar_module(Z_o).evaluate() + torch.eye(m) * jitter
-        alpha_ind = torch.linalg.lstsq(K_ZZ, m_u_o.unsqueeze(-1)).solution.squeeze(-1).numpy()
+        K_ZZ      = model_i.covar_module(Z_o).evaluate()
+        alpha_ind = torch.linalg.lstsq(K_ZZ, m_u_o.unsqueeze(-1), driver="gelsd").solution.squeeze(-1).numpy()
         alpha_norm = float(np.linalg.norm(alpha_ind))
-        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  jitter={jitter:.2e}  ||alpha_ind||={alpha_norm:.3f}")
+        K_ZZ_diag = K_ZZ.diagonal().mean().item()
+        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  ||alpha_ind||={alpha_norm:.3f}")
         if alpha_norm > 1e3:
-            print(f"    WARNING: alpha_ind norm too large — consider fewer inducing points or more training iterations")
+            print(f"    WARNING: alpha_ind norm={alpha_norm:.1f} still large — predictions may be unstable")
 
         amp = float(model_i.covar_module.outputscale.item() ** 0.5)
         ls  = model_i.covar_module.base_kernel.lengthscale.squeeze().numpy()
