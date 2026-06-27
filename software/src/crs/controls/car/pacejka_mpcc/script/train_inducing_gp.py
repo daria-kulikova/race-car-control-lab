@@ -197,12 +197,14 @@ for out_i, name in enumerate(OUTPUT_NAMES):
         Z_o   = model_i.variational_strategy.inducing_points.detach()       # m × d
         m_u_o = model_i.variational_strategy._variational_distribution.variational_mean.detach()  # m
         K_ZZ      = model_i.covar_module(Z_o).evaluate()
-        alpha_ind = torch.linalg.lstsq(K_ZZ, m_u_o.unsqueeze(-1), driver="gelsd").solution.squeeze(-1).numpy()
-        alpha_norm = float(np.linalg.norm(alpha_ind))
         K_ZZ_diag = K_ZZ.diagonal().mean().item()
-        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  ||alpha_ind||={alpha_norm:.3f}")
+        jitter    = max(K_ZZ_diag * 1e-3, 1e-6)
+        L         = torch.linalg.cholesky(K_ZZ + torch.eye(m) * jitter)
+        alpha_ind = torch.cholesky_solve(m_u_o.unsqueeze(-1), L).squeeze(-1).numpy()
+        alpha_norm = float(np.linalg.norm(alpha_ind))
+        print(f"    K_ZZ diag~{K_ZZ_diag:.4f}  jitter={jitter:.1e}  ||alpha_ind||={alpha_norm:.3f}")
         if alpha_norm > 1e3:
-            print(f"    WARNING: alpha_ind norm={alpha_norm:.1f} still large — predictions may be unstable")
+            print(f"    WARNING: alpha_ind norm={alpha_norm:.1f} large — use residual_scale<=0.3 on first test")
 
         amp = float(model_i.covar_module.outputscale.item() ** 0.5)
         ls  = model_i.covar_module.base_kernel.lengthscale.squeeze().numpy()
