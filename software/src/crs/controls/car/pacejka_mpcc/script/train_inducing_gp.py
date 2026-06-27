@@ -18,10 +18,10 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 
 try:
-    from scipy.cluster.vq import kmeans as scipy_kmeans
-    HAS_SCIPY = True
+    from sklearn.cluster import KMeans as _KMeans
+    HAS_SKLEARN_KMEANS = True
 except ImportError:
-    HAS_SCIPY = False
+    HAS_SKLEARN_KMEANS = False
 
 # Canonical feature order — sorted() of all feature names.
 # Capital 'T' (ASCII 84) sorts before lowercase letters (ASCII 97+).
@@ -126,18 +126,18 @@ X_test_sc = scaler.transform(X_test)
 
 # ── Inducing point initialization (k-means on training data) ───────────────────
 m = args.n_inducing_points
-if HAS_SCIPY:
+if HAS_SKLEARN_KMEANS:
     try:
-        X_w = (X_sc - X_sc.mean(0)) / (X_sc.std(0) + 1e-8)
-        ind_np, _ = scipy_kmeans(X_w, m, iter=20)
-        ind_np = ind_np * (X_sc.std(0) + 1e-8) + X_sc.mean(0)
-        print("  inducing init: k-means")
+        km = _KMeans(n_clusters=m, random_state=args.seed, n_init=1, max_iter=100)
+        km.fit(X_sc)
+        ind_np = km.cluster_centers_
+        print("  inducing init: k-means (sklearn, seeded)")
     except Exception:
         ind_np = X_sc[rng.choice(len(X_sc), m, replace=False)]
         print("  inducing init: random (k-means failed)")
 else:
     ind_np = X_sc[rng.choice(len(X_sc), m, replace=False)]
-    print("  inducing init: random (scipy unavailable)")
+    print("  inducing init: random (sklearn unavailable)")
 
 # ── gpytorch model definition ──────────────────────────────────────────────────
 class InducingGP(gpytorch.models.ApproximateGP):
