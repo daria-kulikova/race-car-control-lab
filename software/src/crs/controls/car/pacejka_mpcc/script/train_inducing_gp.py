@@ -31,9 +31,9 @@ FEATURE_TO_IDX = {f: i for i, f in enumerate(ALL_FEATURES)}
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data",              default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
-parser.add_argument("--out",               default=str(Path(__file__).parent / "models/mlp_final/inducing_gp_model.npz"))
-parser.add_argument("--n-inducing-points", type=int,   default=200)
+parser.add_argument("--data",              default="/code/src/crs/controls/car/pacejka_mpcc/script/data/gp_final/residuals_0.csv")
+parser.add_argument("--out",               default=str(Path(__file__).parent / "models/gp_final/inducing_gp_test_model.npz"))
+parser.add_argument("--n-inducing-points", type=int,   default=500)
 parser.add_argument("--n-iter",            type=int,   default=500)
 parser.add_argument("--step-size",         type=float, default=0.05, help="Adam learning rate")
 parser.add_argument("--vx-min",            type=float, default=1.0)
@@ -42,7 +42,7 @@ parser.add_argument("--seed",              type=int,   default=42)
 parser.add_argument("--lf",               type=float, default=0.052, help="front axle distance [m]")
 parser.add_argument("--lr",               type=float, default=0.038, help="rear axle distance [m]")
 parser.add_argument("--features",         type=str,   nargs="+",
-                    default=["vx", "vy", "omega", "delta", "T"],
+                    default=["vx", "vy", "omega", "delta", "T", "alpha_f", "alpha_r"],
                     choices=ALL_FEATURES)
 args = parser.parse_args()
 args.features = sorted(args.features)
