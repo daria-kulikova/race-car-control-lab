@@ -146,7 +146,7 @@ Y_pred_sklearn = None
 if not args.no_gp:
     print("\nTraining sklearn GP ...")
     kernel = 1.0 * RBF(length_scale=np.ones(X_train.shape[1])) + WhiteKernel(noise_level=1e-3)
-    gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True)
+    gp_sklearn = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, normalize_y=True, random_state=args.seed)
     gp_sklearn.fit(X_train_gp_sc, Y_train_gp)
     Y_pred_sklearn = gp_sklearn.predict(X_test_sc)
     print(f"  Kernel: {gp_sklearn.kernel_}")
@@ -174,6 +174,7 @@ if not args.no_gpytorch:
     try:
         import torch
         import gpytorch
+        torch.manual_seed(args.seed)
 
         if not args.inducing_gp:
             # ── Exact GP on subsampled data ────────────────────────────────────
