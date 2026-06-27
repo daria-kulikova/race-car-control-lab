@@ -294,11 +294,17 @@ if not args.no_gpytorch:
                             l = -mll(model_i(tx), ty_i).item()
                         print(f"    {name} iter {it+1}/500  loss={l:.4f}")
 
+                with torch.no_grad():
+                    amp = model_i.covar_module.outputscale.item() ** 0.5
+                    ls  = model_i.covar_module.base_kernel.lengthscale.squeeze().numpy()
+                    nz  = lik_i.noise.item()
+                print(f"  {name}  amplitude={amp:.4f}  noise={nz:.6f}")
+                print(f"    length_scale: {dict(zip(args.features, np.round(ls, 4)))}")
+
                 model_i.eval(); lik_i.eval()
                 with torch.no_grad(), gpytorch.settings.fast_pred_var():
                     pred_sc = lik_i(model_i(test_x)).mean.numpy()
                 preds_list.append(pred_sc * y_std + y_mean)
-                print(f"  {name} done")
 
             Y_pred_gpytorch = np.column_stack(preds_list)
             gp_label = f"gpytorch InducingGP ({m})"
