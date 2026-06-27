@@ -157,7 +157,11 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     mlp_.load(config_.mlp_model_path);
   }
   else if (!config_.inducing_gp_model_path.empty())
+  {
     inducing_gp_.load(config_.inducing_gp_model_path);
+    std::cout << "[InducingGP] uncertainty_scaling="
+              << (config_.inducing_gp_uncertainty_scaling ? "ON" : "OFF") << std::endl;
+  }
   else if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 
@@ -282,6 +286,9 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
     auto d = inducing_gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque,
                                    config_.inducing_gp_uncertainty_scaling);
     apply_residual(d.d_vx, d.d_vy, d.d_omega, "InducingGP", inducing_gp_log_counter_);
+    if (inducing_gp_log_counter_ % 50 == 1 && config_.inducing_gp_uncertainty_scaling)
+      std::cout << "[InducingGP] confidence=(" << d.scale_vx << ", " << d.scale_vy << ", " << d.scale_omega << ")"
+                << std::endl;
   }
   else if (gp_.isLoaded())
   {
