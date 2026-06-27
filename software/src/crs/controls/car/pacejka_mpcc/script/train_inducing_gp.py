@@ -187,6 +187,7 @@ for out_i, name in enumerate(OUTPUT_NAMES):
     opt = torch.optim.Adam(
         list(model_i.parameters()) + list(lik_i.parameters()), lr=args.step_size
     )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.n_epochs)
     mll = gpytorch.mlls.VariationalELBO(lik_i, model_i, num_data=len(ty_i))
 
     for epoch in range(args.n_epochs):
@@ -198,8 +199,9 @@ for out_i, name in enumerate(OUTPUT_NAMES):
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
+        scheduler.step()
         if (epoch + 1) % 10 == 0:
-            print(f"  {name}  epoch {epoch + 1}/{args.n_epochs}  loss={epoch_loss / steps_per_epoch:.4f}")
+            print(f"  {name}  epoch {epoch + 1}/{args.n_epochs}  loss={epoch_loss / steps_per_epoch:.4f}  lr={scheduler.get_last_lr()[0]:.5f}")
 
     # Extract parameters for C++ inference
     model_i.eval(); lik_i.eval()
