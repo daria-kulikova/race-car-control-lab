@@ -144,6 +144,8 @@ void PacejkaMpccController<SolverType>::initialize(crs_models::pacejka_model::pa
     mlp_.setGeometry(p.lf, p.lr);
     mlp_.load(config_.mlp_model_path);
   }
+  else if (!config_.inducing_gp_model_path.empty())
+    inducing_gp_.load(config_.inducing_gp_model_path);
   else if (!config_.gp_model_path.empty())
     gp_.load(config_.gp_model_path);
 
@@ -262,6 +264,11 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   {
     auto d = mlp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
     apply_residual(d.d_vx, d.d_vy, d.d_omega, "MLP", mlp_log_counter_);
+  }
+  else if (inducing_gp_.isLoaded())
+  {
+    auto d = inducing_gp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
+    apply_residual(d.d_vx, d.d_vy, d.d_omega, "InducingGP", inducing_gp_log_counter_);
   }
   else if (gp_.isLoaded())
   {

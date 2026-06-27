@@ -76,6 +76,12 @@ struct mpcc_pacejka_config
   std::string gp_model_path = "";
 
   /**
+   * @brief Path to the inducing-point GP binary (inducing_gp_model.bin from train_inducing_gp.py).
+   *        Empty string disables. Takes priority over exact GP; MLP takes priority over both.
+   */
+  std::string inducing_gp_model_path = "";
+
+  /**
    * @brief Path to the MLP residual model binary (mlp_model.bin from train_mlp.py).
    *        Empty string disables MLP correction. Takes priority over GP if both are set.
    */

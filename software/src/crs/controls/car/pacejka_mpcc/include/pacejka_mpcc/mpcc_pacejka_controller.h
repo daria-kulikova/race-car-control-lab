@@ -12,6 +12,7 @@
 
 #include "pacejka_mpcc/mpcc_pacejka_config.h"
 #include "pacejka_mpcc/gp_residual.h"
+#include "pacejka_mpcc/inducing_gp_residual.h"
 #include "pacejka_mpcc/mlp_residual.h"
 #include "pacejka_mpcc/solvers/pacejka_mpcc_structures.h"
 #ifdef BUILD_ACADOS_SOLVER
@@ -183,11 +184,13 @@ private:
   double log_pend_delta_   = 0.0, log_pend_T_        = 0.0;
   double log_pend_eps_vx_  = 0.0, log_pend_eps_vy_  = 0.0, log_pend_eps_omega_ = 0.0;
 
-  // Residual models for lag compensation correction (MLP takes priority over GP if both configured)
-  GPResidual  gp_;
-  MLPResidual mlp_;
-  unsigned int gp_log_counter_  = 0;
-  unsigned int mlp_log_counter_ = 0;
+  // Residual models — priority: MLP > InducingGP > ExactGP
+  GPResidual        gp_;
+  InducingGPResidual inducing_gp_;
+  MLPResidual       mlp_;
+  unsigned int gp_log_counter_         = 0;
+  unsigned int inducing_gp_log_counter_ = 0;
+  unsigned int mlp_log_counter_        = 0;
 
   unsigned int log_point_count_ = 0;
 };
