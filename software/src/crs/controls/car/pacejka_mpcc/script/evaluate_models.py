@@ -44,6 +44,7 @@ parser.add_argument("--features",          type=str,   nargs="+",
                     default=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"])
 args = parser.parse_args()
+args.features = sorted(args.features)
 
 OUTPUT_NAMES = ["eps_vx", "eps_vy", "eps_omega"]
 COLORS = ["steelblue", "darkorange", "forestgreen"]

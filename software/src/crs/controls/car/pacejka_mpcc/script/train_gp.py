@@ -37,6 +37,7 @@ parser.add_argument("--features",     type=str,   nargs="+",
                     choices=["vx", "vy", "omega", "delta", "T", "beta", "alpha_f", "alpha_r"],
                     help="feature subset to use for training")
 args = parser.parse_args()
+args.features = sorted(args.features)
 
 rng = np.random.default_rng(args.seed)
 
