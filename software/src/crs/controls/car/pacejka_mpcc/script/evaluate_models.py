@@ -23,8 +23,8 @@ from sklearn.preprocessing import StandardScaler
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data",              default="/code/src/crs/controls/car/pacejka_mpcc/script/data/mlp_final/residuals_0.csv")
-parser.add_argument("--out",               default=str(Path(__file__).parent / "gp_evaluation.png"))
-parser.add_argument("--vx-min",            type=float, default=0.5)
+parser.add_argument("--out",               default=str(Path(__file__).parent / "plots/model_evaluation.png"))
+parser.add_argument("--vx-min",            type=float, default=1.0)
 parser.add_argument("--iqr-k",             type=float, default=3.0)
 parser.add_argument("--gp-max-points",     type=int,   default=2000,
                     help="max training points for sklearn/exact gpytorch GP")
@@ -32,10 +32,11 @@ parser.add_argument("--n-datasets",        type=int,   default=1,
                     help="number of datasets (*_0.csv, ...); dataset i gets weight i+1")
 parser.add_argument("--seed",              type=int,   default=42)
 parser.add_argument("--no-gp",             action="store_true", help="skip sklearn GP")
+parser.add_argument("--no-mlp",            action="store_true", help="skip MLP")
 parser.add_argument("--no-gpytorch",       action="store_true", help="skip gpytorch GP")
 parser.add_argument("--inducing-gp",       action="store_true",
                     help="use inducing point GP instead of exact gpytorch GP")
-parser.add_argument("--n-inducing-points", type=int,   default=200,
+parser.add_argument("--n-inducing-points", type=int,   default=500,
                     help="number of inducing points (--inducing-gp only)")
 parser.add_argument("--lf",                type=float, default=0.052)
 parser.add_argument("--lr",                type=float, default=0.038)
@@ -89,14 +90,14 @@ data    = data[mask_vx]
 weights = weights[mask_vx]
 print(f"  {len(data)} points after vx >= {args.vx_min} filter")
 
-mask = np.ones(len(data), dtype=bool)
-for c in [6, 7, 8]:
-    q25, q75 = np.percentile(data[:, c], [25, 75])
-    iqr = q75 - q25
-    mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
-data    = data[mask]
-weights = weights[mask]
-print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()})")
+# mask = np.ones(len(data), dtype=bool)
+# for c in [6, 7, 8]:
+#     q25, q75 = np.percentile(data[:, c], [25, 75])
+#     iqr = q75 - q25
+#     mask &= (data[:, c] >= q25 - args.iqr_k * iqr) & (data[:, c] <= q75 + args.iqr_k * iqr)
+# data    = data[mask]
+# weights = weights[mask]
+# print(f"  {mask.sum()} points after outlier filter (removed {(~mask).sum()})")
 
 X_train, Y_train = build_features(data)
 print(f"  features ({len(args.features)}): {args.features}")
@@ -151,18 +152,20 @@ if not args.no_gp:
     print(f"  Kernel: {gp_sklearn.kernel_}")
 
 # ── MLP (sklearn, weighted by repeating samples) ──────────────────────────────
-print("\nTraining MLP ...")
-y_scaler   = StandardScaler()
-Y_train_sc = y_scaler.fit_transform(Y_train)
-int_w = weights.astype(int)
-X_tr_w = np.repeat(X_train_sc, int_w, axis=0)
-Y_tr_w = np.repeat(Y_train_sc, int_w, axis=0)
-mlp = MLPRegressor(hidden_layer_sizes=(64, 64, 32), activation="tanh",
-                   solver="adam", max_iter=5000, early_stopping=True,
-                   alpha=0.01, random_state=args.seed)
-mlp.fit(X_tr_w, Y_tr_w)
-Y_pred_mlp = y_scaler.inverse_transform(mlp.predict(X_test_sc))
-print(f"  hidden: {mlp.hidden_layer_sizes}  iters: {mlp.n_iter_}")
+Y_pred_mlp = None
+if not args.no_mlp:
+    print("\nTraining MLP ...")
+    y_scaler   = StandardScaler()
+    Y_train_sc = y_scaler.fit_transform(Y_train)
+    int_w  = weights.astype(int)
+    X_tr_w = np.repeat(X_train_sc, int_w, axis=0)
+    Y_tr_w = np.repeat(Y_train_sc, int_w, axis=0)
+    mlp = MLPRegressor(hidden_layer_sizes=(64, 64, 32), activation="tanh",
+                       solver="adam", max_iter=5000, early_stopping=True,
+                       alpha=0.01, random_state=args.seed)
+    mlp.fit(X_tr_w, Y_tr_w)
+    Y_pred_mlp = y_scaler.inverse_transform(mlp.predict(X_test_sc))
+    print(f"  hidden: {mlp.hidden_layer_sizes}  iters: {mlp.n_iter_}")
 
 # ── gpytorch GP (exact or inducing) ───────────────────────────────────────────
 Y_pred_gpytorch = None
@@ -289,35 +292,26 @@ if not args.no_gpytorch:
 
 # ── RMSE comparison ───────────────────────────────────────────────────────────
 print("\n── RMSE comparison (baseline = predict 0) ────────────────────────────────")
-header = f"{'Output':<12} {'No model':>10} {'MLP':>10} {'Improv':>8}"
-if Y_pred_sklearn is not None:
-    header = f"{'Output':<12} {'No model':>10} {'sklearn GP':>12} {'Improv':>8} {'MLP':>10} {'Improv':>8}"
-if Y_pred_gpytorch is not None:
-    header += f" {gp_label:>20} {'Improv':>8}"
-print(header)
+active = []
+if Y_pred_sklearn  is not None: active.append(("sklearn GP",  Y_pred_sklearn))
+if Y_pred_mlp      is not None: active.append(("MLP",         Y_pred_mlp))
+if Y_pred_gpytorch is not None: active.append((gp_label,      Y_pred_gpytorch))
 
+header = f"{'Output':<12} {'No model':>10}" + "".join(
+    f" {lbl:>14} {'Improv':>8}" for lbl, _ in active
+)
+print(header)
 for i, name in enumerate(OUTPUT_NAMES):
     rmse_base = np.sqrt(np.mean(Y_test[:, i] ** 2))
-    rmse_mlp  = np.sqrt(np.mean((Y_test[:, i] - Y_pred_mlp[:, i]) ** 2))
-    imp_mlp   = (rmse_base - rmse_mlp) / rmse_base * 100
-    if Y_pred_sklearn is not None:
-        rmse_sk = np.sqrt(np.mean((Y_test[:, i] - Y_pred_sklearn[:, i]) ** 2))
-        imp_sk  = (rmse_base - rmse_sk) / rmse_base * 100
-        row = f"{name:<12} {rmse_base:>10.6f} {rmse_sk:>12.6f} {imp_sk:>7.1f}% {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
-    else:
-        row = f"{name:<12} {rmse_base:>10.6f} {rmse_mlp:>10.6f} {imp_mlp:>7.1f}%"
-    if Y_pred_gpytorch is not None:
-        rmse_gpt = np.sqrt(np.mean((Y_test[:, i] - Y_pred_gpytorch[:, i]) ** 2))
-        imp_gpt  = (rmse_base - rmse_gpt) / rmse_base * 100
-        row += f" {rmse_gpt:>20.6f} {imp_gpt:>7.1f}%"
+    row = f"{name:<12} {rmse_base:>10.6f}"
+    for lbl, Y_pred in active:
+        rmse = np.sqrt(np.mean((Y_test[:, i] - Y_pred[:, i]) ** 2))
+        imp  = (rmse_base - rmse) / rmse_base * 100
+        row += f" {rmse:>14.6f} {imp:>+7.1f}%"
     print(row)
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
-all_models = [("MLP", Y_pred_mlp)]
-if Y_pred_sklearn is not None:
-    all_models.insert(0, ("sklearn GP", Y_pred_sklearn))
-if Y_pred_gpytorch is not None:
-    all_models.append((gp_label, Y_pred_gpytorch))
+all_models = active
 
 n_models = len(all_models)
 fig, axes = plt.subplots(n_models, 3, figsize=(14, 5 * n_models))
