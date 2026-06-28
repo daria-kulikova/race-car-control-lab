@@ -8,7 +8,6 @@
 #include "ros_controllers/visualizers/base_visualizer.h"
 #include <control_commons/mpc_controller.h>
 #include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
 
 namespace ros_controllers
 {
@@ -43,8 +42,6 @@ private:
   visualization_msgs::Marker planned;
   visualization_msgs::Marker uncorrected;
 
-  ros::Publisher uncertainty_publisher_;
-  visualization_msgs::MarkerArray uncertainty_markers_;
 
 public:
   MpcControllerVisualizer(ros::NodeHandle nh_private,
@@ -72,8 +69,6 @@ public:
     nh_private.getParam("reference/size_z", ref_size_z);
 
     nh_private.getParam("namespace", ns);
-
-    uncertainty_publisher_ = nh_private.advertise<visualization_msgs::MarkerArray>("gp_uncertainty", 10);
 
     // Reference on track
     reference.header.frame_id = frame_id;
@@ -200,43 +195,6 @@ public:
       // If we do not use arrows, only need to publish one marker containing all points.
       BaseControllerVisualizer<StateType, InputType>::visualization_publisher_.publish(reference);
       BaseControllerVisualizer<StateType, InputType>::visualization_publisher_.publish(planned);
-    }
-
-    // GP uncertainty ellipses: column 8 = mean confidence scale (present only when inducing GP loaded)
-    if (!trajectory.empty() && trajectory[0].size() > 8)
-    {
-      // Delete stale markers from previous cycle
-      for (auto& m : uncertainty_markers_.markers)
-        m.action = visualization_msgs::Marker::DELETE;
-      uncertainty_publisher_.publish(uncertainty_markers_);
-      uncertainty_markers_.markers.clear();
-
-      for (int i = 0; i < static_cast<int>(trajectory.size()); ++i)
-      {
-        const double mean_scale = trajectory[i][8];        // 1 = confident, 0 = uncertain
-        const double uncertainty = 1.0 - mean_scale;      // radius grows with uncertainty
-
-        visualization_msgs::Marker m;
-        m.header.frame_id = frame_id;
-        m.header.stamp    = ros::Time::now();
-        m.ns              = ns + "_gp_uncertainty";
-        m.id              = i;
-        m.type            = visualization_msgs::Marker::CYLINDER;
-        m.action          = visualization_msgs::Marker::ADD;
-        m.pose.position.x = trajectory[i][0];
-        m.pose.position.y = trajectory[i][1];
-        m.pose.position.z = 0.0;
-        m.pose.orientation.w = 1.0;
-        m.scale.x = uncertainty * 0.4;  // diameter proportional to uncertainty
-        m.scale.y = uncertainty * 0.4;
-        m.scale.z = 0.01;               // flat disc
-        m.color.r = 0.0;
-        m.color.g = 0.5;
-        m.color.b = 1.0;
-        m.color.a = 0.35;
-        uncertainty_markers_.markers.push_back(m);
-      }
-      uncertainty_publisher_.publish(uncertainty_markers_);
     }
 
     // Uncorrected trajectory: forward-integrate pure Pacejka without residuals
