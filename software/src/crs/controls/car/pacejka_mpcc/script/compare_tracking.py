@@ -3,15 +3,17 @@ Compare tracking metrics across multiple datasets without plots.
 
 Discovers all files matching <base>_0.csv, <base>_1.csv, ... automatically.
 
-Two comparison modes (--mode):
+Three comparison modes (--mode):
   baseline    : each dataset vs dataset 0  -> pairs 0-1, 0-2, 0-3, ...
   consecutive : each dataset vs previous   -> pairs 1-2, 2-3, 3-4, ... (0 ignored)
+  none        : compare exactly two files specified with --file-a and --file-b
 
 Output: human-readable text file, one section per pair.
 
 Usage:
     python3 compare_tracking.py --data tracking_cm1_0555_0.csv --mode baseline
     python3 compare_tracking.py --data tracking_cm1_0555_0.csv --mode consecutive --out results.txt
+    python3 compare_tracking.py --mode none --file-a data/run_a.csv --file-b data/run_b.csv --out comparison.txt
 """
 
 import argparse
@@ -24,34 +26,59 @@ DATA_DIR    = Path("/code/src/crs/controls/car/pacejka_mpcc/script/data")
 RESULTS_DIR = Path("/code/src/crs/controls/car/pacejka_mpcc/script/results")
 
 parser.add_argument("--data", default="mpcc_log_cm1_0555_0.csv",
-                    help="Filename of the _0.csv log file inside DATA_DIR")
-parser.add_argument("--mode", choices=["baseline", "consecutive"], default="baseline",
-                    help="baseline: all vs dataset 0; consecutive: i vs i-1 (from pair 1-2 onward)")
+                    help="Filename of the _0.csv log file inside DATA_DIR (baseline/consecutive modes)")
+parser.add_argument("--mode", choices=["baseline", "consecutive", "none"], default="baseline",
+                    help="baseline: all vs dataset 0; consecutive: i vs i-1; none: two explicit files")
+parser.add_argument("--file-a", default=None,
+                    help="[none mode] path to file A (absolute, or relative to DATA_DIR)")
+parser.add_argument("--file-b", default=None,
+                    help="[none mode] path to file B (absolute, or relative to DATA_DIR)")
 parser.add_argument("--out", default=None,
                     help="Output filename inside RESULTS_DIR (default: compare_<mode>.txt)")
 args = parser.parse_args()
 
-data_path = DATA_DIR / args.data
-if not data_path.name.endswith("_0.csv"):
-    raise ValueError("--data must be a _0.csv filename, e.g. tracking_cm1_0555_0.csv")
 
-base = str(data_path)[: -len("_0.csv")]
+def resolve(p: str) -> Path:
+    """Accept absolute path or filename relative to DATA_DIR."""
+    path = Path(p)
+    return path if path.is_absolute() else DATA_DIR / path
 
-# Discover consecutive files starting from 0
-files = {}
-i = 0
-while True:
-    p = Path(f"{base}_{i}.csv")
-    if p.exists():
-        files[i] = p
-        i += 1
-    else:
-        break
 
-if len(files) < 2:
-    raise FileNotFoundError(f"Need at least 2 files matching {base}_*.csv, found {len(files)}")
+# ── Pair mode: skip auto-discovery entirely ───────────────────────────────────
+if args.mode == "none":
+    if not args.file_a or not args.file_b:
+        parser.error("--mode none requires both --file-a and --file-b")
+    path_a = resolve(args.file_a)
+    path_b = resolve(args.file_b)
+    for p in (path_a, path_b):
+        if not p.exists():
+            raise FileNotFoundError(p)
+    label_a = path_a.stem
+    label_b = path_b.stem
+    print(f"None mode: A = {path_a.name}  vs  B = {path_b.name}")
 
-print(f"Found {len(files)} datasets: {sorted(files)}")
+else:
+    data_path = DATA_DIR / args.data
+    if not data_path.name.endswith("_0.csv"):
+        raise ValueError("--data must be a _0.csv filename, e.g. tracking_cm1_0555_0.csv")
+
+    base = str(data_path)[: -len("_0.csv")]
+
+    # Discover consecutive files starting from 0
+    files = {}
+    i = 0
+    while True:
+        p = Path(f"{base}_{i}.csv")
+        if p.exists():
+            files[i] = p
+            i += 1
+        else:
+            break
+
+    if len(files) < 2:
+        raise FileNotFoundError(f"Need at least 2 files matching {base}_*.csv, found {len(files)}")
+
+    print(f"Found {len(files)} datasets: {sorted(files)}")
 
 
 def load(path: Path):
@@ -92,20 +119,30 @@ def compute_metrics(t, eC, eL, lap):
     }
 
 
-# Determine pairs
-if args.mode == "baseline":
-    pairs = [(0, j) for j in sorted(files) if j > 0]
+# Determine pairs and load data
+if args.mode == "none":
+    t_a, eC_a, eL_a, lap_a = load(path_a)
+    t_b, eC_b, eL_b, lap_b = load(path_b)
+    cache = {
+        "A": compute_metrics(t_a, eC_a, eL_a, lap_a),
+        "B": compute_metrics(t_b, eC_b, eL_b, lap_b),
+    }
+    pairs = [("A", "B")]
+    print(f"  loaded A: {len(eC_a)} points")
+    print(f"  loaded B: {len(eC_b)} points")
 else:
-    idx = sorted(k for k in files if k >= 1)
-    pairs = [(idx[k], idx[k + 1]) for k in range(len(idx) - 1)]
+    if args.mode == "baseline":
+        pairs = [(0, j) for j in sorted(files) if j > 0]
+    else:
+        idx = sorted(k for k in files if k >= 1)
+        pairs = [(idx[k], idx[k + 1]) for k in range(len(idx) - 1)]
 
-# Load only the datasets we need
-needed = {i for pair in pairs for i in pair}
-cache = {}
-for idx in sorted(needed):
-    t, eC, eL, lap = load(files[idx])
-    cache[idx] = compute_metrics(t, eC, eL, lap)
-    print(f"  loaded dataset {idx}: {len(eC)} points")
+    needed = {i for pair in pairs for i in pair}
+    cache = {}
+    for idx in sorted(needed):
+        t, eC, eL, lap = load(files[idx])
+        cache[idx] = compute_metrics(t, eC, eL, lap)
+        print(f"  loaded dataset {idx}: {len(eC)} points")
 
 # Layout constants
 W_METRIC = 22
@@ -129,8 +166,13 @@ def fmt_change(va, vb):
     return f"{sign}{pct:.1f}%{arrow}"
 
 
+if args.mode == "none":
+    header_base = f"{path_a.stem} vs {path_b.stem}"
+else:
+    header_base = Path(base).name
+
 lines = []
-lines.append(f"Tracking comparison  |  mode: {args.mode}  |  base: {Path(base).name}")
+lines.append(f"Tracking comparison  |  mode: {args.mode}  |  base: {header_base}")
 lines.append("")
 
 col_hdr = f"  {'Metric':<{W_METRIC}}  {'Dataset A':>{W_VAL}}  {'Dataset B':>{W_VAL}}  {'Change':>{W_CHG}}"
@@ -138,7 +180,10 @@ col_hdr = f"  {'Metric':<{W_METRIC}}  {'Dataset A':>{W_VAL}}  {'Dataset B':>{W_V
 for a, b in pairs:
     ma, mb = cache[a], cache[b]
     lines.append(HEAVY)
-    lines.append(f"  Pair {a} -> {b}   (A = dataset {a},  B = dataset {b})")
+    if args.mode == "none":
+        lines.append(f"  {path_a.name}  vs  {path_b.name}")
+    else:
+        lines.append(f"  Pair {a} -> {b}   (A = dataset {a},  B = dataset {b})")
     lines.append(HEAVY)
     lines.append(col_hdr)
     lines.append("  " + LIGHT)
