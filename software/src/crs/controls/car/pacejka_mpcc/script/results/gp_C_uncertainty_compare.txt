@@ -1,0 +1,28 @@
+Tracking comparison  |  mode: none  |  base: residuals_C_uncertainty_0 vs residuals_C_uncertainty_true_0
+
+=================================================================
+  residuals_C_uncertainty_0.csv  vs  residuals_C_uncertainty_true_0.csv
+=================================================================
+  Metric                     Dataset A     Dataset B       Change
+  -----------------------------------------------------------------
+  mean |eC| [m]                0.03192       0.03619     +13.4% ^
+  std  |eC| [m]                0.02691       0.02687      -0.1% v
+  95th |eC| [m]                0.08701       0.08858      +1.8% ^
+  mean |eL| [m]                0.06208       0.05884      -5.2% v
+  std  |eL| [m]                0.01556       0.02244     +44.2% ^
+  95th |eL| [m]                0.08092       0.08977     +10.9% ^
+  mean lap time [s]            2.70001       2.73790      +1.4% ^
+
+  mean |eps_vx|                0.00554       0.00616     +11.2% ^
+  std  |eps_vx|                0.01201       0.01476     +23.0% ^
+  95th |eps_vx|                0.01909       0.02472     +29.5% ^
+
+  mean |eps_vy|                0.00438       0.00348     -20.6% v
+  std  |eps_vy|                0.00628       0.00412     -34.4% v
+  95th |eps_vy|                0.01385       0.01109     -20.0% v
+
+  mean |eps_omega|             0.14792       0.11037     -25.4% v
+  std  |eps_omega|             0.21910       0.15084     -31.2% v
+  95th |eps_omega|             0.53218       0.35338     -33.6% v
+
+
