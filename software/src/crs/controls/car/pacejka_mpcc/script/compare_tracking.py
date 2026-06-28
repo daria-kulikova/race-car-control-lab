@@ -84,11 +84,14 @@ else:
 def load(path: Path):
     # columns: t,vx,vy,omega,delta,T,eps_vx,eps_vy,eps_omega,eC,eL,pos_x,pos_y,ref_x,ref_y,lap,theta
     data = np.loadtxt(path, delimiter=",", skiprows=1)
-    t   = data[:, 0] - data[0, 0]
-    eC  = data[:, 9]
-    eL  = data[:, 10]
-    lap = data[:, 15].astype(int)
-    return t, eC, eL, lap
+    t         = data[:, 0] - data[0, 0]
+    eps_vx    = data[:, 6]
+    eps_vy    = data[:, 7]
+    eps_omega = data[:, 8]
+    eC        = data[:, 9]
+    eL        = data[:, 10]
+    lap       = data[:, 15].astype(int)
+    return t, eC, eL, lap, eps_vx, eps_vy, eps_omega
 
 
 def mean_lap_time(t, lap):
@@ -107,8 +110,8 @@ def mean_lap_time(t, lap):
     return float(np.mean(intervals)) if intervals else float("nan")
 
 
-def compute_metrics(t, eC, eL, lap):
-    return {
+def compute_metrics(t, eC, eL, lap, eps_vx, eps_vy, eps_omega):
+    m = {
         "mean |eC| [m]":     float(np.abs(eC).mean()),
         "std  |eC| [m]":     float(np.abs(eC).std()),
         "95th |eC| [m]":     float(np.percentile(np.abs(eC), 95)),
@@ -117,15 +120,20 @@ def compute_metrics(t, eC, eL, lap):
         "95th |eL| [m]":     float(np.percentile(np.abs(eL), 95)),
         "mean lap time [s]": mean_lap_time(t, lap),
     }
+    for name, arr in [("eps_vx", eps_vx), ("eps_vy", eps_vy), ("eps_omega", eps_omega)]:
+        m[f"mean |{name}|"] = float(np.abs(arr).mean())
+        m[f"std  |{name}|"] = float(np.abs(arr).std())
+        m[f"95th |{name}|"] = float(np.percentile(np.abs(arr), 95))
+    return m
 
 
 # Determine pairs and load data
 if args.mode == "none":
-    t_a, eC_a, eL_a, lap_a = load(path_a)
-    t_b, eC_b, eL_b, lap_b = load(path_b)
+    t_a, eC_a, eL_a, lap_a, evx_a, evy_a, eom_a = load(path_a)
+    t_b, eC_b, eL_b, lap_b, evx_b, evy_b, eom_b = load(path_b)
     cache = {
-        "A": compute_metrics(t_a, eC_a, eL_a, lap_a),
-        "B": compute_metrics(t_b, eC_b, eL_b, lap_b),
+        "A": compute_metrics(t_a, eC_a, eL_a, lap_a, evx_a, evy_a, eom_a),
+        "B": compute_metrics(t_b, eC_b, eL_b, lap_b, evx_b, evy_b, eom_b),
     }
     pairs = [("A", "B")]
     print(f"  loaded A: {len(eC_a)} points")
@@ -140,8 +148,8 @@ else:
     needed = {i for pair in pairs for i in pair}
     cache = {}
     for idx in sorted(needed):
-        t, eC, eL, lap = load(files[idx])
-        cache[idx] = compute_metrics(t, eC, eL, lap)
+        t, eC, eL, lap, eps_vx, eps_vy, eps_omega = load(files[idx])
+        cache[idx] = compute_metrics(t, eC, eL, lap, eps_vx, eps_vy, eps_omega)
         print(f"  loaded dataset {idx}: {len(eC)} points")
 
 # Layout constants
@@ -177,6 +185,19 @@ lines.append("")
 
 col_hdr = f"  {'Metric':<{W_METRIC}}  {'Dataset A':>{W_VAL}}  {'Dataset B':>{W_VAL}}  {'Change':>{W_CHG}}"
 
+EPS_GROUPS = [
+    {"mean |eps_vx|", "std  |eps_vx|", "95th |eps_vx|"},
+    {"mean |eps_vy|", "std  |eps_vy|", "95th |eps_vy|"},
+    {"mean |eps_omega|", "std  |eps_omega|", "95th |eps_omega|"},
+]
+
+def eps_group_end(metric):
+    """Return True if this metric is the last in its eps group."""
+    for g in EPS_GROUPS:
+        if metric in g:
+            return metric.startswith("95th")
+    return False
+
 for a, b in pairs:
     ma, mb = cache[a], cache[b]
     lines.append(HEAVY)
@@ -193,6 +214,8 @@ for a, b in pairs:
         lines.append(
             f"  {metric:<{W_METRIC}}  {fmt_val(va):>{W_VAL}}  {fmt_val(vb):>{W_VAL}}  {change:>{W_CHG}}"
         )
+        if eps_group_end(metric):
+            lines.append("")
     lines.append("")
 
 out_name = args.out if args.out else f"compare_{args.mode}.txt"
