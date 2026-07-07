@@ -88,7 +88,7 @@ public:
    * above for that stage. Used when mpcc_pacejka_config::residual_per_stage is
    * enabled to evaluate the residual model at each stage's own predicted state.
    *
-   * @param stage which stage to set the residual for [0, N)
+   * @param stage which stage to set the residual for [0, N]
    */
   void setGPResidual(int stage, double d_vx, double d_vy, double d_omega)
   {
@@ -108,9 +108,12 @@ public:
   double getSamplePeriod();
 
 private:
-  std::array<double, N> gp_d_vx_{};
-  std::array<double, N> gp_d_vy_{};
-  std::array<double, N> gp_d_omega_{};
+  // Sized N+1: updateParams() is called for stages [0, N] inclusive (see
+  // control_commons::MpcSolver::solve_problem, which updates the terminal
+  // stage N separately after the [0, N) loop).
+  std::array<double, N + 1> gp_d_vx_{};
+  std::array<double, N + 1> gp_d_vy_{};
+  std::array<double, N + 1> gp_d_omega_{};
 
   std::unique_ptr<pacejka_model_solver_capsule> acados_ocp_capsule_;
   std::unique_ptr<ocp_nlp_config> nlp_config_;

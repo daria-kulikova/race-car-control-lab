@@ -277,12 +277,13 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   };
 
   // Evaluates the loaded residual model at each stage's predicted state from the
-  // previous solver iterate (last_solution_.x[stage], not yet shifted for this cycle),
+  // previous solver iterate (last_solution_.x[stage], already shifted for this cycle
+  // by the caller so stage indices line up with generateCurrentSolverParameters()),
   // overwriting the constant broadcast that apply_residual() set above per-stage.
   // This is a zero-order-hold approximation, same principle as RTI: the residual is
   // frozen to the previous iterate for the duration of this cycle's SQP solve(s).
   auto apply_residual_per_stage = [&]() {
-    for (int stage = 0; stage < solver_.N; ++stage)
+    for (int stage = 0; stage <= solver_.N; ++stage)
     {
       const double vx    = last_solution_.x[stage][static_cast<int>(pacejka_vars::VX)];
       const double vy    = last_solution_.x[stage][static_cast<int>(pacejka_vars::VY)];
@@ -339,11 +340,6 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
     solver_.setGPResidual(0.0, 0.0, 0.0);
   }
 
-  if (config_.residual_per_stage)
-  {
-    apply_residual_per_stage();
-  }
-
   // theta also needs to be adjusted to account for the forward simulation. This is exact since dTheta is
   // piecewise constant.
   theta_ += config_.lag_compensation_time * last_solution_.u[0][pacejka_inputs::DTHETA];
@@ -358,6 +354,15 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
 
   crs_controls::control_commons::shiftSequence(last_solution_.x);
   crs_controls::control_commons::shiftSequence(last_solution_.u);
+
+  // Must run after shiftSequence(last_solution_.x): generateCurrentSolverParameters()
+  // below indexes last_solution_.x[stage] post-shift, so the residual assigned to a
+  // given stage has to be evaluated from that same post-shift state, not the previous
+  // cycle's pre-shift one (which would be off by one stage).
+  if (config_.residual_per_stage)
+  {
+    apply_residual_per_stage();
+  }
 
   for (unsigned int iteration = 0; iteration < config_.max_sqp_iterations; ++iteration)
   {
