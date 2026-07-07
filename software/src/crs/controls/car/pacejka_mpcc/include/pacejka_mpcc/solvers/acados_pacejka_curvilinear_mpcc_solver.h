@@ -75,6 +75,7 @@ public:
   void updateParams(int stage, AcadosPacejkaCurvilinearMpccSolver::MpcStageParameters& params);
 
   void setGPResidual(double /*d_vx*/, double /*d_vy*/, double /*d_omega*/) {}  // GP not used for curvilinear
+  void setGPResidual(int /*stage*/, double /*d_vx*/, double /*d_vy*/, double /*d_omega*/) {}  // GP not used for curvilinear
   /**
    * @brief Solves the optimization problems and stores the solution in x and u.
    *

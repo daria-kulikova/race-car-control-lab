@@ -39,6 +39,7 @@ getConfig<crs_controls::pacejka_mpcc::mpcc_pacejka_config>(const ros::NodeHandle
   nh.getParam("inducing_gp_uncertainty_scaling", params.inducing_gp_uncertainty_scaling);  // Optional. Default = true.
   nh.getParam("mlp_model_path", params.mlp_model_path);                    // Optional. Empty = disabled.
   nh.getParam("residual_scale", params.residual_scale);            // Optional. Default = 1.0.
+  nh.getParam("residual_per_stage", params.residual_per_stage);    // Optional. Default = false.
   int log_max_points = 0;
   nh.getParam("log_max_points", log_max_points);                  // Optional. 0 = unlimited.
   params.log_max_points = static_cast<unsigned int>(std::max(0, log_max_points));

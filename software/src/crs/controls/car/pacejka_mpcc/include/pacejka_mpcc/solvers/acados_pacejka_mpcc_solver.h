@@ -77,9 +77,24 @@ public:
    */
   void setGPResidual(double d_vx, double d_vy, double d_omega)
   {
-    gp_d_vx_    = d_vx;
-    gp_d_vy_    = d_vy;
-    gp_d_omega_ = d_omega;
+    gp_d_vx_.fill(d_vx);
+    gp_d_vy_.fill(d_vy);
+    gp_d_omega_.fill(d_omega);
+  }
+
+  /**
+   * @brief Set the GP residual [d_vx, d_vy, d_omega] for a single stage of the
+   * horizon, overriding the broadcast value set by the constant-residual overload
+   * above for that stage. Used when mpcc_pacejka_config::residual_per_stage is
+   * enabled to evaluate the residual model at each stage's own predicted state.
+   *
+   * @param stage which stage to set the residual for [0, N)
+   */
+  void setGPResidual(int stage, double d_vx, double d_vy, double d_omega)
+  {
+    gp_d_vx_[stage]    = d_vx;
+    gp_d_vy_[stage]    = d_vy;
+    gp_d_omega_[stage] = d_omega;
   }
   /**
    * @brief Solves the optimization problems and stores the solution in x and u.
@@ -93,9 +108,9 @@ public:
   double getSamplePeriod();
 
 private:
-  double gp_d_vx_    = 0.0;
-  double gp_d_vy_    = 0.0;
-  double gp_d_omega_ = 0.0;
+  std::array<double, N> gp_d_vx_{};
+  std::array<double, N> gp_d_vy_{};
+  std::array<double, N> gp_d_omega_{};
 
   std::unique_ptr<pacejka_model_solver_capsule> acados_ocp_capsule_;
   std::unique_ptr<ocp_nlp_config> nlp_config_;

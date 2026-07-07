@@ -105,5 +105,16 @@ struct mpcc_pacejka_config
    *        0 = unlimited.
    */
   unsigned int log_max_points = 0;
+
+  /**
+   * @brief If true, evaluate the loaded residual model (GP/InducingGP/MLP) separately
+   *        at each stage's predicted state from the previous solver iterate
+   *        (last_solution_.x[stage]) instead of broadcasting a single current-state
+   *        residual as a constant disturbance over the whole horizon. The uncertainty
+   *        scaling of the inducing GP (if enabled) is still evaluated per-stage as part
+   *        of this, since it is folded into the mean before it reaches the solver.
+   *        Default false, preserving the previous constant-over-horizon behaviour.
+   */
+  bool residual_per_stage = false;
 };
 }  // namespace crs_controls::pacejka_mpcc

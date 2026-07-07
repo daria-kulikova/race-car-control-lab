@@ -276,6 +276,45 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
                 << "  a=(" << a_vx << ", " << a_vy << ", " << a_omega << ")" << std::endl;
   };
 
+  // Evaluates the loaded residual model at each stage's predicted state from the
+  // previous solver iterate (last_solution_.x[stage], not yet shifted for this cycle),
+  // overwriting the constant broadcast that apply_residual() set above per-stage.
+  // This is a zero-order-hold approximation, same principle as RTI: the residual is
+  // frozen to the previous iterate for the duration of this cycle's SQP solve(s).
+  auto apply_residual_per_stage = [&]() {
+    for (int stage = 0; stage < solver_.N; ++stage)
+    {
+      const double vx    = last_solution_.x[stage][static_cast<int>(pacejka_vars::VX)];
+      const double vy    = last_solution_.x[stage][static_cast<int>(pacejka_vars::VY)];
+      const double omega = last_solution_.x[stage][static_cast<int>(pacejka_vars::DYAW)];
+      const double delta = last_solution_.x[stage][static_cast<int>(pacejka_vars::STEER)];
+      const double T     = last_solution_.x[stage][static_cast<int>(pacejka_vars::TORQUE)];
+
+      double eps_vx = 0.0, eps_vy = 0.0, eps_omega = 0.0;
+      if (mlp_.isLoaded())
+      {
+        auto d = mlp_.predict(vx, vy, omega, delta, T);
+        eps_vx = d.d_vx; eps_vy = d.d_vy; eps_omega = d.d_omega;
+      }
+      else if (inducing_gp_.isLoaded())
+      {
+        auto d = inducing_gp_.predict(vx, vy, omega, delta, T, config_.inducing_gp_uncertainty_scaling);
+        eps_vx = d.d_vx; eps_vy = d.d_vy; eps_omega = d.d_omega;
+      }
+      else if (gp_.isLoaded())
+      {
+        auto d = gp_.predict(vx, vy, omega, delta, T);
+        eps_vx = d.d_vx; eps_vy = d.d_vy; eps_omega = d.d_omega;
+      }
+      else
+      {
+        continue;
+      }
+
+      solver_.setGPResidual(stage, alpha * eps_vx / Ts, alpha * eps_vy / Ts, alpha * eps_omega / Ts);
+    }
+  };
+
   if (mlp_.isLoaded())
   {
     auto d = mlp_.predict(state.vel_x, state.vel_y, state.yaw_rate, last_input_.steer, last_input_.torque);
@@ -298,6 +337,11 @@ PacejkaMpccController<SolverType>::getControlInput(crs_models::pacejka_model::pa
   else
   {
     solver_.setGPResidual(0.0, 0.0, 0.0);
+  }
+
+  if (config_.residual_per_stage)
+  {
+    apply_residual_per_stage();
   }
 
   // theta also needs to be adjusted to account for the forward simulation. This is exact since dTheta is

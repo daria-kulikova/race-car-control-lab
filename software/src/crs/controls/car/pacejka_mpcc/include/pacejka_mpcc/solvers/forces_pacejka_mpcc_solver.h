@@ -73,6 +73,7 @@ public:
   void updateParams(int stage, ForcesPacejkaMpccSolver::MpcStageParameters& params) override;
 
   void setGPResidual(double /*d_vx*/, double /*d_vy*/, double /*d_omega*/) {}  // GP not used for forces
+  void setGPResidual(int /*stage*/, double /*d_vx*/, double /*d_vy*/, double /*d_omega*/) {}  // GP not used for forces
 
   /**
    * @brief Solves the optimization problems and stores the solution in x and u.

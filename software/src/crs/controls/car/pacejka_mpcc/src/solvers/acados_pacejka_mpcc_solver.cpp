@@ -97,9 +97,9 @@ void AcadosPacejkaMpccSolver::updateParams(int stage, AcadosPacejkaMpccSolver::M
   mpc_parameters[static_cast<int>(params::EPS)] = parameters.dynamics_param.eps;
   mpc_parameters[static_cast<int>(params::CAR_WIDTH)] = parameters.dynamics_param.car_width;
   mpc_parameters[static_cast<int>(params::WHEEL_RADIUS)] = parameters.dynamics_param.wheel_radius;
-  mpc_parameters[static_cast<int>(params::D_VX)]    = gp_d_vx_;
-  mpc_parameters[static_cast<int>(params::D_VY)]    = gp_d_vy_;
-  mpc_parameters[static_cast<int>(params::D_OMEGA)] = gp_d_omega_;
+  mpc_parameters[static_cast<int>(params::D_VX)]    = gp_d_vx_[stage];
+  mpc_parameters[static_cast<int>(params::D_VY)]    = gp_d_vy_[stage];
+  mpc_parameters[static_cast<int>(params::D_OMEGA)] = gp_d_omega_[stage];
 
   pacejka_model_acados_update_params(acados_ocp_capsule_.get(), stage, mpc_parameters.data(), NP);
 }
