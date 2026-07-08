@@ -1,0 +1,89 @@
+Comparing:  A = mlp_every_stage/residuals_C_0.csv  vs  B = gp_every_stage/residuals_C_1.csv
+  dataset A: 3 run(s);  dataset B: 3 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+Baseline vs GP 
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.06259      0.04186     -33.1%
+std  |eC| [m]                       0.03741      0.03707      -0.9%
+95th pct |eC| [m]                   0.13288      0.10202     -23.2%
+mean |eL| [m]                       0.06350      0.03113     -51.0%
+std  |eL| [m]                       0.01504      0.01903     +26.5%
+95th pct |eL| [m]                   0.08198      0.05696     -30.5%
+mean lap time [s]                   2.71871      3.51389     +29.2%
+
+mean |eps_vx|                       0.00543      0.00761     +40.2%
+std  |eps_vx|                       0.01258      0.01471     +16.9%
+95th |eps_vx|                       0.02361      0.02011     -14.8%
+
+mean |eps_vy|                       0.00271      0.00872    +221.7%
+std  |eps_vy|                       0.00347      0.00903    +160.5%
+95th |eps_vy|                       0.00913      0.02631    +188.2%
+
+mean |eps_omega|                    0.08606      0.32173    +273.8%
+std  |eps_omega|                    0.12114      0.34556    +185.3%
+95th |eps_omega|                    0.30006      1.03612    +245.3%
+
+
+
+Comparing:  A = mlp_every_stage/residuals_C_0.csv  vs  B = mlp_every_stage/residuals_C_1.csv
+  dataset A: 3 run(s);  dataset B: 3 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+Baseline vs MLP 
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.06259      0.06633      +6.0%
+std  |eC| [m]                       0.03741      0.03640      -2.7%
+95th pct |eC| [m]                   0.13288      0.13614      +2.5%
+mean |eL| [m]                       0.06350      0.06288      -1.0%
+std  |eL| [m]                       0.01504      0.01512      +0.5%
+95th pct |eL| [m]                   0.08198      0.08141      -0.7%
+mean lap time [s]                   2.71871      2.73521      +0.6%
+
+mean |eps_vx|                       0.00543      0.00528      -2.7%
+std  |eps_vx|                       0.01258      0.01237      -1.7%
+95th |eps_vx|                       0.02361      0.01976     -16.3%
+
+mean |eps_vy|                       0.00271      0.00326     +20.3%
+std  |eps_vy|                       0.00347      0.00508     +46.5%
+95th |eps_vy|                       0.00913      0.01107     +21.2%
+
+mean |eps_omega|                    0.08606      0.09952     +15.6%
+std  |eps_omega|                    0.12114      0.13841     +14.3%
+95th |eps_omega|                    0.30006      0.33864     +12.9%
+
+
+
+
+Comparing:  A = gp_every_stage/residuals_C_1.csv  vs  B = mlp_every_stage/residuals_C_1.csv
+  dataset A: 3 run(s);  dataset B: 3 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+MLP vs GP
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.04186      0.06633     +58.5%
+std  |eC| [m]                       0.03707      0.03640      -1.8%
+95th pct |eC| [m]                   0.10202      0.13614     +33.4%
+mean |eL| [m]                       0.03113      0.06288    +102.0%
+std  |eL| [m]                       0.01903      0.01512     -20.5%
+95th pct |eL| [m]                   0.05696      0.08141     +42.9%
+mean lap time [s]                   3.51389      2.73521     -22.2%
+
+mean |eps_vx|                       0.00761      0.00528     -30.6%
+std  |eps_vx|                       0.01471      0.01237     -15.9%
+95th |eps_vx|                       0.02011      0.01976      -1.7%
+
+mean |eps_vy|                       0.00872      0.00326     -62.6%
+std  |eps_vy|                       0.00903      0.00508     -43.7%
+95th |eps_vy|                       0.02631      0.01107     -57.9%
+
+mean |eps_omega|                    0.32173      0.09952     -69.1%
+std  |eps_omega|                    0.34556      0.13841     -59.9%
+95th |eps_omega|                    1.03612      0.33864     -67.3%
+

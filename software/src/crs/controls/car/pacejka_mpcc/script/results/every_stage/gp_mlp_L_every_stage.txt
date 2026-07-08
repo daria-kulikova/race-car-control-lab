@@ -1,0 +1,94 @@
+very_stage/mlp_every_stage/residuals_L_0.csv
+root@c91291e84ce9:/code# python3 src/crs/controls/car/pacejka_mpcc/script/plot_tracking.py --mode none --file-a mlp_every_stage/residuals_L_0.csv --file-b mlp_every_stage/residuals_L_1.csv
+Comparing:  A = mlp_every_stage/residuals_L_0.csv  vs  B = mlp_every_stage/residuals_L_1.csv
+  dataset A: 3 run(s);  dataset B: 4 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+
+MLP 0  vs. 1 
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.06189      0.04995     -19.3%
+std  |eC| [m]                       0.05483      0.04796     -12.5%
+95th pct |eC| [m]                   0.17641      0.15487     -12.2%
+mean |eL| [m]                       0.06093      0.06326      +3.8%
+std  |eL| [m]                       0.01145      0.01424     +24.4%
+95th pct |eL| [m]                   0.07587      0.08559     +12.8%
+mean lap time [s]                   4.16742      4.20347      +0.9%
+
+mean |eps_vx|                       0.00549      0.00493     -10.2%
+std  |eps_vx|                       0.01388      0.00897     -35.4%
+95th |eps_vx|                       0.01815      0.01754      -3.4%
+
+mean |eps_vy|                       0.00417      0.00262     -37.1%
+std  |eps_vy|                       0.02234      0.00366     -83.6%
+95th |eps_vy|                       0.01292      0.00905     -30.0%
+
+mean |eps_omega|                    0.12336      0.09456     -23.3%
+std  |eps_omega|                    0.20371      0.13875     -31.9%
+95th |eps_omega|                    0.48972      0.34533     -29.5%
+
+
+Saved -> /code/src/crs/controls/car/pacejka_mpcc/script/plots/tracking_comparison_A_B.png
+Saved -> /code/src/crs/controls/car/pacejka_mpcc/script/plots/mlp_vs_gp_new_day.svg
+root@c91291e84ce9:/code# python3 src/crs/controls/car/pacejka_mpcc/script/plot_tracking.py --mode none --file-a mlp_every_stage/residuals_L_0.csv --file-b gp_every_stage/residuals_L_1.csv
+Comparing:  A = mlp_every_stage/residuals_L_0.csv  vs  B = gp_every_stage/residuals_L_1.csv
+  dataset A: 3 run(s);  dataset B: 3 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+
+
+GP 0 vs. 1
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.06189      0.04528     -26.8%
+std  |eC| [m]                       0.05483      0.04098     -25.3%
+95th pct |eC| [m]                   0.17641      0.11461     -35.0%
+mean |eL| [m]                       0.06093      0.03337     -45.2%
+std  |eL| [m]                       0.01145      0.02025     +76.8%
+95th pct |eL| [m]                   0.07587      0.06087     -19.8%
+mean lap time [s]                   4.16742      4.70072     +12.8%
+
+mean |eps_vx|                       0.00549      0.00645     +17.4%
+std  |eps_vx|                       0.01388      0.01240     -10.7%
+95th |eps_vx|                       0.01815      0.01964      +8.2%
+
+mean |eps_vy|                       0.00417      0.00733     +75.9%
+std  |eps_vy|                       0.02234      0.01006     -55.0%
+95th |eps_vy|                       0.01292      0.02628    +103.4%
+
+mean |eps_omega|                    0.12336      0.28032    +127.2%
+std  |eps_omega|                    0.20371      0.37914     +86.1%
+95th |eps_omega|                    0.48972      0.99589    +103.4%
+
+
+
+Comparing:  A = mlp_every_stage/residuals_L_1.csv  vs  B = gp_every_stage/residuals_L_1.csv
+  dataset A: 4 run(s);  dataset B: 3 run(s)
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+
+MLP vs. GP  L_Track
+
+Metric                            dataset A    dataset B     Change
+--------------------------------------------------------------------
+mean |eC| [m]                       0.04995      0.04528      -9.3%
+std  |eC| [m]                       0.04796      0.04098     -14.5%
+95th pct |eC| [m]                   0.15487      0.11461     -26.0%
+mean |eL| [m]                       0.06326      0.03337     -47.3%
+std  |eL| [m]                       0.01424      0.02025     +42.2%
+95th pct |eL| [m]                   0.08559      0.06087     -28.9%
+mean lap time [s]                   4.20347      4.70072     +11.8%
+
+mean |eps_vx|                       0.00493      0.00645     +30.8%
+std  |eps_vx|                       0.00897      0.01240     +38.3%
+95th |eps_vx|                       0.01754      0.01964     +12.0%
+
+mean |eps_vy|                       0.00262      0.00733    +179.6%
+std  |eps_vy|                       0.00366      0.01006    +174.8%
+95th |eps_vy|                       0.00905      0.02628    +190.3%
+
+mean |eps_omega|                    0.09456      0.28032    +196.4%
+std  |eps_omega|                    0.13875      0.37914    +173.3%
+95th |eps_omega|                    0.34533      0.99589    +188.4%
